@@ -13,6 +13,7 @@ import ThesisWorkspace from "./components/ThesisWorkspace.jsx";
 import Chapter4 from "./components/Chapter4.jsx";
 import UploadZone from "./components/UploadZone.jsx";
 import ColumnPreview from "./components/ColumnPreview.jsx";
+import DatasetReview from "./components/DatasetReview.jsx";
 import Account from "./components/Account.jsx";
 import Credits from "./components/Credits.jsx";
 
@@ -28,6 +29,10 @@ import {
   getThesisProject,
   updateThesisProject,
   uploadThesisDataset,
+  listDatasetVersions,
+  getDatasetVersion,
+  validateDatasetVersion,
+  activateDatasetVersion,
   buildAnalysisPlan,
   runThesisAnalysis,
   downloadChapter4,
@@ -65,6 +70,13 @@ const friendly = (e) => {
 
     return (
       "You do not have enough credits for this operation. Please buy more credits to continue."
+    );
+  }
+
+  if (e?.status === 409) {
+    return (
+      m ||
+      "Review and activate the cleaned dataset before building the analysis plan."
     );
   }
 
@@ -129,6 +141,17 @@ export default function App() {
   ] = useState(null);
 
   /*
+   * The cleaned dataset version currently under review
+   * (status: cleaned -> validated -> activated). Populated
+   * right after upload, or when a project is reopened with
+   * an un-activated cleaned version pending.
+   */
+  const [
+    datasetVersion,
+    setDatasetVersion,
+  ] = useState(null);
+
+  /*
    * Current credit balance.
    *
    * PostgreSQL/backend remains the source
@@ -145,6 +168,7 @@ export default function App() {
    *
    * setup     = Research
    * upload    = Dataset
+   * review    = Dataset review (validate + activate)
    * workspace = Analysis
    * chapter4  = Chapter 4
    * account   = Account
@@ -371,8 +395,11 @@ export default function App() {
        * Analysis plan exists:
        *     Analysis screen.
        *
-       * Dataset exists:
+       * Dataset activated (active_dataset_version_id set):
        *     Dataset screen.
+       *
+       * Dataset uploaded but not yet reviewed/activated:
+       *     Dataset review screen.
        *
        * Otherwise:
        *     Research screen.
@@ -385,9 +412,21 @@ export default function App() {
       ) {
         setStep("workspace");
       } else if (
-        p.dataset_path
+        p.dataset_path &&
+        p.active_dataset_version_id
       ) {
         setStep("upload");
+      } else if (
+        p.dataset_path
+      ) {
+        const routed =
+          await goReviewPendingDataset(
+            c.id
+          ).catch(() => false);
+
+        if (!routed) {
+          setStep("upload");
+        }
       } else {
         setStep("setup");
       }
@@ -553,9 +592,119 @@ export default function App() {
       );
 
       /*
-       * Upload complete.
-       * Move directly to Analysis.
+       * Upload complete, but the cleaned candidate is not
+       * active yet. Load it so the researcher can review the
+       * cleaning report, then validate and activate it.
        */
+      if (d?.dataset_version_id) {
+        const versionDetail =
+          await getDatasetVersion(
+            id,
+            d.dataset_version_id
+          );
+
+        setDatasetVersion(
+          versionDetail.version
+        );
+
+        setStep("review");
+      } else {
+        // Legacy projects without dataset versioning fall
+        // back to the old direct-to-analysis flow.
+        setStep("workspace");
+      }
+    } catch (e) {
+      setError(
+        friendly(e)
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /*
+   * ---------------------------------------------------------
+   * VALIDATE DATASET VERSION
+   * ---------------------------------------------------------
+   */
+
+  const validateDataset = async () => {
+    if (!active || !datasetVersion)
+      return;
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const result =
+        await validateDatasetVersion(
+          active.id,
+          datasetVersion.id
+        );
+
+      setDatasetVersion(
+        result.version
+      );
+    } catch (e) {
+      setError(
+        friendly(e)
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /*
+   * ---------------------------------------------------------
+   * ACTIVATE DATASET VERSION
+   * ---------------------------------------------------------
+   */
+
+  const activateDataset = async () => {
+    if (!active || !datasetVersion)
+      return;
+
+    setLoading(true);
+    setError("");
+
+    try {
+      await activateDatasetVersion(
+        active.id,
+        datasetVersion.id
+      );
+
+      /*
+       * Activation supersedes any prior active version and
+       * clears the project's existing analysis plan/results,
+       * so refresh everything from the server rather than
+       * patching local state.
+       */
+      const refreshed =
+        await getThesisProject(
+          active.id
+        );
+
+      setProject(refreshed);
+
+      setUpload({
+        dataset_filename:
+          refreshed.dataset_filename,
+        dataset_rows:
+          refreshed.dataset_rows,
+        dataset_columns:
+          refreshed.dataset_columns,
+      });
+
+      setDatasetVersion(
+        (v) =>
+          v
+            ? { ...v, status: "validated" }
+            : v
+      );
+
+      setPlan(null);
+      setAnalysis(null);
+
       setStep("workspace");
     } catch (e) {
       setError(
@@ -564,6 +713,41 @@ export default function App() {
     } finally {
       setLoading(false);
     }
+  };
+
+  /*
+   * ---------------------------------------------------------
+   * LOAD PENDING DATASET VERSION
+   * ---------------------------------------------------------
+   *
+   * Finds the most recent cleaned version that is not yet the
+   * project's active version and opens the review stage for
+   * it. Used when the backend refuses to build an analysis
+   * plan (409) and when reopening a project left mid-review.
+   */
+
+  const goReviewPendingDataset = async (
+    conversationId
+  ) => {
+    const { versions } =
+      await listDatasetVersions(
+        conversationId
+      );
+
+    const pending = (versions || []).find(
+      (v) =>
+        v.kind === "cleaned" &&
+        (v.status === "cleaned" ||
+          v.status === "validated")
+    );
+
+    if (pending) {
+      setDatasetVersion(pending);
+      setStep("review");
+      return true;
+    }
+
+    return false;
   };
 
   /*
@@ -594,6 +778,23 @@ export default function App() {
 
       setStep("workspace");
     } catch (e) {
+      /*
+       * The dataset exists but has not been validated and
+       * activated yet. Send the researcher back to review it
+       * instead of just showing an error.
+       */
+      if (e?.status === 409) {
+        const routed =
+          await goReviewPendingDataset(
+            active.id
+          ).catch(() => false);
+
+        if (routed) {
+          setError(friendly(e));
+          return;
+        }
+      }
+
       setError(
         friendly(e)
       );
@@ -896,6 +1097,9 @@ export default function App() {
   const isDataset =
     step === "upload";
 
+  const isReview =
+    step === "review";
+
   const isAnalysis =
     step === "workspace";
 
@@ -1033,6 +1237,14 @@ export default function App() {
                     isAnalysis
                   ) {
                     setStep(
+                      datasetVersion
+                        ? "review"
+                        : "upload"
+                    );
+                  } else if (
+                    isReview
+                  ) {
+                    setStep(
                       "upload"
                     );
                   } else if (
@@ -1095,9 +1307,9 @@ export default function App() {
 
             <span
               className={
-                isDataset
+                isDataset || isReview
                   ? "active"
-                  : !isResearch
+                  : isAnalysis || isChapter4
                   ? "done"
                   : ""
               }
@@ -1134,6 +1346,26 @@ export default function App() {
         ===================================================== */}
 
         <div className="content-shell">
+          {active && (
+            <input
+              ref={replaceInputRef}
+              className="current-dataset-file-input"
+              type="file"
+              accept=".csv,.xls,.xlsx"
+              onChange={async (event) => {
+                const selectedFile =
+                  event.target.files?.[0];
+
+                if (selectedFile) {
+                  await file(selectedFile);
+                }
+
+                event.target.value = "";
+              }}
+              disabled={loading}
+            />
+          )}
+
           {/* =================================================
               ACCOUNT
           ================================================= */}
@@ -1234,100 +1466,68 @@ export default function App() {
                     }
                   />
                 ) : (
-                  <>
-                    <input
-                      ref={
-                        replaceInputRef
-                      }
-                      className="current-dataset-file-input"
-                      type="file"
-                      accept=".csv,.xls,.xlsx"
-                      onChange={async (
-                        event
-                      ) => {
-                        const selectedFile =
-                          event.target
-                            .files?.[0];
-
-                        if (
-                          selectedFile
-                        ) {
-                          await file(
-                            selectedFile
-                          );
-                        }
-
-                        event.target.value =
-                          "";
-                      }}
-                      disabled={
-                        loading
-                      }
-                    />
-
-                    <div className="current-dataset-card">
-                      <div className="current-dataset-copy">
-                        <div className="current-dataset-label">
-                          CURRENT DATASET
-                        </div>
-
-                        <div className="current-dataset-name">
-                          {upload.filename ||
-                            upload.dataset_filename ||
-                            "Your dataset"}
-                        </div>
-
-                        <div className="current-dataset-meta">
-                          {(
-                            upload.rows ||
-                            upload.dataset_rows ||
-                            0
-                          ).toLocaleString()}{" "}
-                          observations ·{" "}
-                          {(
-                            upload.columns ||
-                            upload.dataset_columns ||
-                            []
-                          ).length}{" "}
-                          variables
-                        </div>
+                  <div className="current-dataset-card">
+                    <div className="current-dataset-copy">
+                      <div className="current-dataset-label">
+                        CURRENT DATASET
                       </div>
 
-                      <div className="current-dataset-actions">
-                        <button
-                          className="btn btn-secondary"
-                          type="button"
-                          onClick={() =>
-                            replaceInputRef.current?.click()
-                          }
-                          disabled={
-                            loading
-                          }
-                        >
-                          Replace dataset
-                        </button>
+                      <div className="current-dataset-name">
+                        {upload.filename ||
+                          upload.dataset_filename ||
+                          "Your dataset"}
+                      </div>
 
-                        <button
-                          className="btn btn-primary"
-                          type="button"
-                          onClick={() => {
-                            setError(
-                              ""
-                            );
-
-                            setStep(
-                              "workspace"
-                            );
-                          }}
-                          disabled={
-                            loading
-                          }
-                        >
-                          Continue →
-                        </button>
+                      <div className="current-dataset-meta">
+                        {(
+                          upload.rows ||
+                          upload.dataset_rows ||
+                          0
+                        ).toLocaleString()}{" "}
+                        observations ·{" "}
+                        {(
+                          upload.columns ||
+                          upload.dataset_columns ||
+                          []
+                        ).length}{" "}
+                        variables
                       </div>
                     </div>
-                  </>
+
+                    <div className="current-dataset-actions">
+                      <button
+                        className="btn btn-secondary"
+                        type="button"
+                        onClick={() =>
+                          replaceInputRef.current?.click()
+                        }
+                        disabled={
+                          loading
+                        }
+                      >
+                        Replace dataset
+                      </button>
+
+                      <button
+                        className="btn btn-primary"
+                        type="button"
+                        onClick={() => {
+                          setError(
+                            ""
+                          );
+
+                          setStep(
+                            "workspace"
+                          );
+                        }}
+                        disabled={
+                          loading
+                        }
+                      >
+                        Continue →
+                      </button>
+                    </div>
+                  </div>
                 )}
 
                 {upload && (
@@ -1346,6 +1546,52 @@ export default function App() {
                     }
                   />
                 )}
+              </section>
+            )}
+
+          {/* =================================================
+              DATASET REVIEW
+          ================================================= */}
+
+          {!isSettingsPage &&
+            active &&
+            isReview && (
+              <section>
+                <div className="workspace-intro">
+                  <div>
+                    <div className="section-kicker">
+                      02 · DATASET REVIEW
+                    </div>
+
+                    <h1>
+                      Check the cleanup before you analyse.
+                    </h1>
+
+                    <p>
+                      Adanse only applies conservative,
+                      automatic cleaning steps. Validate the
+                      report below, then activate this
+                      version to unlock the analysis plan.
+                    </p>
+                  </div>
+                </div>
+
+                <DatasetReview
+                  version={datasetVersion}
+                  active={Boolean(
+                    project?.active_dataset_version_id &&
+                      datasetVersion &&
+                      project.active_dataset_version_id ===
+                        datasetVersion.id
+                  )}
+                  onValidate={validateDataset}
+                  onActivate={activateDataset}
+                  onReplace={() =>
+                    replaceInputRef.current?.click()
+                  }
+                  loading={loading}
+                  error={error}
+                />
               </section>
             )}
 

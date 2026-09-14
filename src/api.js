@@ -305,6 +305,52 @@ export const uploadThesisDataset = (
 
 /*
  * ---------------------------------------------------------
+ * DATASET VERSIONS
+ * ---------------------------------------------------------
+ *
+ * Uploading a dataset persists an immutable original artifact
+ * plus a separately-versioned cleaned candidate. The cleaned
+ * version must be validated, then activated, before an
+ * analysis plan can be built.
+ */
+
+export const listDatasetVersions = (
+  id
+) =>
+  request(`/thesis/projects/${id}/datasets`);
+
+export const getDatasetVersion = (
+  id,
+  versionId
+) =>
+  request(
+    `/thesis/projects/${id}/datasets/${versionId}`
+  );
+
+export const validateDatasetVersion = (
+  id,
+  versionId
+) =>
+  request(
+    `/thesis/projects/${id}/datasets/${versionId}/validate`,
+    {
+      method: "POST",
+    }
+  );
+
+export const activateDatasetVersion = (
+  id,
+  versionId
+) =>
+  request(
+    `/thesis/projects/${id}/datasets/${versionId}/activate`,
+    {
+      method: "POST",
+    }
+  );
+
+/*
+ * ---------------------------------------------------------
  * ANALYSIS PLAN
  * ---------------------------------------------------------
  */
