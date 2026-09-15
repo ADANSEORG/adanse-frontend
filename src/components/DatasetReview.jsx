@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 function formatVariableName(name) {
   if (!name) return "";
 
@@ -53,9 +55,13 @@ export default function DatasetReview({
   onValidate,
   onActivate,
   onReplace,
+  onApplyGroupings,
   loading,
   error,
 }) {
+  const [groupSelections, setGroupSelections] = useState({});
+  const [applyingGroupings, setApplyingGroupings] = useState(false);
+
   if (!version) {
     return null;
   }
@@ -95,6 +101,77 @@ export default function DatasetReview({
 
   const canActivate =
     status === "validated" && !active && !loading;
+
+  // Suggestions only: flatten { column: { groups: [...] } } into one list.
+  // A column with an empty/missing groups array contributes nothing here,
+  // so it never shows up as something to review.
+  const groupingSuggestions = version.grouping_suggestions || {};
+  const pendingGroups = Object.entries(groupingSuggestions).flatMap(
+    ([column, suggestion]) =>
+      (suggestion?.groups || []).map((group, index) => ({
+        key: `${column}::${index}`,
+        column,
+        variants: Array.isArray(group.variants) ? group.variants : [],
+        confidence: group.confidence || "low",
+        defaultCanonical: group.canonical || "",
+      }))
+  );
+
+  function getSelection(group) {
+    return (
+      groupSelections[group.key] || {
+        accepted: false,
+        canonical: group.defaultCanonical,
+      }
+    );
+  }
+
+  function toggleAccepted(group) {
+    setGroupSelections((prev) => ({
+      ...prev,
+      [group.key]: {
+        ...getSelection(group),
+        accepted: !getSelection(group).accepted,
+      },
+    }));
+  }
+
+  function updateCanonical(group, value) {
+    setGroupSelections((prev) => ({
+      ...prev,
+      [group.key]: {
+        ...getSelection(group),
+        canonical: value,
+      },
+    }));
+  }
+
+  const hasConfirmedGrouping = pendingGroups.some(
+    (group) => getSelection(group).accepted
+  );
+
+  async function handleApplyGroupings() {
+    if (!onApplyGroupings) return;
+
+    const confirmed = pendingGroups
+      .map((group) => ({ group, selection: getSelection(group) }))
+      .filter(({ selection }) => selection.accepted)
+      .map(({ group, selection }) => ({
+        column: group.column,
+        canonical: selection.canonical,
+        variants: group.variants,
+      }));
+
+    if (!confirmed.length) return;
+
+    setApplyingGroupings(true);
+    try {
+      await onApplyGroupings(confirmed);
+      setGroupSelections({});
+    } finally {
+      setApplyingGroupings(false);
+    }
+  }
 
   return (
     <div className="dataset-profile-card">
@@ -300,6 +377,95 @@ export default function DatasetReview({
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================
+          POSSIBLE GROUPINGS (suggestion only — nothing here is
+          applied until the researcher checks a group and clicks
+          "Apply checked groupings"). Renders nothing at all when
+          there are no suggestions, so a clean column never shows
+          an empty box asking for a decision that doesn't exist.
+          ===================================================== */}
+
+      {pendingGroups.length > 0 && (
+        <div className="dataset-variables">
+          <div className="dataset-variables-heading">
+            <div>
+              <div className="dataset-profile-kicker">
+                POSSIBLE GROUPINGS
+              </div>
+              <h3>Adanse noticed values that might be the same category</h3>
+            </div>
+            <span>{pendingGroups.length} to review</span>
+          </div>
+
+          <p className="dataset-grouping-note">
+            These are suggestions only — nothing is merged until you check a
+            group below and apply it. Leaving a suggestion unchecked keeps
+            the values exactly as they are.
+          </p>
+
+          <div className="dataset-variable-list">
+            {pendingGroups.map((group) => {
+              const selection = getSelection(group);
+              return (
+                <div
+                  className="dataset-variable-row grouping-suggestion"
+                  key={group.key}
+                >
+                  <label className="dataset-grouping-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={selection.accepted}
+                      onChange={() => toggleAccepted(group)}
+                      disabled={applyingGroupings}
+                    />
+                    Merge these
+                  </label>
+
+                  <div className="dataset-variable-main">
+                    <span className="dataset-type-badge">
+                      {formatVariableName(group.column)}
+                    </span>
+                    <span className="dataset-grouping-variants">
+                      {group.variants.join(" · ")}
+                    </span>
+                    <span
+                      className={`dataset-grouping-confidence ${group.confidence}`}
+                    >
+                      {group.confidence} confidence
+                    </span>
+                  </div>
+
+                  <div className="dataset-grouping-canonical">
+                    <label>Merge into</label>
+                    <input
+                      type="text"
+                      value={selection.canonical}
+                      onChange={(event) =>
+                        updateCanonical(group, event.target.value)
+                      }
+                      disabled={!selection.accepted || applyingGroupings}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="dataset-grouping-actions">
+            <button
+              className="btn btn-secondary"
+              type="button"
+              onClick={handleApplyGroupings}
+              disabled={!hasConfirmedGrouping || applyingGroupings}
+            >
+              {applyingGroupings
+                ? "Applying…"
+                : "Apply checked groupings"}
+            </button>
           </div>
         </div>
       )}

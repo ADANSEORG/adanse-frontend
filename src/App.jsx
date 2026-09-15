@@ -33,6 +33,7 @@ import {
   getDatasetVersion,
   validateDatasetVersion,
   activateDatasetVersion,
+  applyDatasetGroupings,
   buildAnalysisPlan,
   runThesisAnalysis,
   downloadChapter4,
@@ -651,6 +652,40 @@ export default function App() {
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  /*
+   * ---------------------------------------------------------
+   * APPLY CONFIRMED GROUPINGS
+   *
+   * Creates a new cleaned dataset version — it never mutates
+   * datasetVersion in place. The new version still needs its
+   * own validate + activate before analysis can use it.
+   * ---------------------------------------------------------
+   */
+
+  const applyGroupings = async (groupings) => {
+    if (!active || !datasetVersion)
+      return;
+
+    setError("");
+
+    try {
+      const result =
+        await applyDatasetGroupings(
+          active.id,
+          datasetVersion.id,
+          groupings
+        );
+
+      setDatasetVersion(
+        result.version
+      );
+    } catch (e) {
+      setError(
+        friendly(e)
+      );
     }
   };
 
@@ -1586,6 +1621,7 @@ export default function App() {
                   )}
                   onValidate={validateDataset}
                   onActivate={activateDataset}
+                  onApplyGroupings={applyGroupings}
                   onReplace={() =>
                     replaceInputRef.current?.click()
                   }

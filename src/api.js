@@ -349,6 +349,21 @@ export const activateDatasetVersion = (
     }
   );
 
+export const applyDatasetGroupings = (
+  id,
+  versionId,
+  groupings
+) =>
+  request(
+    `/thesis/projects/${id}/datasets/${versionId}/apply-groupings`,
+    {
+      method: "POST",
+      body: {
+        groupings,
+      },
+    }
+  );
+
 /*
  * ---------------------------------------------------------
  * ANALYSIS PLAN

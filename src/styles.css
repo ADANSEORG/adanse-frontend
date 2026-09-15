@@ -2223,6 +2223,96 @@ button {
 }
 
 /* =========================================================
+   GROUPING SUGGESTIONS (never auto-applied)
+   ========================================================= */
+
+.dataset-grouping-note {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.dataset-variable-row.grouping-suggestion {
+  align-items: center;
+  gap: 14px;
+}
+
+.dataset-grouping-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.dataset-grouping-variants {
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.dataset-grouping-confidence {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.dataset-grouping-confidence.high {
+  background: #e7f0e8;
+  color: var(--green);
+}
+
+.dataset-grouping-confidence.medium {
+  background: #f7edd0;
+  color: #8a6412;
+}
+
+.dataset-grouping-confidence.low {
+  background: var(--bg);
+  color: var(--muted);
+}
+
+.dataset-grouping-canonical {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.dataset-grouping-canonical label {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.dataset-grouping-canonical input[type="text"] {
+  width: 140px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.dataset-grouping-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+@media (max-width: 720px) {
+  .dataset-variable-row.grouping-suggestion {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+/* =========================================================
    EXPLANATION
    ========================================================= */
 
