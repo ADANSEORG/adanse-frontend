@@ -46,7 +46,18 @@ function QuantitativeResult({ result }) {
       </strong></div>
       <div><span>p-value</span><strong><PValue value={result.p_value} formatted={result.p_value_formatted} /></strong></div>
       {result.n != null && <div><span>Observations</span><strong>{result.n}</strong></div>}
-      {result.effect_size != null && <div><span>Effect size</span><strong>{number(result.effect_size)}</strong></div>}
+      {result.effect_size != null && (
+        <div>
+          <span>Effect size</span>
+          <strong>
+            {typeof result.effect_size === "object"
+              ? `${pretty(result.effect_size.metric || "")} = ${number(result.effect_size.value)}${
+                  result.effect_size.label ? ` (${result.effect_size.label})` : ""
+                }`
+              : number(result.effect_size)}
+          </strong>
+        </div>
+      )}
     </div>
   );
 }
