@@ -4280,3 +4280,17 @@ button {
     background: white;
   }
 }
+
+/* ---------------------------------------------------------
+   CREDITS — BUY PACKAGES
+   --------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .credits-package-grid {
+    /* Overrides the inline grid-template-columns set in
+       Credits.jsx, which otherwise keeps two columns at every
+       width and squeezes each card too narrow to lay out its
+       title, price and button cleanly. */
+    grid-template-columns: 1fr !important;
+  }
+}

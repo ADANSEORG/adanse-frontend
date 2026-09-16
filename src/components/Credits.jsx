@@ -178,7 +178,10 @@ export default function Credits({
           BUY CREDITS
         </div>
 
-        <div style={styles.packageGrid}>
+        <div
+          className="credits-package-grid"
+          style={styles.packageGrid}
+        >
           {/* 400 */}
 
           <div style={styles.packageCard}>
@@ -692,6 +695,11 @@ const styles = {
 
   featuredPackage: {
     borderColor: "var(--gold)",
+    // Extra top clearance so the "Best value" badge (absolutely
+    // positioned, see valueBadge) never overlaps the credit
+    // number below it, even when the card is narrow enough that
+    // the title wraps onto two lines.
+    paddingTop: "56px",
   },
 
   valueBadge: {
@@ -704,6 +712,7 @@ const styles = {
     color: "var(--ink)",
     fontSize: "10px",
     fontWeight: 700,
+    whiteSpace: "nowrap",
   },
 
   packageTop: {
