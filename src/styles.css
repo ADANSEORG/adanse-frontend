@@ -1406,6 +1406,13 @@ button {
   font-size: 13px;
 }
 
+.auth-otp-input {
+  font-size: 20px;
+  letter-spacing: 0.2em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
 .auth-disclaimer,
 .auth-footer {
   color: #988d80;

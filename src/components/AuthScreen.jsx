@@ -1,8 +1,56 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../AuthContext.jsx";
 
+const RESEND_COOLDOWN_SECONDS = 45;
+
+// Supabase intentionally returns the same error code/message for a
+// wrong code and an expired one (anti-enumeration), so we can't show
+// distinct copy for those two cases.
+function describeOtpError(err) {
+  switch (err?.code) {
+    case "otp_expired":
+      return "That code is incorrect or has expired. Check the latest code we emailed you, or request a new one.";
+    case "over_email_send_rate_limit":
+      return "You're requesting codes too quickly. Wait a minute before asking for another one.";
+    case "over_request_rate_limit":
+      return "Too many attempts. Please wait a moment and try again.";
+    default:
+      return (
+        err?.message ||
+        "We couldn't verify that code. Please try again."
+      );
+  }
+}
+
+/*
+ * Same validation rules for both modes, just applied
+ * differently: signup requires a name, both modes require
+ * email + password, and the password length rule always
+ * applies (Supabase itself enforces at least 6 characters).
+ */
+function validateAuthForm({ isSignup, name, email, password }) {
+  if (isSignup && !name) {
+    return "Enter your full name.";
+  }
+
+  if (!email || !password) {
+    return "Enter your email and password.";
+  }
+
+  if (password.length < 6) {
+    return "Your password must be at least 6 characters.";
+  }
+
+  return null;
+}
+
 export default function AuthScreen() {
-  const { signIn, signUp } = useAuth();
+  const {
+    signIn,
+    signUp,
+    verifySignupOtp,
+    resendSignupOtp,
+  } = useAuth();
 
   const [mode, setMode] = useState("signin");
 
@@ -14,7 +62,28 @@ export default function AuthScreen() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
+  // Set once signUp succeeds without a session, meaning the
+  // account needs email confirmation before it can sign in.
+  const [pendingEmail, setPendingEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
   const isSignup = mode === "signup";
+  const isVerifying = Boolean(pendingEmail);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return undefined;
+
+    const timer = setInterval(() => {
+      setResendCooldown((seconds) =>
+        seconds > 0 ? seconds - 1 : 0
+      );
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -25,20 +94,15 @@ export default function AuthScreen() {
     const cleanName = name.trim();
     const cleanEmail = email.trim();
 
-    if (isSignup && !cleanName) {
-      setError("Enter your full name.");
-      return;
-    }
+    const validationError = validateAuthForm({
+      isSignup,
+      name: cleanName,
+      email: cleanEmail,
+      password,
+    });
 
-    if (!cleanEmail || !password) {
-      setError("Enter your email and password.");
-      return;
-    }
-
-    if (password.length < 6) {
-      setError(
-        "Your password must be at least 6 characters."
-      );
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -57,8 +121,9 @@ export default function AuthScreen() {
             "Account created. Welcome to Adanse."
           );
         } else {
-          setMessage(
-            "Account created. Check your email to confirm your account, then sign in."
+          setPendingEmail(cleanEmail);
+          setResendCooldown(
+            RESEND_COOLDOWN_SECONDS
           );
         }
       } else {
@@ -80,7 +145,61 @@ export default function AuthScreen() {
   function switchMode() {
     setError("");
     setMessage("");
+    setPendingEmail("");
+    setCode("");
     setMode(isSignup ? "signin" : "signup");
+  }
+
+  async function handleVerifyCode(event) {
+    event.preventDefault();
+
+    setError("");
+    setMessage("");
+
+    const cleanCode = code.trim();
+
+    if (!cleanCode) {
+      setError("Enter the confirmation code we emailed you.");
+      return;
+    }
+
+    setVerifying(true);
+
+    try {
+      await verifySignupOtp({
+        email: pendingEmail,
+        token: cleanCode,
+      });
+      // On success, AuthContext's session listener routes us
+      // into the app the same way a normal sign-in does.
+    } catch (err) {
+      setError(describeOtpError(err));
+    } finally {
+      setVerifying(false);
+    }
+  }
+
+  async function handleResendCode() {
+    setError("");
+    setMessage("");
+    setResending(true);
+
+    try {
+      await resendSignupOtp({ email: pendingEmail });
+      setMessage("We sent you a new code.");
+      setResendCooldown(RESEND_COOLDOWN_SECONDS);
+    } catch (err) {
+      setError(describeOtpError(err));
+    } finally {
+      setResending(false);
+    }
+  }
+
+  function handleBackToSignup() {
+    setError("");
+    setMessage("");
+    setPendingEmail("");
+    setCode("");
   }
 
   return (
@@ -175,30 +294,136 @@ export default function AuthScreen() {
 
           <div className="auth-card">
 
-            <div className="auth-card-top">
-              {isSignup
-                ? "Get started"
-                : "Welcome back"}
-            </div>
+            {isVerifying ? (
+              <>
+                <div className="auth-card-top">
+                  Confirm your email
+                </div>
 
-            <div className="auth-card-heading">
-              <h2>
-                {isSignup
-                  ? "Create your account"
-                  : "Sign in to Adanse"}
-              </h2>
+                <div className="auth-card-heading">
+                  <h2>Enter your code</h2>
 
-              <p>
-                {isSignup
-                  ? "Start analysing your research data."
-                  : "Continue where you left off with your research."}
-              </p>
-            </div>
+                  <p>
+                    We sent a confirmation code to{" "}
+                    <strong>{pendingEmail}</strong>.
+                    Enter it below to finish creating
+                    your account.
+                  </p>
+                </div>
 
-            <form
-              className="auth-form"
-              onSubmit={handleSubmit}
-            >
+                <form
+                  className="auth-form"
+                  onSubmit={handleVerifyCode}
+                >
+                  <label
+                    className="auth-label"
+                    htmlFor="auth-otp"
+                  >
+                    Confirmation code
+                  </label>
+
+                  <input
+                    id="auth-otp"
+                    className="auth-input auth-otp-input"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    pattern="[0-9]*"
+                    maxLength={12}
+                    value={code}
+                    onChange={(e) =>
+                      setCode(
+                        e.target.value.replace(/\D/g, "")
+                      )
+                    }
+                    placeholder="Enter the code from your email"
+                    disabled={verifying}
+                  />
+
+                  {error && (
+                    <div
+                      className="auth-error"
+                      role="alert"
+                    >
+                      {error}
+                    </div>
+                  )}
+
+                  {message && (
+                    <div
+                      className="auth-message"
+                      role="status"
+                    >
+                      {message}
+                    </div>
+                  )}
+
+                  <button
+                    className="auth-submit"
+                    type="submit"
+                    disabled={verifying}
+                  >
+                    {verifying
+                      ? "Verifying…"
+                      : "Verify and continue"}
+                  </button>
+                </form>
+
+                <div className="auth-switch">
+                  <span>Didn't get the email?</span>
+
+                  <button
+                    type="button"
+                    className="auth-switch-button"
+                    onClick={handleResendCode}
+                    disabled={
+                      resending || resendCooldown > 0
+                    }
+                  >
+                    {resending
+                      ? "Sending…"
+                      : resendCooldown > 0
+                        ? `Resend code (${resendCooldown}s)`
+                        : "Resend code"}
+                  </button>
+                </div>
+
+                <div className="auth-switch">
+                  <button
+                    type="button"
+                    className="auth-switch-button"
+                    onClick={handleBackToSignup}
+                  >
+                    Use a different email
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="auth-card-top">
+                  {isSignup
+                    ? "Get started"
+                    : "Welcome back"}
+                </div>
+
+                <div className="auth-card-heading">
+                  <h2>
+                    {isSignup
+                      ? "Create your account"
+                      : "Sign in to Adanse"}
+                  </h2>
+
+                  <p>
+                    {isSignup
+                      ? "Start analysing your research data."
+                      : "Continue where you left off with your research."}
+                  </p>
+                </div>
+
+                <form
+                  className="auth-form"
+                  onSubmit={handleSubmit}
+                >
 
               {isSignup && (
                 <>
@@ -304,31 +529,33 @@ export default function AuthScreen() {
                     : "Sign in"}
               </button>
 
-            </form>
+                </form>
 
-            <div className="auth-switch">
-              <span>
-                {isSignup
-                  ? "Already have an account?"
-                  : "Don't have an account?"}
-              </span>
+                <div className="auth-switch">
+                  <span>
+                    {isSignup
+                      ? "Already have an account?"
+                      : "Don't have an account?"}
+                  </span>
 
-              <button
-                type="button"
-                className="auth-switch-button"
-                onClick={switchMode}
-                disabled={loading}
-              >
-                {isSignup
-                  ? "Sign in"
-                  : "Create one"}
-              </button>
-            </div>
+                  <button
+                    type="button"
+                    className="auth-switch-button"
+                    onClick={switchMode}
+                    disabled={loading}
+                  >
+                    {isSignup
+                      ? "Sign in"
+                      : "Create one"}
+                  </button>
+                </div>
 
-            <p className="auth-disclaimer">
-              Your research is associated with your
-              account.
-            </p>
+                <p className="auth-disclaimer">
+                  Your research is associated with your
+                  account.
+                </p>
+              </>
+            )}
 
           </div>
 

@@ -149,9 +149,64 @@ export function AuthProvider({ children }) {
       throw error;
     }
 
+    // Only set the user here if signUp already returned a
+    // session (e.g. confirmations disabled). When email
+    // confirmation is required, data.session is null and the
+    // user must verify the OTP before we have a session.
+    if (data?.session) {
+      setUser(data.user ?? null);
+    }
+
+    return data;
+  }
+
+  async function verifySignupOtp({
+    email,
+    token,
+  }) {
+    if (!supabase) {
+      throw new Error(
+        "Supabase is not configured."
+      );
+    }
+
+    const {
+      data,
+      error,
+    } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type: "signup",
+    });
+
+    if (error) {
+      throw error;
+    }
+
     setUser(data.user ?? null);
 
     return data;
+  }
+
+  async function resendSignupOtp({
+    email,
+  }) {
+    if (!supabase) {
+      throw new Error(
+        "Supabase is not configured."
+      );
+    }
+
+    const {
+      error,
+    } = await supabase.auth.resend({
+      type: "signup",
+      email,
+    });
+
+    if (error) {
+      throw error;
+    }
   }
 
   async function signOut() {
@@ -177,6 +232,8 @@ export function AuthProvider({ children }) {
         loading,
         signIn,
         signUp,
+        verifySignupOtp,
+        resendSignupOtp,
         signOut,
       }}
     >
