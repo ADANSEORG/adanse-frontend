@@ -368,6 +368,7 @@ export default function App() {
           {!isSettingsPage &&
             !active && (
               <ThesisSetup
+                key="new"
                 initial={project}
                 onSave={
                   saveSetup
@@ -382,6 +383,7 @@ export default function App() {
             active &&
             isResearch && (
               <ThesisSetup
+                key={active.id}
                 initial={project}
                 onSave={
                   saveSetup
