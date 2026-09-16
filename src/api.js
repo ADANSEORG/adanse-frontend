@@ -349,6 +349,21 @@ export const activateDatasetVersion = (
     }
   );
 
+export const applyDatasetGroupings = (
+  id,
+  versionId,
+  groupings
+) =>
+  request(
+    `/thesis/projects/${id}/datasets/${versionId}/apply-groupings`,
+    {
+      method: "POST",
+      body: {
+        groupings,
+      },
+    }
+  );
+
 /*
  * ---------------------------------------------------------
  * ANALYSIS PLAN
@@ -522,74 +537,3 @@ export const verifyCreditPayment = (
     }
   );
 
-/*
- * ---------------------------------------------------------
- * LEGACY / SIMPLE ANALYSIS ENDPOINTS
- * ---------------------------------------------------------
- */
-
-export const uploadFile = (
-  file
-) => {
-  const form = new FormData();
-
-  form.append("file", file);
-
-  return request("/upload", {
-    method: "POST",
-    body: form,
-    formData: true,
-  });
-};
-
-export const suggestColumns = (
-  sessionId,
-  researchQuestion
-) => {
-  const form = new FormData();
-
-  form.append(
-    "session_id",
-    sessionId
-  );
-
-  form.append(
-    "research_question",
-    researchQuestion
-  );
-
-  return request("/suggest-columns", {
-    method: "POST",
-    body: form,
-    formData: true,
-  });
-};
-
-export const analyze = (
-  sessionId,
-  columnA,
-  columnB
-) => {
-  const form = new FormData();
-
-  form.append(
-    "session_id",
-    sessionId
-  );
-
-  form.append(
-    "column_a",
-    columnA
-  );
-
-  form.append(
-    "column_b",
-    columnB
-  );
-
-  return request("/analyze", {
-    method: "POST",
-    body: form,
-    formData: true,
-  });
-};

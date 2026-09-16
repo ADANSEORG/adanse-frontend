@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Coins, LogOut, Settings } from "lucide-react";
 
 function startOfLocalDay(date) {
   return new Date(
@@ -137,22 +138,21 @@ function getInitials(user) {
 }
 
 /*
- * Small solid gold coin.
+ * Small solid gold coin, with an actual coin/currency glyph
+ * inside it (lucide-react's Coins) -- it used to be a blank
+ * gold circle.
  *
  * It intentionally sits INSIDE the existing
  * .sidebar-option-icon square so it matches
  * the Account icon container.
- *
- * No sparkle.
- * No star.
- * No AI icon.
  */
-function CreditCoinIcon() {
+export function CreditCoinIcon() {
   return (
     <span
       aria-hidden="true"
       style={{
-        display: "block",
+        display: "grid",
+        placeItems: "center",
         width: "22px",
         height: "22px",
         minWidth: "22px",
@@ -168,7 +168,13 @@ function CreditCoinIcon() {
         boxShadow:
           "inset 0 -1px 0 rgba(0, 0, 0, 0.12)",
       }}
-    />
+    >
+      <Coins
+        size={14}
+        strokeWidth={2}
+        color="var(--ink)"
+      />
+    </span>
   );
 }
 
@@ -391,7 +397,11 @@ export default function ConversationSidebar({
                 onClick={handleAccount}
               >
                 <span className="sidebar-option-icon">
-                  ◉
+                  <Settings
+                    size={14}
+                    strokeWidth={2}
+                    aria-hidden="true"
+                  />
                 </span>
 
                 <span className="sidebar-option-copy">
@@ -446,7 +456,11 @@ export default function ConversationSidebar({
                 onClick={handleSignOut}
               >
                 <span className="sidebar-option-icon">
-                  ↪
+                  <LogOut
+                    size={14}
+                    strokeWidth={2}
+                    aria-hidden="true"
+                  />
                 </span>
 
                 <span className="sidebar-option-copy">

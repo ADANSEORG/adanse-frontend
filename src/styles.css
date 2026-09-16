@@ -415,6 +415,16 @@ button {
   background: #fffaf0;
 }
 
+.dropzone.disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.dropzone.disabled:hover {
+  border-color: #cdbf9f;
+  background: rgba(255, 253, 248, 0.6);
+}
+
 .dropzone-title {
   font: 600 22px var(--display);
   letter-spacing: -0.03em;
@@ -428,6 +438,49 @@ button {
 
 .dropzone input {
   display: none;
+}
+
+/* =========================================================
+   UPLOAD PROGRESS
+   ========================================================= */
+
+.upload-progress {
+  border: 1.5px dashed #cdbf9f;
+  background: rgba(255, 253, 248, 0.6);
+  border-radius: 18px;
+  min-height: 230px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 35px;
+  gap: 16px;
+}
+
+.upload-progress-spinner {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 3px solid #e6dcc4;
+  border-top-color: var(--gold);
+  animation: upload-progress-spin 0.8s linear infinite;
+}
+
+@keyframes upload-progress-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.upload-progress-text {
+  font: 600 16px var(--display);
+  letter-spacing: -0.02em;
+}
+
+.upload-progress-sub {
+  color: var(--muted);
+  font-size: 13px;
 }
 
 /* =========================================================
@@ -1406,6 +1459,72 @@ button {
   font-size: 13px;
 }
 
+.auth-password-field {
+  position: relative;
+}
+
+.auth-password-field .auth-input {
+  padding-right: 44px;
+}
+
+.auth-password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  border: 0;
+  background: none;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.auth-password-toggle:hover {
+  color: var(--ink);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.auth-password-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.auth-otp-boxes {
+  display: flex;
+  gap: 8px;
+}
+
+.auth-otp-box {
+  width: 100%;
+  min-width: 0;
+  aspect-ratio: 1;
+  border: 1px solid var(--line);
+  background: #fffefa;
+  border-radius: 10px;
+  outline: none;
+  color: var(--ink);
+  transition: 0.18s;
+  font-size: 20px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.auth-otp-box:focus {
+  border-color: #c99a32;
+  box-shadow:
+    0 0 0 3px rgba(221, 166, 34, 0.12);
+}
+
+@media (max-width: 420px) {
+  .auth-otp-box {
+    font-size: 16px;
+  }
+}
+
 .auth-disclaimer,
 .auth-footer {
   color: #988d80;
@@ -2220,6 +2339,96 @@ button {
 .dataset-status.clean {
   background: #e7f0e8;
   color: var(--green);
+}
+
+/* =========================================================
+   GROUPING SUGGESTIONS (never auto-applied)
+   ========================================================= */
+
+.dataset-grouping-note {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.dataset-variable-row.grouping-suggestion {
+  align-items: center;
+  gap: 14px;
+}
+
+.dataset-grouping-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.dataset-grouping-variants {
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.dataset-grouping-confidence {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.dataset-grouping-confidence.high {
+  background: #e7f0e8;
+  color: var(--green);
+}
+
+.dataset-grouping-confidence.medium {
+  background: #f7edd0;
+  color: #8a6412;
+}
+
+.dataset-grouping-confidence.low {
+  background: var(--bg);
+  color: var(--muted);
+}
+
+.dataset-grouping-canonical {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.dataset-grouping-canonical label {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.dataset-grouping-canonical input[type="text"] {
+  width: 140px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.dataset-grouping-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+@media (max-width: 720px) {
+  .dataset-variable-row.grouping-suggestion {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 
 /* =========================================================
@@ -3188,12 +3397,12 @@ button {
   min-width: 0;
   min-height: 900px;
   padding: 72px 76px 82px;
-  background: #fffdf9;
-  border: 1px solid #e4dfd5;
+  background: #ffffff;
+  border: 1px solid #333333;
   border-radius: 2px;
-  box-shadow: 0 8px 28px rgba(40, 32, 22, 0.055);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.06);
   overflow: hidden;
-  color: #2d2822;
+  color: #1a1a1a;
 }
 
 /* Never allow long content to push the paper wider. */
@@ -3212,8 +3421,8 @@ button {
   gap: 20px;
   padding-bottom: 11px;
   margin-bottom: 54px;
-  border-bottom: 1px solid #d9d4ca;
-  color: #777066;
+  border-bottom: 1px solid #333333;
+  color: #595959;
   font-family: Arial, sans-serif;
   font-size: 9px;
   font-weight: 700;
@@ -3223,7 +3432,7 @@ button {
 .chapter-title-page {
   margin: 0 0 58px;
   padding: 18px 0 34px;
-  border-bottom: 1px solid #ddd7cd;
+  border-bottom: 1px solid #333333;
 }
 
 .chapter-title-page h2,
@@ -3234,7 +3443,7 @@ button {
 }
 
 .chapter-title-page h2 {
-  color: #201b16;
+  color: #000000;
   font-size: 27px;
   font-weight: 700;
   letter-spacing: 0.055em;
@@ -3242,7 +3451,7 @@ button {
 
 .chapter-title-page h3 {
   margin-top: 10px;
-  color: #5f574e;
+  color: #595959;
   font-size: 17px;
   font-weight: 400;
   letter-spacing: 0.035em;
@@ -3261,12 +3470,12 @@ button {
 .chapter-section + .chapter-section {
   margin-top: 62px;
   padding-top: 48px;
-  border-top: 1px solid #ddd8ce;
+  border-top: 1px solid #cccccc;
 }
 
 .chapter-section-number {
   margin: 0 0 5px;
-  color: #9a8149;
+  color: #000000;
   font-family: Arial, sans-serif;
   font-size: 10px;
   font-weight: 800;
@@ -3276,7 +3485,7 @@ button {
 
 .chapter-section > h4 {
   margin: 0 0 19px;
-  color: #201b16;
+  color: #000000;
   font-family: Georgia, "Times New Roman", serif;
   font-size: 21px;
   font-weight: 700;
@@ -3287,7 +3496,7 @@ button {
 .chapter-analysis-block > h5,
 .chapter-assumptions h5 {
   margin: 28px 0 9px;
-  color: #29231d;
+  color: #000000;
   font-family: Georgia, "Times New Roman", serif;
   font-size: 16px;
   font-weight: 700;
@@ -3299,7 +3508,7 @@ button {
 .chapter-qualitative-result > p,
 .chapter-qualitative-theme > p {
   margin: 0 0 14px;
-  color: #332d27;
+  color: #1a1a1a;
   font-family: Georgia, "Times New Roman", serif;
   font-size: 15px;
   line-height: 1.86;
@@ -3314,7 +3523,7 @@ button {
   padding: 0 0 38px;
   background: transparent;
   border: 0;
-  border-bottom: 1px solid #ddd8ce;
+  border-bottom: 1px solid #cccccc;
   border-radius: 0;
 }
 
@@ -3325,12 +3534,12 @@ button {
 
 .chapter-objective-result > .chapter-section-number {
   margin-bottom: 5px;
-  color: #9a8149;
+  color: #000000;
 }
 
 .chapter-objective-result > h5 {
   margin: 0 0 14px;
-  color: #29231d;
+  color: #000000;
   font-family: Georgia, "Times New Roman", serif;
   font-size: 19px;
   font-weight: 700;
@@ -3340,11 +3549,11 @@ button {
 .chapter-objective {
   margin: 0;
   padding: 12px 16px;
-  background: #faf8f3;
+  background: #f2f2f2;
   border: 0;
-  border-left: 3px solid #c8a64b;
+  border-left: 3px solid #000000;
   border-radius: 0;
-  color: #3a332b;
+  color: #1a1a1a;
   font-family: Georgia, "Times New Roman", serif;
   font-size: 14px;
   font-style: italic;
@@ -3353,7 +3562,7 @@ button {
 
 .chapter-analysis-count {
   margin: 10px 0 0;
-  color: #81776b;
+  color: #595959;
   font-family: Arial, sans-serif;
   font-size: 10px;
   font-weight: 700;
@@ -3369,14 +3578,14 @@ button {
   padding: 27px 0 4px;
   background: transparent;
   border: 0;
-  border-top: 1px solid #e2ddd4;
+  border-top: 1px solid #cccccc;
   border-radius: 0;
   box-shadow: none;
 }
 
 .chapter-analysis-label {
   margin-bottom: 6px;
-  color: #9a8149;
+  color: #000000;
   font-family: Arial, sans-serif;
   font-size: 9px;
   font-weight: 800;
@@ -3398,8 +3607,8 @@ button {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0;
   margin: 21px 0 24px;
-  border-top: 1px solid #ded9cf;
-  border-bottom: 1px solid #ded9cf;
+  border-top: 1px solid #cccccc;
+  border-bottom: 1px solid #cccccc;
 }
 
 .chapter-analysis-meta > div {
@@ -3407,7 +3616,7 @@ button {
   padding: 12px 14px;
   background: transparent;
   border: 0;
-  border-right: 1px solid #ded9cf;
+  border-right: 1px solid #cccccc;
   border-radius: 0;
 }
 
@@ -3420,7 +3629,7 @@ button {
 .chapter-decision > span {
   display: block;
   margin-bottom: 5px;
-  color: #81786e;
+  color: #595959;
   font-family: Arial, sans-serif;
   font-size: 9px;
   font-weight: 800;
@@ -3430,7 +3639,7 @@ button {
 
 .chapter-analysis-meta strong {
   display: block;
-  color: #29231d;
+  color: #000000;
   font-family: Arial, sans-serif;
   font-size: 12px;
   font-weight: 600;
@@ -3450,8 +3659,8 @@ button {
   overflow-x: auto;
   overflow-y: hidden;
   border: 0;
-  border-top: 1.5px solid #4c463f;
-  border-bottom: 1px solid #4c463f;
+  border-top: 1.5px solid #333333;
+  border-bottom: 1px solid #333333;
   border-radius: 0;
   background: transparent;
   -webkit-overflow-scrolling: touch;
@@ -3464,7 +3673,7 @@ button {
   border-collapse: collapse;
   table-layout: auto;
   background: transparent;
-  color: #2d2822;
+  color: #1a1a1a;
   font-family: Arial, sans-serif;
   font-size: 11px;
 }
@@ -3472,9 +3681,9 @@ button {
 .chapter-result-table th {
   padding: 9px 10px;
   border: 0;
-  border-bottom: 1px solid #aaa39a;
-  background: #f7f5f0;
-  color: #4d463e;
+  border-bottom: 1px solid #333333;
+  background: #f2f2f2;
+  color: #333333;
   text-align: left;
   font-family: Arial, sans-serif;
   font-size: 9px;
@@ -3489,9 +3698,9 @@ button {
 .chapter-result-table td {
   padding: 9px 10px;
   border: 0;
-  border-bottom: 1px solid #ddd8cf;
+  border-bottom: 1px solid #cccccc;
   background: transparent;
-  color: #332d27;
+  color: #1a1a1a;
   font-family: Arial, sans-serif;
   font-size: 11px;
   line-height: 1.45;
@@ -3515,7 +3724,7 @@ button {
 
 .chapter-subheading {
   margin: 0 0 7px;
-  color: #81776b;
+  color: #595959;
   font-family: Arial, sans-serif;
   font-size: 9px;
   font-weight: 800;
@@ -3535,7 +3744,7 @@ button {
 }
 
 .chapter-effect-size strong {
-  color: #2d2822;
+  color: #1a1a1a;
   font-family: Arial, sans-serif;
   font-size: 11px;
 }
@@ -3543,21 +3752,21 @@ button {
 .chapter-decision {
   margin-top: 22px;
   padding: 13px 15px;
-  background: #faf8f3;
+  background: #f2f2f2;
   border: 0;
-  border-left: 2px solid #c8a64b;
+  border-left: 2px solid #000000;
   border-radius: 0;
 }
 
 .chapter-decision > strong {
-  color: #2b251f;
+  color: #000000;
   font-family: Arial, sans-serif;
   font-size: 12px;
 }
 
 .chapter-decision > p {
   margin: 5px 0 0;
-  color: #4a433b;
+  color: #1a1a1a;
   font-family: Georgia, "Times New Roman", serif;
   font-size: 13px;
   line-height: 1.65;
@@ -3578,10 +3787,10 @@ button {
 .chapter-warning {
   margin: 20px 0;
   padding: 12px 15px;
-  background: #fbf4ef;
-  border-left: 2px solid #a65a45;
+  background: #f2f2f2;
+  border-left: 3px solid #000000;
   border-radius: 0;
-  color: #704235;
+  color: #1a1a1a;
 }
 
 .chapter-warning strong {
@@ -3596,7 +3805,7 @@ button {
 
 .chapter-warning p {
   margin: 0;
-  color: #704235;
+  color: #1a1a1a;
   font-family: Georgia, "Times New Roman", serif;
   font-size: 13px;
   line-height: 1.6;
@@ -3617,12 +3826,12 @@ button {
 .chapter-qualitative-theme {
   margin: 27px 0 0;
   padding: 20px 0 0;
-  border-top: 1px solid #ded9cf;
+  border-top: 1px solid #cccccc;
 }
 
 .chapter-qualitative-theme h6 {
   margin: 0 0 8px;
-  color: #29231d;
+  color: #000000;
   font-family: Georgia, "Times New Roman", serif;
   font-size: 16px;
   font-weight: 700;
@@ -3636,7 +3845,7 @@ button {
 .chapter-qualitative-theme > div > strong {
   display: block;
   margin-bottom: 8px;
-  color: #81776b;
+  color: #595959;
   font-family: Arial, sans-serif;
   font-size: 9px;
   font-weight: 800;
@@ -3647,9 +3856,9 @@ button {
 .chapter-qualitative-theme blockquote {
   margin: 8px 0;
   padding: 9px 13px;
-  border-left: 2px solid #c8a64b;
-  background: #faf8f3;
-  color: #5b5249;
+  border-left: 2px solid #000000;
+  background: #f2f2f2;
+  color: #333333;
   font-family: Georgia, "Times New Roman", serif;
   font-size: 13px;
   font-style: italic;
@@ -3665,7 +3874,7 @@ button {
   margin: 22px 0 0;
   padding: 0;
   list-style: none;
-  border-top: 1px solid #dcd7ce;
+  border-top: 1px solid #cccccc;
 }
 
 .chapter-objectives-list li {
@@ -3674,11 +3883,11 @@ button {
   column-gap: 18px;
   row-gap: 5px;
   padding: 15px 0;
-  border-bottom: 1px solid #dcd7ce;
+  border-bottom: 1px solid #cccccc;
 }
 
 .chapter-objectives-list li > strong {
-  color: #71685d;
+  color: #595959;
   font-family: Arial, sans-serif;
   font-size: 10px;
   font-weight: 800;
@@ -3687,7 +3896,7 @@ button {
 }
 
 .chapter-objectives-list li > span {
-  color: #332d27;
+  color: #1a1a1a;
   font-family: Georgia, "Times New Roman", serif;
   font-size: 14px;
   line-height: 1.7;
@@ -3695,7 +3904,7 @@ button {
 
 .chapter-objectives-list li > small {
   grid-column: 2;
-  color: #8a8074;
+  color: #595959;
   font-family: Arial, sans-serif;
   font-size: 10px;
 }
@@ -3706,7 +3915,7 @@ button {
 
 .hypothesis-summary {
   margin-top: 22px;
-  border-top: 1.5px solid #4c463f;
+  border-top: 1.5px solid #333333;
 }
 
 .hypothesis-group {
@@ -3715,12 +3924,12 @@ button {
 }
 
 .hypothesis-group + .hypothesis-group {
-  border-top: 1px solid #dcd7ce;
+  border-top: 1px solid #cccccc;
 }
 
 .hypothesis-group-title {
   padding: 14px 0 7px;
-  color: #9a8149;
+  color: #000000;
   font-family: Arial, sans-serif;
   font-size: 9px;
   font-weight: 800;
@@ -3734,7 +3943,7 @@ button {
   align-items: center;
   gap: 20px;
   padding: 12px 0;
-  border-bottom: 1px solid #e0dbd2;
+  border-bottom: 1px solid #cccccc;
 }
 
 .hypothesis-row > div:first-child {
@@ -3745,14 +3954,14 @@ button {
 }
 
 .hypothesis-row strong {
-  color: #2e2822;
+  color: #1a1a1a;
   font-family: Arial, sans-serif;
   font-size: 12px;
   line-height: 1.4;
 }
 
 .hypothesis-row span {
-  color: #756c61;
+  color: #595959;
   font-family: Arial, sans-serif;
   font-size: 11px;
   line-height: 1.45;
@@ -3762,10 +3971,10 @@ button {
 .decision {
   flex-shrink: 0;
   padding: 4px 8px;
-  border: 1px solid #cfc9bf;
+  border: 1px solid #999999;
   border-radius: 2px;
   background: transparent;
-  color: #6f675d;
+  color: #595959;
   font-family: Arial, sans-serif;
   font-size: 9px;
   font-weight: 800;
@@ -3773,10 +3982,15 @@ button {
   text-transform: uppercase;
 }
 
+/*
+ * Significant results are distinguished from "not significant" by a
+ * solid black fill, not color -- the only differentiator available once
+ * the green/gray color-coding is removed to match the grayscale docx.
+ */
 .decision.significant {
-  border-color: #7b9b83;
-  background: #f2f7f2;
-  color: #3e6948;
+  border-color: #000000;
+  background: #000000;
+  color: #ffffff;
 }
 
 /* ---------------------------------------------------------
@@ -3788,22 +4002,22 @@ button {
   padding: 24px 0;
   background: transparent;
   border: 0;
-  border-top: 1px solid #ddd8ce;
-  border-bottom: 1px solid #ddd8ce;
+  border-top: 1px solid #cccccc;
+  border-bottom: 1px solid #cccccc;
   border-radius: 0;
   box-shadow: none;
 }
 
 .chapter4-document .empty-panel h2 {
   margin: 0 0 8px;
-  color: #2c261f;
+  color: #000000;
   font-family: Georgia, "Times New Roman", serif;
   font-size: 18px;
 }
 
 .chapter4-document .empty-panel p {
   margin: 0;
-  color: #71685d;
+  color: #595959;
   font-family: Georgia, "Times New Roman", serif;
   font-size: 14px;
   line-height: 1.7;

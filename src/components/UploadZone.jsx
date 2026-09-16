@@ -159,22 +159,31 @@ export default function UploadZone({
         className="dropzone-icon"
         aria-hidden="true"
       >
-        ↑
+        {disabled ? "…" : "↑"}
       </div>
 
       <div className="dropzone-title">
-        Drop your dataset here
+        {disabled
+          ? "Uploading your dataset…"
+          : "Drop your dataset here"}
       </div>
 
       <div className="dropzone-sub">
-        or{" "}
-        <span>choose a file</span>{" "}
-        from your computer
+        {disabled ? (
+          "This can take a moment for larger files."
+        ) : (
+          <>
+            or <span>choose a file</span> from your
+            computer
+          </>
+        )}
       </div>
 
-      <div className="dropzone-meta">
-        CSV, XLS or XLSX · up to 25 MB
-      </div>
+      {!disabled && (
+        <div className="dropzone-meta">
+          CSV, XLS or XLSX · up to 25 MB
+        </div>
+      )}
 
       {/* Hidden native input */}
       <input

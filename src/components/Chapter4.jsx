@@ -1,241 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
-
-/*
- * =========================================================
- * HELPERS
- * =========================================================
- */
-
-function formatVariableName(name) {
-  if (!name) return "";
-
-  return String(name)
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase())
-    .replace(/\bCgpa\b/g, "CGPA")
-    .replace(/\bGpa\b/g, "GPA");
-}
-
-function formatNumber(value, decimals = 3) {
-  if (
-    value === null ||
-    value === undefined ||
-    value === ""
-  ) {
-    return "—";
-  }
-
-  const number = Number(value);
-
-  if (!Number.isFinite(number)) {
-    return String(value);
-  }
-
-  return number.toFixed(decimals);
-}
-
-function getTestName(result) {
-  const names = {
-    correlation: "Pearson correlation",
-    cross_tab: "Chi-square test of association",
-    t_test: "Independent-samples t-test",
-    anova: "One-way ANOVA",
-  };
-
-  return (
-    names[result?.test] ||
-    result?.test_name ||
-    result?.test ||
-    "Statistical test"
-  );
-}
-
-function getStatistic(result) {
-  if (!result) return "—";
-
-  if (result.test === "correlation") {
-    return `r = ${formatNumber(result.r, 3)}`;
-  }
-
-  if (result.test === "cross_tab") {
-    return `χ² = ${formatNumber(result.chi2, 3)}`;
-  }
-
-  if (result.test === "t_test") {
-    return `t = ${formatNumber(
-      result.t_statistic,
-      3
-    )}`;
-  }
-
-  if (result.test === "anova") {
-    return `F = ${formatNumber(
-      result.f_statistic,
-      3
-    )}`;
-  }
-
-  return "—";
-}
-
-function getPValue(result) {
-  if (!result) return "—";
-
-  if (result.p_value_formatted) {
-    return `p ${result.p_value_formatted}`;
-  }
-
-  if (
-    result.p_value !== null &&
-    result.p_value !== undefined
-  ) {
-    const p = Number(result.p_value);
-
-    if (Number.isFinite(p)) {
-      if (p < 0.001) {
-        return "p < .001";
-      }
-
-      return `p = ${p.toFixed(4)}`;
-    }
-  }
-
-  return "—";
-}
-
-function getDecision(result) {
-  if (!result) return "—";
-
-  if (
-    result.significant === true ||
-    (
-      result.p_value !== null &&
-      result.p_value !== undefined &&
-      Number(result.p_value) < 0.05
-    )
-  ) {
-    return "Significant";
-  }
-
-  if (
-    result.significant === false ||
-    (
-      result.p_value !== null &&
-      result.p_value !== undefined &&
-      Number(result.p_value) >= 0.05
-    )
-  ) {
-    return "Not significant";
-  }
-
-  return "—";
-}
-
-function getResultSummary(result) {
-  if (!result) return "";
-
-  if (result.interpretation) {
-    return result.interpretation;
-  }
-
-  if (result.test === "correlation") {
-    return (
-      `The Pearson correlation between ` +
-      `${formatVariableName(result.columns?.[0])} ` +
-      `and ${formatVariableName(result.columns?.[1])} ` +
-      `was ${formatNumber(result.r, 3)}, ` +
-      `with ${getPValue(result)}.`
-    );
-  }
-
-  if (result.test === "cross_tab") {
-    return (
-      `The chi-square test examined the association between ` +
-      `${formatVariableName(result.columns?.[0])} ` +
-      `and ${formatVariableName(result.columns?.[1])}. ` +
-      `The test produced χ² = ${formatNumber(
-        result.chi2,
-        3
-      )}, with ${getPValue(result)}.`
-    );
-  }
-
-  if (result.test === "t_test") {
-    return (
-      `The independent-samples t-test compared ` +
-      `${formatVariableName(
-        result.numeric_column ||
-          result.columns?.[0]
-      )} across the relevant groups, producing ` +
-      `t = ${formatNumber(
-        result.t_statistic,
-        3
-      )}, with ${getPValue(result)}.`
-    );
-  }
-
-  if (result.test === "anova") {
-    return (
-      `The one-way ANOVA examined differences in ` +
-      `${formatVariableName(
-        result.numeric_column ||
-          result.columns?.[0]
-      )} across ` +
-      `${formatVariableName(
-        result.group_column ||
-          result.columns?.[1]
-      )}. The test produced ` +
-      `F = ${formatNumber(
-        result.f_statistic,
-        3
-      )}, with ${getPValue(result)}.`
-    );
-  }
-
-  return "";
-}
-
-function getNumericColumn(result, item) {
-  return (
-    result?.numeric_column ||
-    item?.numeric_column ||
-    (
-      result?.test === "t_test" ||
-      result?.test === "anova"
-        ? result?.columns?.find(
-            (column) =>
-              column !==
-              (
-                result?.group_column ||
-                item?.group_column
-              )
-          )
-        : null
-    ) ||
-    item?.column_a
-  );
-}
-
-function getGroupColumn(result, item) {
-  return (
-    result?.group_column ||
-    item?.group_column ||
-    (
-      result?.test === "t_test" ||
-      result?.test === "anova"
-        ? result?.columns?.find(
-            (column) =>
-              column !==
-              (
-                result?.numeric_column ||
-                item?.numeric_column
-              )
-          )
-        : null
-    ) ||
-    item?.column_b
-  );
-}
+import {
+  formatVariableName,
+  formatNumber,
+  getTestName,
+  getStatistic,
+  getPValue,
+  getDecision,
+  getResultSummary,
+  getNumericColumn,
+  getGroupColumn,
+  getGroups,
+  normaliseResults,
+  describeCleaningActions,
+  describeRemainingIssues,
+  respondentProfileNarrative,
+  objectiveInterpretationSentence,
+  objectiveRecapSentence,
+} from "./chapter4/resultsTransform.js";
 
 /*
  * =========================================================
@@ -275,7 +56,7 @@ function QualitativeResult({ result, item }) {
                 <td>
                   {theme?.percentage !== undefined &&
                   theme?.percentage !== null
-                    ? `${Number(theme.percentage).toFixed(1)}%`
+                    ? `${formatNumber(theme.percentage, 1)}%`
                     : "—"}
                 </td>
               </tr>
@@ -303,11 +84,11 @@ function QualitativeResult({ result, item }) {
             <p>{theme.description}</p>
           )}
 
-          {Array.isArray(theme?.quotes) &&
-            theme.quotes.length > 0 && (
+          {Array.isArray(theme?.excerpts) &&
+            theme.excerpts.length > 0 && (
               <div>
                 <strong>Representative responses</strong>
-                {theme.quotes.slice(0, 3).map((quote, quoteIndex) => (
+                {theme.excerpts.slice(0, 3).map((quote, quoteIndex) => (
                   <blockquote
                     key={`quote-${index}-${quoteIndex}`}
                   >
@@ -329,7 +110,7 @@ function QualitativeResult({ result, item }) {
   );
 }
 
-function ResultTable({ result }) {
+function ResultTable({ result, item }) {
   if (!result) return null;
 
   return (
@@ -346,7 +127,7 @@ function ResultTable({ result }) {
 
         <tbody>
           <tr>
-            <td>{getTestName(result)}</td>
+            <td>{getTestName(result, item)}</td>
             <td>{getStatistic(result)}</td>
             <td>{getPValue(result)}</td>
             <td>
@@ -357,34 +138,6 @@ function ResultTable({ result }) {
       </table>
     </div>
   );
-}
-
-/*
- * =========================================================
- * GROUP SUMMARY
- * =========================================================
- */
-
-function getGroups(result) {
-  if (!result) return {};
-
-  if (
-    result.groups &&
-    typeof result.groups === "object" &&
-    !Array.isArray(result.groups)
-  ) {
-    return result.groups;
-  }
-
-  if (
-    result.group_summary &&
-    typeof result.group_summary === "object" &&
-    !Array.isArray(result.group_summary)
-  ) {
-    return result.group_summary;
-  }
-
-  return {};
 }
 
 function GroupTable({ result }) {
@@ -436,372 +189,6 @@ function GroupTable({ result }) {
 
 /*
  * =========================================================
- * NORMALISE RESULT OBJECTS
- *
- * This is the important part.
- *
- * The application has had more than one result shape:
- *
- * 1. Flat:
- *    results = [
- *      {
- *        id: "1.1",
- *        objective_id: 1,
- *        objective: "...",
- *        result: {...}
- *      }
- *    ]
- *
- * 2. Older:
- *    results = [
- *      {
- *        id: 1,
- *        objective: "...",
- *        result: {...}
- *      }
- *    ]
- *
- * 3. Nested:
- *    objective_results = [
- *      {
- *        objective_id: 1,
- *        objective: "...",
- *        analyses: [...]
- *      }
- *    ]
- *
- * We convert all of them into ONE shape.
- * =========================================================
- */
-
-function normaliseResults(analysis, plan, project) {
-  const output = [];
-
-  const rawResults = Array.isArray(
-    analysis?.results
-  )
-    ? analysis.results
-    : [];
-
-  /*
-   * -------------------------------------------------------
-   * FLAT RESULTS
-   * -------------------------------------------------------
-   */
-
-  rawResults.forEach((item, index) => {
-    const result =
-      item?.result ||
-      item?.analysis_result ||
-      item?.analysis ||
-      null;
-
-    if (!result) {
-      return;
-    }
-
-    /*
-     * Determine objective ID.
-     *
-     * Priority:
-     * 1. explicit objective_id
-     * 2. parent_objective_id
-     * 3. analysis id such as "2.3"
-     * 4. numeric id if it represents an objective
-     * 5. matching objective text
-     * 6. plan position
-     */
-
-    let objectiveId =
-      item?.objective_id ??
-      item?.parent_objective_id ??
-      result?.objective_id ??
-      result?.parent_objective_id ??
-      null;
-
-    const rawId =
-      item?.analysis_id ??
-      item?.id ??
-      result?.analysis_id ??
-      result?.id ??
-      null;
-
-    /*
-     * IDs like:
-     *
-     * 1.1
-     * 1.2
-     * 2.1
-     * 3.4
-     *
-     * mean objective 1, objective 2, etc.
-     */
-
-    if (
-      objectiveId === null &&
-      typeof rawId === "string"
-    ) {
-      const match =
-        rawId.match(/^(\d+)\.(\d+)$/);
-
-      if (match) {
-        objectiveId = Number(match[1]);
-      }
-    }
-
-    /*
-     * Sometimes the backend uses an analysis
-     * identifier like:
-     *
-     * "objective-2-analysis-3"
-     */
-
-    if (
-      objectiveId === null &&
-      typeof rawId === "string"
-    ) {
-      const match =
-        rawId.match(
-          /objective[-_ ]?(\d+)/i
-        );
-
-      if (match) {
-        objectiveId = Number(match[1]);
-      }
-    }
-
-    /*
-     * Match exact objective text.
-     */
-
-    const itemObjective =
-      item?.objective ||
-      result?.objective ||
-      "";
-
-    if (objectiveId === null && itemObjective) {
-      const projectObjectives =
-        Array.isArray(project?.objectives)
-          ? project.objectives
-          : [];
-
-      const matchIndex =
-        projectObjectives.findIndex(
-          (objective) =>
-            String(objective).trim() ===
-            String(itemObjective).trim()
-        );
-
-      if (matchIndex >= 0) {
-        objectiveId = matchIndex + 1;
-      }
-    }
-
-    /*
-     * Match against plan.
-     */
-
-    if (objectiveId === null) {
-      const planItems =
-        Array.isArray(plan?.items)
-          ? plan.items
-          : [];
-
-      const matchingPlanIndex =
-        planItems.findIndex((planItem) => {
-          if (
-            item?.objective &&
-            planItem?.objective
-          ) {
-            return (
-              String(item.objective).trim() ===
-              String(planItem.objective).trim()
-            );
-          }
-
-          return false;
-        });
-
-      if (matchingPlanIndex >= 0) {
-        objectiveId =
-          planItems[matchingPlanIndex].id ??
-          matchingPlanIndex + 1;
-      }
-    }
-
-    /*
-     * Last resort:
-     *
-     * If this is an ID-less flat result array,
-     * DO NOT pretend every result is an objective.
-     *
-     * We instead use the number of project objectives
-     * and distribute results using explicit analysis IDs
-     * when available.
-     */
-
-    if (objectiveId === null) {
-      const objectiveCount =
-        Array.isArray(project?.objectives)
-          ? project.objectives.length
-          : Array.isArray(plan?.items)
-          ? plan.items.length
-          : 0;
-
-      if (
-        objectiveCount > 0 &&
-        rawResults.length > objectiveCount
-      ) {
-        /*
-         * If there are more results than objectives,
-         * try to infer equal-sized objective groups.
-         *
-         * Example:
-         * 16 results / 4 objectives = 4 each.
-         */
-
-        const groupSize =
-          rawResults.length %
-            objectiveCount ===
-          0
-            ? rawResults.length /
-              objectiveCount
-            : null;
-
-        if (groupSize) {
-          objectiveId =
-            Math.floor(
-              index / groupSize
-            ) + 1;
-        }
-      }
-    }
-
-    /*
-     * Final fallback.
-     */
-
-    if (objectiveId === null) {
-      objectiveId =
-        item?.objective_id ??
-        index + 1;
-    }
-
-    output.push({
-      ...item,
-      result,
-      objective_id: Number(objectiveId),
-      objective:
-        itemObjective ||
-        item?.objective_text ||
-        "",
-      analysis_id:
-        rawId ||
-        `${objectiveId}.${index + 1}`,
-    });
-  });
-
-  /*
-   * -------------------------------------------------------
-   * NESTED OBJECTIVE RESULTS
-   * -------------------------------------------------------
-   */
-
-  const nested =
-    Array.isArray(
-      analysis?.objective_results
-    )
-      ? analysis.objective_results
-      : [];
-
-  nested.forEach(
-    (objectiveItem, objectiveIndex) => {
-      const objectiveId =
-        Number(
-          objectiveItem?.objective_id ??
-            objectiveItem?.id ??
-            objectiveIndex + 1
-        );
-
-      const objective =
-        objectiveItem?.objective ||
-        objectiveItem?.objective_text ||
-        "";
-
-      const analyses =
-        Array.isArray(
-          objectiveItem?.analyses
-        )
-          ? objectiveItem.analyses
-          : Array.isArray(
-              objectiveItem?.results
-            )
-          ? objectiveItem.results
-          : [];
-
-      analyses.forEach(
-        (analysisItem, analysisIndex) => {
-          const result =
-            analysisItem?.result ||
-            analysisItem?.analysis_result ||
-            analysisItem?.analysis ||
-            analysisItem;
-
-          if (!result) {
-            return;
-          }
-
-          output.push({
-            ...analysisItem,
-            result,
-            objective_id:
-              objectiveId,
-            objective:
-              analysisItem?.objective ||
-              objective,
-            analysis_id:
-              analysisItem?.analysis_id ||
-              analysisItem?.id ||
-              `${objectiveId}.${analysisIndex + 1}`,
-            status:
-              analysisItem?.status ||
-              "complete",
-          });
-        }
-      );
-    }
-  );
-
-  /*
-   * -------------------------------------------------------
-   * REMOVE DUPLICATES
-   * -------------------------------------------------------
-   *
-   * This prevents the same analysis appearing twice if
-   * the backend currently exposes both `results` and
-   * `objective_results`.
-   * -------------------------------------------------------
-   */
-
-  const seen = new Set();
-
-  return output.filter((item, index) => {
-    const key =
-      item?.analysis_id ||
-      item?.id ||
-      `${item.objective_id}-${index}`;
-
-    if (seen.has(key)) {
-      return false;
-    }
-
-    seen.add(key);
-    return true;
-  });
-}
-
-/*
- * =========================================================
  * MAIN COMPONENT
  * =========================================================
  */
@@ -811,6 +198,7 @@ export default function Chapter4({
   upload,
   plan,
   analysis,
+  datasetVersion,
   onBack,
   onDownload,
   loading,
@@ -880,6 +268,26 @@ export default function Chapter4({
         item?.result
     );
   }, [normalisedResults]);
+
+  /*
+   * -------------------------------------------------------
+   * HAS HYPOTHESIS-TESTABLE RESULTS
+   *
+   * A distribution or thematic_analysis result never carries a p-value,
+   * so it's never a formal hypothesis decision -- matches generate_chapter()'s
+   * own filter for section 4.7. completedResults.length > 0 alone isn't
+   * enough to decide whether 4.7 has anything to show: a project can have
+   * completed results that are all non-inferential.
+   * -------------------------------------------------------
+   */
+
+  const hasHypothesisResults = useMemo(() => {
+    return completedResults.some(
+      (item) =>
+        item?.result?.p_value !== null &&
+        item?.result?.p_value !== undefined
+    );
+  }, [completedResults]);
 
   /*
    * -------------------------------------------------------
@@ -1016,6 +424,60 @@ export default function Chapter4({
   const descriptives =
     analysis?.descriptives || {};
 
+  const numericDescriptives = descriptives?.numeric || [];
+  const categoricalDescriptives = descriptives?.categorical || [];
+
+  const datasetRowCount =
+    upload?.dataset_rows ||
+    upload?.rows ||
+    project?.dataset_rows ||
+    0;
+
+  /*
+   * -------------------------------------------------------
+   * DATA PREPARATION NOTE
+   *
+   * Mirrors the "Data Preparation" line the backend adds to
+   * 4.2 Data Overview, built from the same cleaning report.
+   * -------------------------------------------------------
+   */
+
+  const cleaningSummary = useMemo(() => {
+    if (!datasetVersion) {
+      return "A cleaning and validation report was not available for the dataset version used in this analysis.";
+    }
+
+    return describeCleaningActions(
+      datasetVersion?.cleaning_report?.actions_applied
+    );
+  }, [datasetVersion]);
+
+  /*
+   * -------------------------------------------------------
+   * PROFILE OF RESPONDENTS NARRATIVE
+   * -------------------------------------------------------
+   */
+
+  const respondentNarrative = useMemo(() => {
+    return respondentProfileNarrative(
+      categoricalDescriptives,
+      numericDescriptives,
+      datasetRowCount
+    );
+  }, [categoricalDescriptives, numericDescriptives, datasetRowCount]);
+
+  /*
+   * -------------------------------------------------------
+   * DATA CLEANING & LIMITATIONS
+   * -------------------------------------------------------
+   */
+
+  const remainingIssuesSummary = useMemo(() => {
+    return describeRemainingIssues(
+      datasetVersion?.validation_report?.remaining_review_issues
+    );
+  }, [datasetVersion]);
+
   /*
    * -------------------------------------------------------
    * CHAPTER NAVIGATION
@@ -1024,10 +486,14 @@ export default function Chapter4({
 
   const sectionIds = [
     "introduction",
+    "overview",
+    "profile",
     "results",
+    "interpretation",
     "objectives",
     "hypothesis",
     "summary",
+    "cleaning",
   ];
 
   const scrollToSection = (sectionId) => {
@@ -1245,6 +711,34 @@ export default function Chapter4({
           <button
             type="button"
             className={`chapter4-nav-item ${
+              activeSection === "overview"
+                ? "active"
+                : ""
+            }`}
+            onClick={() =>
+              scrollToSection("overview")
+            }
+          >
+            4.2 Data Overview
+          </button>
+
+          <button
+            type="button"
+            className={`chapter4-nav-item ${
+              activeSection === "profile"
+                ? "active"
+                : ""
+            }`}
+            onClick={() =>
+              scrollToSection("profile")
+            }
+          >
+            4.3 Profile of Respondents
+          </button>
+
+          <button
+            type="button"
+            className={`chapter4-nav-item ${
               activeSection === "results"
                 ? "active"
                 : ""
@@ -1253,7 +747,24 @@ export default function Chapter4({
               scrollToSection("results")
             }
           >
-            4.2 Results
+            4.4 Results
+          </button>
+
+          <button
+            type="button"
+            className={`chapter4-nav-item ${
+              activeSection ===
+              "interpretation"
+                ? "active"
+                : ""
+            }`}
+            onClick={() =>
+              scrollToSection(
+                "interpretation"
+              )
+            }
+          >
+            4.5 Analysis and Interpretation
           </button>
 
           <button
@@ -1270,7 +781,7 @@ export default function Chapter4({
               )
             }
           >
-            4.3 Research Objectives
+            4.6 Research Objectives
           </button>
 
           <button
@@ -1287,7 +798,7 @@ export default function Chapter4({
               )
             }
           >
-            4.4 Hypothesis Testing
+            4.7 Hypothesis Testing
           </button>
 
           <button
@@ -1301,7 +812,21 @@ export default function Chapter4({
               scrollToSection("summary")
             }
           >
-            4.5 Summary of Findings
+            4.8 Summary of Findings
+          </button>
+
+          <button
+            type="button"
+            className={`chapter4-nav-item ${
+              activeSection === "cleaning"
+                ? "active"
+                : ""
+            }`}
+            onClick={() =>
+              scrollToSection("cleaning")
+            }
+          >
+            4.9 Data Cleaning &amp; Limitations
           </button>
 
         </aside>
@@ -1365,7 +890,213 @@ export default function Chapter4({
           </section>
 
           {/* =================================================
-              4.2 RESULTS
+              4.2 DATA OVERVIEW
+              ================================================= */}
+
+          <section
+            id="chapter-overview"
+            className="chapter-section"
+          >
+            <h4>
+              4.2 Data Overview
+            </h4>
+
+            <p>
+              The dataset contained{" "}
+              {datasetRowCount.toLocaleString()}{" "}
+              observations and{" "}
+              {(
+                upload?.dataset_columns ||
+                upload?.columns ||
+                []
+              ).length}{" "}
+              variables. The data review identified
+              missing values and potential unusual
+              values before inferential analysis.
+              Analyses use available complete
+              observations for the variables
+              involved.
+            </p>
+
+            <p>
+              <strong>Data Preparation: </strong>
+              {cleaningSummary} Analysis conducted
+              using Adanse's automated statistical
+              pipeline.
+            </p>
+
+            {numericDescriptives.length > 0 && (
+              <>
+                <h5>
+                  Table 4.1: Descriptive statistics
+                  for numeric variables
+                </h5>
+
+                <div className="chapter-result-table-wrap">
+                  <table className="chapter-result-table">
+                    <thead>
+                      <tr>
+                        <th>Variable</th>
+                        <th>N</th>
+                        <th>Mean</th>
+                        <th>SD</th>
+                        <th>Median</th>
+                        <th>Min</th>
+                        <th>Max</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {numericDescriptives.map(
+                        (item) => (
+                          <tr key={item.name}>
+                            <td>
+                              {formatVariableName(
+                                item.name
+                              )}
+                            </td>
+                            <td>{item.n ?? "—"}</td>
+                            <td>
+                              {formatNumber(
+                                item.mean,
+                                2
+                              )}
+                            </td>
+                            <td>
+                              {formatNumber(
+                                item.std,
+                                2
+                              )}
+                            </td>
+                            <td>
+                              {formatNumber(
+                                item.median,
+                                2
+                              )}
+                            </td>
+                            <td>
+                              {formatNumber(
+                                item.min,
+                                2
+                              )}
+                            </td>
+                            <td>
+                              {formatNumber(
+                                item.max,
+                                2
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </section>
+
+          {/* =================================================
+              4.3 PROFILE OF RESPONDENTS
+              ================================================= */}
+
+          {(categoricalDescriptives.length > 0 ||
+            numericDescriptives.length > 0) && (
+            <section
+              id="chapter-profile"
+              className="chapter-section"
+            >
+              <h4>
+                4.3 Profile of Respondents
+              </h4>
+
+              {respondentNarrative && (
+                <p>{respondentNarrative}</p>
+              )}
+
+              {categoricalDescriptives.length >
+                0 && (
+                <>
+                  <h5>Categorical Distributions</h5>
+
+                  {categoricalDescriptives.map(
+                    (column) => {
+                      const freqs =
+                        column?.frequencies || {};
+                      const entries =
+                        Object.entries(freqs);
+                      const totalCategories = Number(
+                        column?.unique_count
+                      ) || entries.length;
+
+                      return (
+                        <div
+                          key={column?.name}
+                          className="chapter-analysis-block"
+                        >
+                          <h6>
+                            {formatVariableName(
+                              column?.name
+                            )}
+                          </h6>
+
+                          <div className="chapter-result-table-wrap">
+                            <table className="chapter-result-table">
+                              <thead>
+                                <tr>
+                                  <th>Category</th>
+                                  <th>Frequency</th>
+                                  <th>Percentage</th>
+                                </tr>
+                              </thead>
+
+                              <tbody>
+                                {entries.map(
+                                  ([
+                                    key,
+                                    value,
+                                  ]) => (
+                                    <tr key={key}>
+                                      <td>{key}</td>
+                                      <td>
+                                        {value?.count ??
+                                          "—"}
+                                      </td>
+                                      <td>
+                                        {formatNumber(
+                                          value?.percent,
+                                          1
+                                        )}
+                                        %
+                                      </td>
+                                    </tr>
+                                  )
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          {totalCategories >
+                            entries.length && (
+                            <p>
+                              {totalCategories -
+                                entries.length}{" "}
+                              additional categories
+                              were omitted from this
+                              table for readability.
+                            </p>
+                          )}
+                        </div>
+                      );
+                    }
+                  )}
+                </>
+              )}
+            </section>
+          )}
+
+          {/* =================================================
+              4.4 RESULTS
               ================================================= */}
 
           <section
@@ -1373,7 +1104,7 @@ export default function Chapter4({
             className="chapter-section"
           >
             <h4>
-              4.2 Results
+              4.4 Results
             </h4>
 
             <p>
@@ -1404,7 +1135,7 @@ export default function Chapter4({
                   >
 
                     <div className="chapter-section-number">
-                      4.2.{group.id}
+                      4.4.{group.id}
                     </div>
 
                     <h5>
@@ -1470,7 +1201,8 @@ export default function Chapter4({
                               The analysis used{" "}
                               <strong>
                                 {getTestName(
-                                  result
+                                  result,
+                                  item
                                 )}
                               </strong>{" "}
                               to examine the
@@ -1519,7 +1251,8 @@ export default function Chapter4({
 
                                 <strong>
                                   {getTestName(
-                                    result
+                                    result,
+                                    item
                                   )}
                                 </strong>
                               </div>
@@ -1535,6 +1268,7 @@ export default function Chapter4({
                               <>
                                 <ResultTable
                                   result={result}
+                                  item={item}
                                 />
 
                                 {(result.test ===
@@ -1698,12 +1432,16 @@ export default function Chapter4({
                                           </td>
 
                                           <td>
-                                            {Number(
-                                              result
-                                                .assumptions
-                                                .shapiro_min_p
-                                            ) >
-                                            0.05
+                                            {result
+                                              .assumptions
+                                              .shapiro_min_p ===
+                                            null
+                                              ? "Not computed"
+                                              : Number(
+                                                  result
+                                                    .assumptions
+                                                    .shapiro_min_p
+                                                ) > 0.05
                                               ? "Met"
                                               : "Not met"}
                                           </td>
@@ -1729,12 +1467,16 @@ export default function Chapter4({
                                           </td>
 
                                           <td>
-                                            {Number(
-                                              result
-                                                .assumptions
-                                                .levene_p
-                                            ) >
-                                            0.05
+                                            {result
+                                              .assumptions
+                                              .levene_p ===
+                                            null
+                                              ? "Not computed"
+                                              : Number(
+                                                  result
+                                                    .assumptions
+                                                    .levene_p
+                                                ) > 0.05
                                               ? "Met"
                                               : "Not met"}
                                           </td>
@@ -1777,7 +1519,34 @@ export default function Chapter4({
           </section>
 
           {/* =================================================
-              4.3 RESEARCH OBJECTIVES
+              4.5 ANALYSIS AND INTERPRETATION
+              ================================================= */}
+
+          <section
+            id="chapter-interpretation"
+            className="chapter-section"
+          >
+            <h4>
+              4.5 Analysis and Interpretation
+            </h4>
+
+            <p>
+              Each research objective is linked
+              below to the analyses completed
+              against it.
+            </p>
+
+            {objectiveGroups.map((group) => (
+              <p key={`interpretation-${group.id}`}>
+                {objectiveInterpretationSentence(
+                  group
+                )}
+              </p>
+            ))}
+          </section>
+
+          {/* =================================================
+              4.6 RESEARCH OBJECTIVES
               ================================================= */}
 
           <section
@@ -1785,7 +1554,7 @@ export default function Chapter4({
             className="chapter-section"
           >
             <h4>
-              4.3 Research Objectives
+              4.6 Research Objectives
             </h4>
 
             <p>
@@ -1847,7 +1616,7 @@ export default function Chapter4({
           </section>
 
           {/* =================================================
-              4.4 HYPOTHESIS TESTING
+              4.7 HYPOTHESIS TESTING
               ================================================= */}
 
           <section
@@ -1855,7 +1624,7 @@ export default function Chapter4({
             className="chapter-section"
           >
             <h4>
-              4.4 Hypothesis Testing
+              4.7 Hypothesis Testing
             </h4>
 
             <p>
@@ -1867,73 +1636,101 @@ export default function Chapter4({
               statistical analyses.
             </p>
 
-            {completedResults.length >
-            0 ? (
+            {hasHypothesisResults ? (
               <div className="hypothesis-summary">
 
                 {objectiveGroups.map(
-                  (group) => (
-                    <div
-                      key={`hypothesis-group-${group.id}`}
-                      className="hypothesis-group"
-                    >
-                      <div className="hypothesis-group-title">
-                        Objective{" "}
-                        {group.id}
-                      </div>
+                  (group) => {
+                    /*
+                     * Only analyses with an actual p-value are a formal
+                     * hypothesis decision -- matches generate_chapter()'s
+                     * own filter (`if res.get("p_value") is None: continue`),
+                     * so a distribution or thematic_analysis result (which
+                     * never carries a p-value) doesn't show up here with a
+                     * meaningless "—" decision the way it used to. Index is
+                     * kept from the unfiltered list so "Analysis X.Y" still
+                     * matches the numbering used in 4.4 Results.
+                     */
+                    const hypothesisItems = group.results
+                      .map((item, index) => ({
+                        item,
+                        index,
+                      }))
+                      .filter(
+                        ({ item }) =>
+                          item.result?.p_value !==
+                            null &&
+                          item.result?.p_value !==
+                            undefined
+                      );
 
-                      {group.results.map(
-                        (
-                          item,
-                          index
-                        ) => {
-                          const result =
-                            item.result;
+                    if (
+                      hypothesisItems.length === 0
+                    ) {
+                      return null;
+                    }
 
-                          return (
-                            <div
-                              className="hypothesis-row"
-                              key={
-                                item.analysis_id ||
-                                item.id ||
-                                `hypothesis-${group.id}-${index}`
-                              }
-                            >
-                              <div>
-                                <strong>
-                                  Analysis{" "}
-                                  {group.id}.
-                                  {index +
-                                    1}
-                                </strong>
+                    return (
+                      <div
+                        key={`hypothesis-group-${group.id}`}
+                        className="hypothesis-group"
+                      >
+                        <div className="hypothesis-group-title">
+                          Objective{" "}
+                          {group.id}
+                        </div>
 
-                                <span>
-                                  {getTestName(
-                                    result
-                                  )}
-                                </span>
-                              </div>
+                        {hypothesisItems.map(
+                          ({ item, index }) => {
+                            const result =
+                              item.result;
 
+                            return (
                               <div
-                                className={
-                                  getDecision(
-                                    result
-                                  ) ===
-                                  "Significant"
-                                    ? "decision significant"
-                                    : "decision"
+                                className="hypothesis-row"
+                                key={
+                                  item.analysis_id ||
+                                  item.id ||
+                                  `hypothesis-${group.id}-${index}`
                                 }
                               >
-                                {getDecision(
-                                  result
-                                )}
+                                <div>
+                                  <strong>
+                                    Analysis{" "}
+                                    {group.id}.
+                                    {index +
+                                      1}
+                                  </strong>
+
+                                  <span>
+                                    {getTestName(
+                                      result,
+                                      item
+                                    )}
+                                  </span>
+                                </div>
+
+                                <div
+                                  className={
+                                    getDecision(
+                                      result
+                                    ) ===
+                                    "Significant"
+                                      ? "decision significant"
+                                      : "decision"
+                                  }
+                                >
+                                  {getDecision(
+                                    result
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          );
-                        }
-                      )}
-                    </div>
-                  )
+                            );
+                          }
+                        )}
+                      </div>
+                    );
+                  }
                 )}
 
               </div>
@@ -1947,7 +1744,7 @@ export default function Chapter4({
           </section>
 
           {/* =================================================
-              4.5 SUMMARY
+              4.8 SUMMARY
               ================================================= */}
 
           <section
@@ -1955,7 +1752,7 @@ export default function Chapter4({
             className="chapter-section"
           >
             <h4>
-              4.5 Summary of Findings
+              4.8 Summary of Findings
             </h4>
 
             <p>
@@ -2023,109 +1820,46 @@ export default function Chapter4({
               overall research design.
             </p>
 
-            {descriptives?.numeric?.length >
-              0 && (
+            {objectiveGroups.map((group) => (
+              <p key={`recap-${group.id}`}>
+                {objectiveRecapSentence(group)}
+              </p>
+            ))}
+
+            <p>
+              These findings are discussed in
+              relation to existing literature in
+              Chapter 5.
+            </p>
+
+          </section>
+
+          {/* =================================================
+              4.9 DATA CLEANING & LIMITATIONS
+              ================================================= */}
+
+          <section
+            id="chapter-cleaning"
+            className="chapter-section"
+          >
+            <h4>
+              4.9 Data Cleaning &amp; Limitations
+            </h4>
+
+            {!datasetVersion ? (
+              <p>
+                A cleaning and validation report
+                was not available for the dataset
+                version used in this analysis, so
+                the automated cleaning outcome
+                cannot be described here.
+              </p>
+            ) : (
               <>
-                <h5>
-                  Descriptive Statistics
-                </h5>
-
-                <div className="chapter-result-table-wrap">
-                  <table className="chapter-result-table">
-                    <thead>
-                      <tr>
-                        <th>
-                          Variable
-                        </th>
-
-                        <th>
-                          N
-                        </th>
-
-                        <th>
-                          Mean
-                        </th>
-
-                        <th>
-                          SD
-                        </th>
-
-                        <th>
-                          Median
-                        </th>
-
-                        <th>
-                          Min
-                        </th>
-
-                        <th>
-                          Max
-                        </th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {descriptives.numeric.map(
-                        (item) => (
-                          <tr
-                            key={
-                              item.name
-                            }
-                          >
-                            <td>
-                              {formatVariableName(
-                                item.name
-                              )}
-                            </td>
-
-                            <td>
-                              {item.n ??
-                                "—"}
-                            </td>
-
-                            <td>
-                              {formatNumber(
-                                item.mean,
-                                2
-                              )}
-                            </td>
-
-                            <td>
-                              {formatNumber(
-                                item.std,
-                                2
-                              )}
-                            </td>
-
-                            <td>
-                              {formatNumber(
-                                item.median,
-                                2
-                              )}
-                            </td>
-
-                            <td>
-                              {formatNumber(
-                                item.min,
-                                2
-                              )}
-                            </td>
-
-                            <td>
-                              {formatNumber(
-                                item.max,
-                                2
-                              )}
-                            </td>
-                          </tr>
-                        )
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                <p>{cleaningSummary}</p>
+                <p>{remainingIssuesSummary}</p>
               </>
             )}
-
           </section>
 
         </article>
