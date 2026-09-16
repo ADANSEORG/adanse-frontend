@@ -419,7 +419,35 @@ export default function App() {
                   </div>
                 </div>
 
-                {!upload ? (
+                {loading ? (
+                  /*
+                   * Covers both the first upload and a "Replace
+                   * dataset" re-upload. Shown for the whole
+                   * upload -> profile -> version-fetch sequence
+                   * (loading only clears once every step,
+                   * including the step change, has already
+                   * happened -- see file() in
+                   * useThesisWorkflow.js), so the user never sees
+                   * a flash of the just-uploaded dataset card
+                   * moments before the screen jumps to Dataset
+                   * Review.
+                   */
+                  <div className="upload-progress">
+                    <div
+                      className="upload-progress-spinner"
+                      aria-hidden="true"
+                    />
+
+                    <div className="upload-progress-text">
+                      Uploading your dataset…
+                    </div>
+
+                    <div className="upload-progress-sub">
+                      This can take a moment for larger
+                      files.
+                    </div>
+                  </div>
+                ) : !upload ? (
                   <UploadZone
                     onFileSelected={
                       file
@@ -493,7 +521,7 @@ export default function App() {
                   </div>
                 )}
 
-                {upload && (
+                {upload && !loading && (
                   <ColumnPreview
                     filename={
                       upload.filename ||
@@ -600,6 +628,7 @@ export default function App() {
                 upload={upload}
                 plan={plan}
                 analysis={analysis}
+                datasetVersion={datasetVersion}
                 onBack={
                   backToAnalysis
                 }

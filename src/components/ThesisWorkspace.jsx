@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { toFixedHalfEven } from "./chapter4/resultsTransform.js";
 
 const TEST_NAMES = {
   distribution: "Descriptive distribution",
@@ -17,7 +18,7 @@ function pretty(name) {
 function number(value, digits = 3) {
   if (value === null || value === undefined || value === "") return "—";
   const n = Number(value);
-  return Number.isFinite(n) ? n.toFixed(digits) : String(value);
+  return Number.isFinite(n) ? toFixedHalfEven(n, digits) : String(value);
 }
 
 function PValue({ value, formatted }) {

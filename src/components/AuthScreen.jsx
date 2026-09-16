@@ -1,7 +1,142 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../AuthContext.jsx";
+import {
+  cleanOtpCode,
+  otpDigitAt,
+  pasteOtpDigits,
+  setOtpDigit,
+} from "../otp.js";
 
 const RESEND_COOLDOWN_SECONDS = 45;
+const OTP_LENGTH = 8;
+
+function EyeIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function EyeOffIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a19.53 19.53 0 0 1 4.22-5.94M9.9 4.24A10.4 10.4 0 0 1 12 4c7 0 11 8 11 8a19.4 19.4 0 0 1-3.11 4.36M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+      <path d="M1 1l22 22" />
+    </svg>
+  );
+}
+
+/*
+ * =========================================================
+ * OTP INPUT
+ *
+ * Eight single-digit boxes rather than one text field. Value
+ * is still just a plain digit string, same as before -- this
+ * only changes how it's typed in. Positional/padding logic
+ * lives in ../otp.js so it can be unit tested without React.
+ * =========================================================
+ */
+
+function OtpInput({ id, length, value, onChange, disabled }) {
+  const inputRefs = useRef([]);
+
+  function focusBox(index) {
+    inputRefs.current[index]?.focus();
+  }
+
+  function handleChange(index, rawValue) {
+    const digit = rawValue.replace(/\D/g, "").slice(-1) || "";
+
+    onChange(setOtpDigit(value, length, index, digit));
+
+    if (digit && index < length - 1) {
+      focusBox(index + 1);
+    }
+  }
+
+  function handleKeyDown(index, event) {
+    if (event.key === "Backspace") {
+      if (!otpDigitAt(value, index) && index > 0) {
+        event.preventDefault();
+        onChange(setOtpDigit(value, length, index - 1, ""));
+        focusBox(index - 1);
+      }
+    } else if (event.key === "ArrowLeft" && index > 0) {
+      event.preventDefault();
+      focusBox(index - 1);
+    } else if (event.key === "ArrowRight" && index < length - 1) {
+      event.preventDefault();
+      focusBox(index + 1);
+    }
+  }
+
+  function handlePaste(index, event) {
+    const pasted = event.clipboardData
+      .getData("text")
+      .replace(/\D/g, "");
+
+    if (!pasted) return;
+
+    event.preventDefault();
+
+    onChange(pasteOtpDigits(value, length, index, pasted));
+    focusBox(Math.min(index + pasted.length, length - 1));
+  }
+
+  return (
+    <div
+      className="auth-otp-boxes"
+      role="group"
+      aria-label="Confirmation code"
+    >
+      {Array.from({ length }).map((_, index) => (
+        <input
+          key={index}
+          id={index === 0 ? id : undefined}
+          ref={(el) => (inputRefs.current[index] = el)}
+          className="auth-otp-box"
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={1}
+          autoComplete={
+            index === 0 ? "one-time-code" : "off"
+          }
+          value={otpDigitAt(value, index)}
+          onChange={(e) =>
+            handleChange(index, e.target.value)
+          }
+          onKeyDown={(e) => handleKeyDown(index, e)}
+          onPaste={(e) => handlePaste(index, e)}
+          onFocus={(e) => e.target.select()}
+          disabled={disabled}
+        />
+      ))}
+    </div>
+  );
+}
 
 // Supabase intentionally returns the same error code/message for a
 // wrong code and an expired one (anti-enumeration), so we can't show
@@ -57,6 +192,7 @@ export default function AuthScreen() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -156,7 +292,10 @@ export default function AuthScreen() {
     setError("");
     setMessage("");
 
-    const cleanCode = code.trim();
+    // OtpInput pads unfilled boxes with a literal space to keep their
+    // position stable across renders (see ../otp.js) -- strip
+    // those before this ever reaches Supabase.
+    const cleanCode = cleanOtpCode(code);
 
     if (!cleanCode) {
       setError("Enter the confirmation code we emailed you.");
@@ -322,21 +461,11 @@ export default function AuthScreen() {
                     Confirmation code
                   </label>
 
-                  <input
+                  <OtpInput
                     id="auth-otp"
-                    className="auth-input auth-otp-input"
-                    type="text"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    pattern="[0-9]*"
-                    maxLength={12}
+                    length={OTP_LENGTH}
                     value={code}
-                    onChange={(e) =>
-                      setCode(
-                        e.target.value.replace(/\D/g, "")
-                      )
-                    }
-                    placeholder="Enter the code from your email"
+                    onChange={setCode}
                     disabled={verifying}
                   />
 
@@ -476,26 +605,51 @@ export default function AuthScreen() {
                 Password
               </label>
 
-              <input
-                id="auth-password"
-                className="auth-input"
-                type="password"
-                value={password}
-                onChange={(e) =>
-                  setPassword(e.target.value)
-                }
-                placeholder={
-                  isSignup
-                    ? "At least 6 characters"
-                    : "Your password"
-                }
-                autoComplete={
-                  isSignup
-                    ? "new-password"
-                    : "current-password"
-                }
-                disabled={loading}
-              />
+              <div className="auth-password-field">
+                <input
+                  id="auth-password"
+                  className="auth-input"
+                  type={
+                    showPassword ? "text" : "password"
+                  }
+                  value={password}
+                  onChange={(e) =>
+                    setPassword(e.target.value)
+                  }
+                  placeholder={
+                    isSignup
+                      ? "At least 6 characters"
+                      : "Your password"
+                  }
+                  autoComplete={
+                    isSignup
+                      ? "new-password"
+                      : "current-password"
+                  }
+                  disabled={loading}
+                />
+
+                <button
+                  type="button"
+                  className="auth-password-toggle"
+                  onClick={() =>
+                    setShowPassword((v) => !v)
+                  }
+                  disabled={loading}
+                  aria-label={
+                    showPassword
+                      ? "Hide password"
+                      : "Show password"
+                  }
+                  aria-pressed={showPassword}
+                >
+                  {showPassword ? (
+                    <EyeOffIcon />
+                  ) : (
+                    <EyeIcon />
+                  )}
+                </button>
+              </div>
 
               {error && (
                 <div

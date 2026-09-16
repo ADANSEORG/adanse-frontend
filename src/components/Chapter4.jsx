@@ -11,6 +11,11 @@ import {
   getGroupColumn,
   getGroups,
   normaliseResults,
+  describeCleaningActions,
+  describeRemainingIssues,
+  respondentProfileNarrative,
+  objectiveInterpretationSentence,
+  objectiveRecapSentence,
 } from "./chapter4/resultsTransform.js";
 
 /*
@@ -51,7 +56,7 @@ function QualitativeResult({ result, item }) {
                 <td>
                   {theme?.percentage !== undefined &&
                   theme?.percentage !== null
-                    ? `${Number(theme.percentage).toFixed(1)}%`
+                    ? `${formatNumber(theme.percentage, 1)}%`
                     : "—"}
                 </td>
               </tr>
@@ -79,11 +84,11 @@ function QualitativeResult({ result, item }) {
             <p>{theme.description}</p>
           )}
 
-          {Array.isArray(theme?.quotes) &&
-            theme.quotes.length > 0 && (
+          {Array.isArray(theme?.excerpts) &&
+            theme.excerpts.length > 0 && (
               <div>
                 <strong>Representative responses</strong>
-                {theme.quotes.slice(0, 3).map((quote, quoteIndex) => (
+                {theme.excerpts.slice(0, 3).map((quote, quoteIndex) => (
                   <blockquote
                     key={`quote-${index}-${quoteIndex}`}
                   >
@@ -105,7 +110,7 @@ function QualitativeResult({ result, item }) {
   );
 }
 
-function ResultTable({ result }) {
+function ResultTable({ result, item }) {
   if (!result) return null;
 
   return (
@@ -122,7 +127,7 @@ function ResultTable({ result }) {
 
         <tbody>
           <tr>
-            <td>{getTestName(result)}</td>
+            <td>{getTestName(result, item)}</td>
             <td>{getStatistic(result)}</td>
             <td>{getPValue(result)}</td>
             <td>
@@ -193,6 +198,7 @@ export default function Chapter4({
   upload,
   plan,
   analysis,
+  datasetVersion,
   onBack,
   onDownload,
   loading,
@@ -262,6 +268,26 @@ export default function Chapter4({
         item?.result
     );
   }, [normalisedResults]);
+
+  /*
+   * -------------------------------------------------------
+   * HAS HYPOTHESIS-TESTABLE RESULTS
+   *
+   * A distribution or thematic_analysis result never carries a p-value,
+   * so it's never a formal hypothesis decision -- matches generate_chapter()'s
+   * own filter for section 4.7. completedResults.length > 0 alone isn't
+   * enough to decide whether 4.7 has anything to show: a project can have
+   * completed results that are all non-inferential.
+   * -------------------------------------------------------
+   */
+
+  const hasHypothesisResults = useMemo(() => {
+    return completedResults.some(
+      (item) =>
+        item?.result?.p_value !== null &&
+        item?.result?.p_value !== undefined
+    );
+  }, [completedResults]);
 
   /*
    * -------------------------------------------------------
@@ -398,6 +424,60 @@ export default function Chapter4({
   const descriptives =
     analysis?.descriptives || {};
 
+  const numericDescriptives = descriptives?.numeric || [];
+  const categoricalDescriptives = descriptives?.categorical || [];
+
+  const datasetRowCount =
+    upload?.dataset_rows ||
+    upload?.rows ||
+    project?.dataset_rows ||
+    0;
+
+  /*
+   * -------------------------------------------------------
+   * DATA PREPARATION NOTE
+   *
+   * Mirrors the "Data Preparation" line the backend adds to
+   * 4.2 Data Overview, built from the same cleaning report.
+   * -------------------------------------------------------
+   */
+
+  const cleaningSummary = useMemo(() => {
+    if (!datasetVersion) {
+      return "A cleaning and validation report was not available for the dataset version used in this analysis.";
+    }
+
+    return describeCleaningActions(
+      datasetVersion?.cleaning_report?.actions_applied
+    );
+  }, [datasetVersion]);
+
+  /*
+   * -------------------------------------------------------
+   * PROFILE OF RESPONDENTS NARRATIVE
+   * -------------------------------------------------------
+   */
+
+  const respondentNarrative = useMemo(() => {
+    return respondentProfileNarrative(
+      categoricalDescriptives,
+      numericDescriptives,
+      datasetRowCount
+    );
+  }, [categoricalDescriptives, numericDescriptives, datasetRowCount]);
+
+  /*
+   * -------------------------------------------------------
+   * DATA CLEANING & LIMITATIONS
+   * -------------------------------------------------------
+   */
+
+  const remainingIssuesSummary = useMemo(() => {
+    return describeRemainingIssues(
+      datasetVersion?.validation_report?.remaining_review_issues
+    );
+  }, [datasetVersion]);
+
   /*
    * -------------------------------------------------------
    * CHAPTER NAVIGATION
@@ -406,10 +486,14 @@ export default function Chapter4({
 
   const sectionIds = [
     "introduction",
+    "overview",
+    "profile",
     "results",
+    "interpretation",
     "objectives",
     "hypothesis",
     "summary",
+    "cleaning",
   ];
 
   const scrollToSection = (sectionId) => {
@@ -627,6 +711,34 @@ export default function Chapter4({
           <button
             type="button"
             className={`chapter4-nav-item ${
+              activeSection === "overview"
+                ? "active"
+                : ""
+            }`}
+            onClick={() =>
+              scrollToSection("overview")
+            }
+          >
+            4.2 Data Overview
+          </button>
+
+          <button
+            type="button"
+            className={`chapter4-nav-item ${
+              activeSection === "profile"
+                ? "active"
+                : ""
+            }`}
+            onClick={() =>
+              scrollToSection("profile")
+            }
+          >
+            4.3 Profile of Respondents
+          </button>
+
+          <button
+            type="button"
+            className={`chapter4-nav-item ${
               activeSection === "results"
                 ? "active"
                 : ""
@@ -635,7 +747,24 @@ export default function Chapter4({
               scrollToSection("results")
             }
           >
-            4.2 Results
+            4.4 Results
+          </button>
+
+          <button
+            type="button"
+            className={`chapter4-nav-item ${
+              activeSection ===
+              "interpretation"
+                ? "active"
+                : ""
+            }`}
+            onClick={() =>
+              scrollToSection(
+                "interpretation"
+              )
+            }
+          >
+            4.5 Analysis and Interpretation
           </button>
 
           <button
@@ -652,7 +781,7 @@ export default function Chapter4({
               )
             }
           >
-            4.3 Research Objectives
+            4.6 Research Objectives
           </button>
 
           <button
@@ -669,7 +798,7 @@ export default function Chapter4({
               )
             }
           >
-            4.4 Hypothesis Testing
+            4.7 Hypothesis Testing
           </button>
 
           <button
@@ -683,7 +812,21 @@ export default function Chapter4({
               scrollToSection("summary")
             }
           >
-            4.5 Summary of Findings
+            4.8 Summary of Findings
+          </button>
+
+          <button
+            type="button"
+            className={`chapter4-nav-item ${
+              activeSection === "cleaning"
+                ? "active"
+                : ""
+            }`}
+            onClick={() =>
+              scrollToSection("cleaning")
+            }
+          >
+            4.9 Data Cleaning &amp; Limitations
           </button>
 
         </aside>
@@ -747,7 +890,213 @@ export default function Chapter4({
           </section>
 
           {/* =================================================
-              4.2 RESULTS
+              4.2 DATA OVERVIEW
+              ================================================= */}
+
+          <section
+            id="chapter-overview"
+            className="chapter-section"
+          >
+            <h4>
+              4.2 Data Overview
+            </h4>
+
+            <p>
+              The dataset contained{" "}
+              {datasetRowCount.toLocaleString()}{" "}
+              observations and{" "}
+              {(
+                upload?.dataset_columns ||
+                upload?.columns ||
+                []
+              ).length}{" "}
+              variables. The data review identified
+              missing values and potential unusual
+              values before inferential analysis.
+              Analyses use available complete
+              observations for the variables
+              involved.
+            </p>
+
+            <p>
+              <strong>Data Preparation: </strong>
+              {cleaningSummary} Analysis conducted
+              using Adanse's automated statistical
+              pipeline.
+            </p>
+
+            {numericDescriptives.length > 0 && (
+              <>
+                <h5>
+                  Table 4.1: Descriptive statistics
+                  for numeric variables
+                </h5>
+
+                <div className="chapter-result-table-wrap">
+                  <table className="chapter-result-table">
+                    <thead>
+                      <tr>
+                        <th>Variable</th>
+                        <th>N</th>
+                        <th>Mean</th>
+                        <th>SD</th>
+                        <th>Median</th>
+                        <th>Min</th>
+                        <th>Max</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {numericDescriptives.map(
+                        (item) => (
+                          <tr key={item.name}>
+                            <td>
+                              {formatVariableName(
+                                item.name
+                              )}
+                            </td>
+                            <td>{item.n ?? "—"}</td>
+                            <td>
+                              {formatNumber(
+                                item.mean,
+                                2
+                              )}
+                            </td>
+                            <td>
+                              {formatNumber(
+                                item.std,
+                                2
+                              )}
+                            </td>
+                            <td>
+                              {formatNumber(
+                                item.median,
+                                2
+                              )}
+                            </td>
+                            <td>
+                              {formatNumber(
+                                item.min,
+                                2
+                              )}
+                            </td>
+                            <td>
+                              {formatNumber(
+                                item.max,
+                                2
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </section>
+
+          {/* =================================================
+              4.3 PROFILE OF RESPONDENTS
+              ================================================= */}
+
+          {(categoricalDescriptives.length > 0 ||
+            numericDescriptives.length > 0) && (
+            <section
+              id="chapter-profile"
+              className="chapter-section"
+            >
+              <h4>
+                4.3 Profile of Respondents
+              </h4>
+
+              {respondentNarrative && (
+                <p>{respondentNarrative}</p>
+              )}
+
+              {categoricalDescriptives.length >
+                0 && (
+                <>
+                  <h5>Categorical Distributions</h5>
+
+                  {categoricalDescriptives.map(
+                    (column) => {
+                      const freqs =
+                        column?.frequencies || {};
+                      const entries =
+                        Object.entries(freqs);
+                      const totalCategories = Number(
+                        column?.unique_count
+                      ) || entries.length;
+
+                      return (
+                        <div
+                          key={column?.name}
+                          className="chapter-analysis-block"
+                        >
+                          <h6>
+                            {formatVariableName(
+                              column?.name
+                            )}
+                          </h6>
+
+                          <div className="chapter-result-table-wrap">
+                            <table className="chapter-result-table">
+                              <thead>
+                                <tr>
+                                  <th>Category</th>
+                                  <th>Frequency</th>
+                                  <th>Percentage</th>
+                                </tr>
+                              </thead>
+
+                              <tbody>
+                                {entries.map(
+                                  ([
+                                    key,
+                                    value,
+                                  ]) => (
+                                    <tr key={key}>
+                                      <td>{key}</td>
+                                      <td>
+                                        {value?.count ??
+                                          "—"}
+                                      </td>
+                                      <td>
+                                        {formatNumber(
+                                          value?.percent,
+                                          1
+                                        )}
+                                        %
+                                      </td>
+                                    </tr>
+                                  )
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          {totalCategories >
+                            entries.length && (
+                            <p>
+                              {totalCategories -
+                                entries.length}{" "}
+                              additional categories
+                              were omitted from this
+                              table for readability.
+                            </p>
+                          )}
+                        </div>
+                      );
+                    }
+                  )}
+                </>
+              )}
+            </section>
+          )}
+
+          {/* =================================================
+              4.4 RESULTS
               ================================================= */}
 
           <section
@@ -755,7 +1104,7 @@ export default function Chapter4({
             className="chapter-section"
           >
             <h4>
-              4.2 Results
+              4.4 Results
             </h4>
 
             <p>
@@ -786,7 +1135,7 @@ export default function Chapter4({
                   >
 
                     <div className="chapter-section-number">
-                      4.2.{group.id}
+                      4.4.{group.id}
                     </div>
 
                     <h5>
@@ -852,7 +1201,8 @@ export default function Chapter4({
                               The analysis used{" "}
                               <strong>
                                 {getTestName(
-                                  result
+                                  result,
+                                  item
                                 )}
                               </strong>{" "}
                               to examine the
@@ -901,7 +1251,8 @@ export default function Chapter4({
 
                                 <strong>
                                   {getTestName(
-                                    result
+                                    result,
+                                    item
                                   )}
                                 </strong>
                               </div>
@@ -917,6 +1268,7 @@ export default function Chapter4({
                               <>
                                 <ResultTable
                                   result={result}
+                                  item={item}
                                 />
 
                                 {(result.test ===
@@ -1080,12 +1432,16 @@ export default function Chapter4({
                                           </td>
 
                                           <td>
-                                            {Number(
-                                              result
-                                                .assumptions
-                                                .shapiro_min_p
-                                            ) >
-                                            0.05
+                                            {result
+                                              .assumptions
+                                              .shapiro_min_p ===
+                                            null
+                                              ? "Not computed"
+                                              : Number(
+                                                  result
+                                                    .assumptions
+                                                    .shapiro_min_p
+                                                ) > 0.05
                                               ? "Met"
                                               : "Not met"}
                                           </td>
@@ -1111,12 +1467,16 @@ export default function Chapter4({
                                           </td>
 
                                           <td>
-                                            {Number(
-                                              result
-                                                .assumptions
-                                                .levene_p
-                                            ) >
-                                            0.05
+                                            {result
+                                              .assumptions
+                                              .levene_p ===
+                                            null
+                                              ? "Not computed"
+                                              : Number(
+                                                  result
+                                                    .assumptions
+                                                    .levene_p
+                                                ) > 0.05
                                               ? "Met"
                                               : "Not met"}
                                           </td>
@@ -1159,7 +1519,34 @@ export default function Chapter4({
           </section>
 
           {/* =================================================
-              4.3 RESEARCH OBJECTIVES
+              4.5 ANALYSIS AND INTERPRETATION
+              ================================================= */}
+
+          <section
+            id="chapter-interpretation"
+            className="chapter-section"
+          >
+            <h4>
+              4.5 Analysis and Interpretation
+            </h4>
+
+            <p>
+              Each research objective is linked
+              below to the analyses completed
+              against it.
+            </p>
+
+            {objectiveGroups.map((group) => (
+              <p key={`interpretation-${group.id}`}>
+                {objectiveInterpretationSentence(
+                  group
+                )}
+              </p>
+            ))}
+          </section>
+
+          {/* =================================================
+              4.6 RESEARCH OBJECTIVES
               ================================================= */}
 
           <section
@@ -1167,7 +1554,7 @@ export default function Chapter4({
             className="chapter-section"
           >
             <h4>
-              4.3 Research Objectives
+              4.6 Research Objectives
             </h4>
 
             <p>
@@ -1229,7 +1616,7 @@ export default function Chapter4({
           </section>
 
           {/* =================================================
-              4.4 HYPOTHESIS TESTING
+              4.7 HYPOTHESIS TESTING
               ================================================= */}
 
           <section
@@ -1237,7 +1624,7 @@ export default function Chapter4({
             className="chapter-section"
           >
             <h4>
-              4.4 Hypothesis Testing
+              4.7 Hypothesis Testing
             </h4>
 
             <p>
@@ -1249,73 +1636,101 @@ export default function Chapter4({
               statistical analyses.
             </p>
 
-            {completedResults.length >
-            0 ? (
+            {hasHypothesisResults ? (
               <div className="hypothesis-summary">
 
                 {objectiveGroups.map(
-                  (group) => (
-                    <div
-                      key={`hypothesis-group-${group.id}`}
-                      className="hypothesis-group"
-                    >
-                      <div className="hypothesis-group-title">
-                        Objective{" "}
-                        {group.id}
-                      </div>
+                  (group) => {
+                    /*
+                     * Only analyses with an actual p-value are a formal
+                     * hypothesis decision -- matches generate_chapter()'s
+                     * own filter (`if res.get("p_value") is None: continue`),
+                     * so a distribution or thematic_analysis result (which
+                     * never carries a p-value) doesn't show up here with a
+                     * meaningless "—" decision the way it used to. Index is
+                     * kept from the unfiltered list so "Analysis X.Y" still
+                     * matches the numbering used in 4.4 Results.
+                     */
+                    const hypothesisItems = group.results
+                      .map((item, index) => ({
+                        item,
+                        index,
+                      }))
+                      .filter(
+                        ({ item }) =>
+                          item.result?.p_value !==
+                            null &&
+                          item.result?.p_value !==
+                            undefined
+                      );
 
-                      {group.results.map(
-                        (
-                          item,
-                          index
-                        ) => {
-                          const result =
-                            item.result;
+                    if (
+                      hypothesisItems.length === 0
+                    ) {
+                      return null;
+                    }
 
-                          return (
-                            <div
-                              className="hypothesis-row"
-                              key={
-                                item.analysis_id ||
-                                item.id ||
-                                `hypothesis-${group.id}-${index}`
-                              }
-                            >
-                              <div>
-                                <strong>
-                                  Analysis{" "}
-                                  {group.id}.
-                                  {index +
-                                    1}
-                                </strong>
+                    return (
+                      <div
+                        key={`hypothesis-group-${group.id}`}
+                        className="hypothesis-group"
+                      >
+                        <div className="hypothesis-group-title">
+                          Objective{" "}
+                          {group.id}
+                        </div>
 
-                                <span>
-                                  {getTestName(
-                                    result
-                                  )}
-                                </span>
-                              </div>
+                        {hypothesisItems.map(
+                          ({ item, index }) => {
+                            const result =
+                              item.result;
 
+                            return (
                               <div
-                                className={
-                                  getDecision(
-                                    result
-                                  ) ===
-                                  "Significant"
-                                    ? "decision significant"
-                                    : "decision"
+                                className="hypothesis-row"
+                                key={
+                                  item.analysis_id ||
+                                  item.id ||
+                                  `hypothesis-${group.id}-${index}`
                                 }
                               >
-                                {getDecision(
-                                  result
-                                )}
+                                <div>
+                                  <strong>
+                                    Analysis{" "}
+                                    {group.id}.
+                                    {index +
+                                      1}
+                                  </strong>
+
+                                  <span>
+                                    {getTestName(
+                                      result,
+                                      item
+                                    )}
+                                  </span>
+                                </div>
+
+                                <div
+                                  className={
+                                    getDecision(
+                                      result
+                                    ) ===
+                                    "Significant"
+                                      ? "decision significant"
+                                      : "decision"
+                                  }
+                                >
+                                  {getDecision(
+                                    result
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          );
-                        }
-                      )}
-                    </div>
-                  )
+                            );
+                          }
+                        )}
+                      </div>
+                    );
+                  }
                 )}
 
               </div>
@@ -1329,7 +1744,7 @@ export default function Chapter4({
           </section>
 
           {/* =================================================
-              4.5 SUMMARY
+              4.8 SUMMARY
               ================================================= */}
 
           <section
@@ -1337,7 +1752,7 @@ export default function Chapter4({
             className="chapter-section"
           >
             <h4>
-              4.5 Summary of Findings
+              4.8 Summary of Findings
             </h4>
 
             <p>
@@ -1405,109 +1820,46 @@ export default function Chapter4({
               overall research design.
             </p>
 
-            {descriptives?.numeric?.length >
-              0 && (
+            {objectiveGroups.map((group) => (
+              <p key={`recap-${group.id}`}>
+                {objectiveRecapSentence(group)}
+              </p>
+            ))}
+
+            <p>
+              These findings are discussed in
+              relation to existing literature in
+              Chapter 5.
+            </p>
+
+          </section>
+
+          {/* =================================================
+              4.9 DATA CLEANING & LIMITATIONS
+              ================================================= */}
+
+          <section
+            id="chapter-cleaning"
+            className="chapter-section"
+          >
+            <h4>
+              4.9 Data Cleaning &amp; Limitations
+            </h4>
+
+            {!datasetVersion ? (
+              <p>
+                A cleaning and validation report
+                was not available for the dataset
+                version used in this analysis, so
+                the automated cleaning outcome
+                cannot be described here.
+              </p>
+            ) : (
               <>
-                <h5>
-                  Descriptive Statistics
-                </h5>
-
-                <div className="chapter-result-table-wrap">
-                  <table className="chapter-result-table">
-                    <thead>
-                      <tr>
-                        <th>
-                          Variable
-                        </th>
-
-                        <th>
-                          N
-                        </th>
-
-                        <th>
-                          Mean
-                        </th>
-
-                        <th>
-                          SD
-                        </th>
-
-                        <th>
-                          Median
-                        </th>
-
-                        <th>
-                          Min
-                        </th>
-
-                        <th>
-                          Max
-                        </th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {descriptives.numeric.map(
-                        (item) => (
-                          <tr
-                            key={
-                              item.name
-                            }
-                          >
-                            <td>
-                              {formatVariableName(
-                                item.name
-                              )}
-                            </td>
-
-                            <td>
-                              {item.n ??
-                                "—"}
-                            </td>
-
-                            <td>
-                              {formatNumber(
-                                item.mean,
-                                2
-                              )}
-                            </td>
-
-                            <td>
-                              {formatNumber(
-                                item.std,
-                                2
-                              )}
-                            </td>
-
-                            <td>
-                              {formatNumber(
-                                item.median,
-                                2
-                              )}
-                            </td>
-
-                            <td>
-                              {formatNumber(
-                                item.min,
-                                2
-                              )}
-                            </td>
-
-                            <td>
-                              {formatNumber(
-                                item.max,
-                                2
-                              )}
-                            </td>
-                          </tr>
-                        )
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                <p>{cleaningSummary}</p>
+                <p>{remainingIssuesSummary}</p>
               </>
             )}
-
           </section>
 
         </article>
