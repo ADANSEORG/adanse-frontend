@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../AuthContext.jsx";
 import ParticleField from "./ParticleField.jsx";
 import {
@@ -672,6 +673,15 @@ export default function AuthScreen() {
                 </div>
               )}
 
+              {isSignup && (
+                <p className="auth-disclaimer">
+                  By creating an account, you agree to our{" "}
+                  <Link to="/terms">Terms of Service</Link>{" "}
+                  and{" "}
+                  <Link to="/privacy">Privacy Policy</Link>.
+                </p>
+              )}
+
               <button
                 className="auth-submit"
                 type="submit"
@@ -719,10 +729,17 @@ export default function AuthScreen() {
         </section>
 
         <footer className="auth-footer">
-          <span>Adanse</span>
-          <span>
-            Research, made clearer.
-          </span>
+          <div className="auth-footer-brand">
+            <span>Adanse</span>
+            <span>
+              Research, made clearer.
+            </span>
+          </div>
+
+          <nav className="auth-footer-links">
+            <Link to="/privacy">Privacy Policy</Link>
+            <Link to="/terms">Terms of Service</Link>
+          </nav>
         </footer>
 
       </div>

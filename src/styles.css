@@ -1596,6 +1596,111 @@ button {
   margin-top: 20px;
 }
 
+.auth-disclaimer a {
+  color: #b88612;
+  text-decoration: underline;
+  font-weight: 700;
+}
+
+.auth-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+}
+
+.auth-footer-brand {
+  display: flex;
+  gap: 14px;
+}
+
+.auth-footer-links {
+  display: flex;
+  gap: 18px;
+}
+
+.auth-footer-links a {
+  color: #988d80;
+  text-decoration: underline;
+}
+
+.auth-footer-links a:hover {
+  color: var(--ink);
+}
+
+/* =========================================================
+   LEGAL PAGES
+   ========================================================= */
+
+.legal-page {
+  min-height: 100vh;
+  background: var(--bg);
+  padding: 38px 28px 80px;
+}
+
+.legal-container {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.legal-topbar {
+  margin-bottom: 50px;
+}
+
+.legal-brand {
+  font: 700 22px var(--display);
+  letter-spacing: -0.04em;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.legal-content h1 {
+  font: 600 clamp(32px, 5vw, 44px) / 1.1 var(--display);
+  letter-spacing: -0.03em;
+  margin: 0 0 28px;
+}
+
+.legal-content h2 {
+  font: 600 21px var(--display);
+  letter-spacing: -0.02em;
+  margin: 42px 0 14px;
+}
+
+.legal-content h3 {
+  font: 700 16px var(--display);
+  margin: 26px 0 10px;
+}
+
+.legal-content p {
+  font-size: 16px;
+  line-height: 1.75;
+  color: var(--ink);
+  margin: 0 0 16px;
+}
+
+.legal-content ul {
+  margin: 0 0 16px;
+  padding-left: 22px;
+}
+
+.legal-content li {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+
+.legal-content li:last-child {
+  margin-bottom: 0;
+}
+
+.legal-bottom {
+  margin-top: 50px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+
 /* =========================================================
    MOBILE
    ========================================================= */
@@ -1694,6 +1799,9 @@ button {
     margin-bottom: 10px;
   }
   .auth-page {
+    padding: 24px 20px;
+  }
+  .legal-page {
     padding: 24px 20px;
   }
   .auth-layout {
