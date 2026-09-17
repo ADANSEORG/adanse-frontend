@@ -1,9 +1,10 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 import { useAuth } from "./AuthContext.jsx";
 import { useThesisWorkflow } from "./hooks/useThesisWorkflow.js";
 
 import AuthScreen from "./components/AuthScreen.jsx";
+import WelcomeModal from "./components/WelcomeModal.jsx";
 import ConversationSidebar from "./components/ConversationSidebar.jsx";
 import ThesisSetup from "./components/ThesisSetup.jsx";
 import ThesisWorkspace from "./components/ThesisWorkspace.jsx";
@@ -18,8 +19,36 @@ export default function App() {
   const {
     user,
     loading: authLoading,
+    markWelcomeSeen,
     signOut,
   } = useAuth();
+
+  // needs_welcome is stamped on the account only at signup (see
+  // AuthContext.jsx's signUp()), so it's naturally absent/false for every
+  // user who existed before this feature shipped -- they never see this.
+  const [welcomeDismissed, setWelcomeDismissed] = useState(false);
+
+  const showWelcome =
+    Boolean(user?.user_metadata?.needs_welcome) &&
+    !welcomeDismissed;
+
+  async function dismissWelcome() {
+    // Hide immediately -- this must never leave the user stuck behind the
+    // modal if the metadata write below is slow or fails.
+    setWelcomeDismissed(true);
+
+    try {
+      await markWelcomeSeen();
+    } catch (error) {
+      console.error(
+        "Could not persist welcome-modal dismissal:",
+        error
+      );
+      // Worst case: needs_welcome stays true server-side and the modal
+      // shows once more on a later login. Acceptable degrade -- better
+      // than blocking the user right now.
+    }
+  }
 
   const {
     conversations,
@@ -112,6 +141,10 @@ export default function App() {
 
   return (
     <div className="app-layout">
+      {showWelcome && (
+        <WelcomeModal onDismiss={dismissWelcome} />
+      )}
+
       <ConversationSidebar
         conversations={
           conversations

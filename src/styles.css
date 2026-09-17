@@ -4280,3 +4280,87 @@ button {
     background: white;
   }
 }
+
+/* ---------------------------------------------------------
+   CREDITS — BUY PACKAGES
+   --------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .credits-package-grid {
+    /* Overrides the inline grid-template-columns set in
+       Credits.jsx, which otherwise keeps two columns at every
+       width and squeezes each card too narrow to lay out its
+       title, price and button cleanly. */
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ---------------------------------------------------------
+   WELCOME MODAL
+   --------------------------------------------------------- */
+
+.welcome-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(30, 24, 17, 0.4);
+}
+
+.welcome-modal-card {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  padding: 36px 32px 32px;
+  text-align: center;
+}
+
+.welcome-modal-coin {
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.1);
+}
+
+.welcome-modal-coin-inner {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.welcome-modal-title {
+  font: 600 clamp(26px, 4vw, 32px) / 1.1 var(--display);
+  letter-spacing: -0.03em;
+  margin: 0 0 16px;
+  color: var(--ink);
+}
+
+.welcome-modal-body {
+  margin: 0 0 14px;
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.welcome-modal-explainer {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.welcome-modal-cta {
+  width: 100%;
+  margin-top: 12px;
+  text-align: center;
+}
