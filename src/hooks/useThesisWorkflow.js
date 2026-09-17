@@ -129,6 +129,17 @@ export function useThesisWorkflow({ user, authLoading }) {
   ] = useState(0);
 
   /*
+   * Per-action credit costs (e.g. { analysis: 50, chapter4: 50 }), read
+   * from the same GET /api/v1/credits response as the balance itself --
+   * never hardcoded here, since that's the same class of bug as the
+   * hardcoded free-credit number fixed elsewhere in this app.
+   */
+  const [
+    costs,
+    setCosts,
+  ] = useState({});
+
+  /*
    * IMPORTANT:
    *
    * setup     = Research
@@ -187,6 +198,7 @@ export function useThesisWorkflow({ user, authLoading }) {
       setConversations([]);
       setActive(null);
       setCredits(0);
+      setCosts({});
       return;
     }
 
@@ -208,6 +220,10 @@ export function useThesisWorkflow({ user, authLoading }) {
             Number(
               creditData?.balance || 0
             )
+          );
+
+          setCosts(
+            creditData?.costs || {}
           );
         }
       )
@@ -887,6 +903,7 @@ export function useThesisWorkflow({ user, authLoading }) {
     datasetVersion,
     credits,
     setCredits,
+    costs,
     step,
     setStep,
     loading,

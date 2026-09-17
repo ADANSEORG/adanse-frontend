@@ -60,6 +60,7 @@ export default function App() {
     datasetVersion,
     credits,
     setCredits,
+    costs,
     step,
     setStep,
     loading,
@@ -647,6 +648,11 @@ export default function App() {
                 conversationId={
                   active.id
                 }
+                credits={credits}
+                costs={costs}
+                onBuyCredits={
+                  openCredits
+                }
               />
             )}
 
@@ -672,6 +678,11 @@ export default function App() {
                 }
                 loading={
                   loading
+                }
+                credits={credits}
+                costs={costs}
+                onBuyCredits={
+                  openCredits
                 }
               />
             )}

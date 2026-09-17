@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { toFixedHalfEven } from "./chapter4/resultsTransform.js";
+import CreditActionButton from "./CreditActionButton.jsx";
 
 const TEST_NAMES = {
   distribution: "Descriptive distribution",
@@ -114,7 +115,7 @@ function AnalysisCard({ item }) {
   );
 }
 
-export default function ThesisWorkspace({ project, upload, plan, analysis, onBuildPlan, onRun, onContinueChapter4, loading }) {
+export default function ThesisWorkspace({ project, upload, plan, analysis, onBuildPlan, onRun, onContinueChapter4, loading, credits, costs, onBuyCredits }) {
   const objectives = useMemo(() => plan?.items || [], [plan]);
   const datasetType = analysis?.dataset_type || plan?.dataset_type;
   const summary = analysis?.dataset_summary || plan?.dataset_summary || {};
@@ -159,7 +160,16 @@ export default function ThesisWorkspace({ project, upload, plan, analysis, onBui
       {plan && !hasResults && (
         <div className="analysis-action-bar">
           <div><strong>{objectives.reduce((n, x) => n + (x.analyses?.length || 0), 0)} data-supported analyses planned</strong><span>Quantitative and qualitative methods can coexist when the CSV supports both.</span></div>
-          <button className="btn btn-primary" onClick={onRun} disabled={loading}>{loading ? "Analysing…" : "Run analysis →"}</button>
+          <CreditActionButton
+            label="Run analysis →"
+            confirmLabel="Confirm — run analysis →"
+            loadingLabel="Analysing…"
+            cost={costs?.analysis}
+            balance={credits}
+            loading={loading}
+            onConfirm={onRun}
+            onBuyCredits={onBuyCredits}
+          />
         </div>
       )}
 
