@@ -141,6 +141,11 @@ export function AuthProvider({ children }) {
       options: {
         data: {
           full_name: cleanName,
+          // Stamped once at account creation so the welcome modal can
+          // tell a brand-new signup apart from any later sign-in, on
+          // any device -- absent/false for every account created
+          // before this existed, so it never resurfaces for them.
+          needs_welcome: true,
         },
       },
     });
@@ -209,6 +214,27 @@ export function AuthProvider({ children }) {
     }
   }
 
+  async function markWelcomeSeen() {
+    if (!supabase) {
+      return;
+    }
+
+    const {
+      data,
+      error,
+    } = await supabase.auth.updateUser({
+      data: {
+        needs_welcome: false,
+      },
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    setUser(data.user ?? null);
+  }
+
   async function signOut() {
     if (!supabase) {
       return;
@@ -234,6 +260,7 @@ export function AuthProvider({ children }) {
         signUp,
         verifySignupOtp,
         resendSignupOtp,
+        markWelcomeSeen,
         signOut,
       }}
     >
