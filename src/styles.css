@@ -4364,3 +4364,66 @@ button {
   margin-top: 12px;
   text-align: center;
 }
+
+/* ---------------------------------------------------------
+   CREDIT ACTION BUTTON (Run Analysis / Export Chapter 4)
+   --------------------------------------------------------- */
+
+.credit-action {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.credit-action-notice {
+  max-width: 280px;
+  text-align: right;
+}
+
+.credit-action-cost {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.credit-action-warning {
+  display: block;
+  color: #8c6a1a;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.credit-action-insufficient {
+  display: block;
+  color: #a33;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.credit-action-buy-link {
+  display: inline;
+  margin-left: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--green);
+  font-weight: 700;
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+@media (max-width: 700px) {
+  .chapter4-bottom .credit-action,
+  .chapter4-action .credit-action {
+    width: 100%;
+    align-items: flex-start;
+  }
+
+  .chapter4-bottom .credit-action-notice,
+  .chapter4-action .credit-action-notice {
+    max-width: 100%;
+    text-align: left;
+  }
+}

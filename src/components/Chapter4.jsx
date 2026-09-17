@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import CreditActionButton from "./CreditActionButton.jsx";
 import {
   formatVariableName,
   formatNumber,
@@ -202,6 +203,9 @@ export default function Chapter4({
   onBack,
   onDownload,
   loading,
+  credits,
+  costs,
+  onBuyCredits,
 }) {
   const [activeSection, setActiveSection] =
     useState("introduction");
@@ -663,16 +667,17 @@ export default function Chapter4({
           </p>
         </div>
 
-        <button
+        <CreditActionButton
+          label="Download Chapter 4 .docx"
+          confirmLabel="Confirm — download Chapter 4 .docx"
+          loadingLabel="Preparing document…"
+          cost={costs?.chapter4}
+          balance={credits}
+          loading={loading}
+          onConfirm={onDownload}
+          onBuyCredits={onBuyCredits}
           className="btn btn-primary btn-large"
-          onClick={onDownload}
-          disabled={loading}
-          type="button"
-        >
-          {loading
-            ? "Preparing document…"
-            : "Download Chapter 4 .docx"}
-        </button>
+        />
       </div>
 
       {/* =================================================
@@ -1879,16 +1884,17 @@ export default function Chapter4({
           ← Back to Analysis
         </button>
 
-        <button
+        <CreditActionButton
+          label="Download editable Chapter 4 .docx"
+          confirmLabel="Confirm — download Chapter 4 .docx"
+          loadingLabel="Preparing document…"
+          cost={costs?.chapter4}
+          balance={credits}
+          loading={loading}
+          onConfirm={onDownload}
+          onBuyCredits={onBuyCredits}
           className="btn btn-primary btn-large"
-          onClick={onDownload}
-          disabled={loading}
-          type="button"
-        >
-          {loading
-            ? "Preparing document…"
-            : "Download editable Chapter 4 .docx"}
-        </button>
+        />
 
       </div>
 
