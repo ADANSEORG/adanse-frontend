@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../AuthContext.jsx";
+import ParticleField from "./ParticleField.jsx";
 import {
   cleanOtpCode,
   otpDigitAt,
@@ -343,6 +344,8 @@ export default function AuthScreen() {
 
   return (
     <main className="auth-page">
+      <ParticleField />
+
       <div className="auth-container">
 
         <header className="auth-header">

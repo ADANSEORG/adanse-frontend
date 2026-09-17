@@ -1297,12 +1297,24 @@ button {
    ========================================================= */
 
 .auth-page {
+  position: relative;
+  overflow: hidden;
   min-height: 100vh;
   padding: 38px 28px 70px;
   background: var(--bg);
 }
 
+.auth-particle-field {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  /* Decorative only -- never intercepts clicks meant for the form. */
+  pointer-events: none;
+}
+
 .auth-container {
+  position: relative;
+  z-index: 1;
   max-width: 1160px;
   margin: auto;
 }
