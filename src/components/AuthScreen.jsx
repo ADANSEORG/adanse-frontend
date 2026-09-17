@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext.jsx";
 import ParticleField from "./ParticleField.jsx";
 import {
@@ -8,6 +8,7 @@ import {
   pasteOtpDigits,
   setOtpDigit,
 } from "../otp.js";
+import { MIN_PASSWORD_LENGTH } from "../passwordValidation.js";
 
 const RESEND_COOLDOWN_SECONDS = 45;
 const OTP_LENGTH = 8;
@@ -174,8 +175,8 @@ function validateAuthForm({ isSignup, name, email, password }) {
     return "Enter your email and password.";
   }
 
-  if (password.length < 6) {
-    return "Your password must be at least 6 characters.";
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    return `Your password must be at least ${MIN_PASSWORD_LENGTH} characters.`;
   }
 
   return null;
@@ -187,7 +188,11 @@ export default function AuthScreen() {
     signUp,
     verifySignupOtp,
     resendSignupOtp,
+    resetPasswordForEmail,
   } = useAuth();
+
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const [mode, setMode] = useState("signin");
 
@@ -209,7 +214,20 @@ export default function AuthScreen() {
   const [resendCooldown, setResendCooldown] = useState(0);
 
   const isSignup = mode === "signup";
+  const isForgot = mode === "forgot";
   const isVerifying = Boolean(pendingEmail);
+
+  // A one-time message handed off by ResetPassword after a successful
+  // reset (it signs the recovery session out and redirects here) --
+  // consumed once, then scrubbed from history state so it doesn't
+  // resurface on a later back/forward navigation.
+  useEffect(() => {
+    if (location.state?.authMessage) {
+      setMessage(location.state.authMessage);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state]);
 
   useEffect(() => {
     if (resendCooldown <= 0) return undefined;
@@ -280,12 +298,50 @@ export default function AuthScreen() {
     }
   }
 
-  function switchMode() {
+  function goToMode(nextMode) {
     setError("");
     setMessage("");
     setPendingEmail("");
     setCode("");
-    setMode(isSignup ? "signin" : "signup");
+    setMode(nextMode);
+  }
+
+  function switchMode() {
+    goToMode(isSignup ? "signin" : "signup");
+  }
+
+  async function handleForgotSubmit(event) {
+    event.preventDefault();
+
+    setError("");
+    setMessage("");
+
+    const cleanEmail = email.trim();
+
+    if (!cleanEmail) {
+      setError("Enter your email address.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      await resetPasswordForEmail(cleanEmail);
+
+      // Supabase itself never reveals whether an account exists for
+      // this call (it "succeeds" either way) -- showing one message
+      // regardless of outcome just mirrors that on our side too.
+      setMessage(
+        "Check your email for a link to reset your password."
+      );
+    } catch (err) {
+      setError(
+        err?.message ||
+          "We couldn't send that email. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleVerifyCode(event) {
@@ -531,6 +587,84 @@ export default function AuthScreen() {
                   </button>
                 </div>
               </>
+            ) : isForgot ? (
+              <>
+                <div className="auth-card-top">
+                  Reset password
+                </div>
+
+                <div className="auth-card-heading">
+                  <h2>Forgot your password?</h2>
+
+                  <p>
+                    Enter your email and we'll send
+                    you a link to reset it.
+                  </p>
+                </div>
+
+                <form
+                  className="auth-form"
+                  onSubmit={handleForgotSubmit}
+                >
+                  <label
+                    className="auth-label"
+                    htmlFor="auth-forgot-email"
+                  >
+                    Email address
+                  </label>
+
+                  <input
+                    id="auth-forgot-email"
+                    className="auth-input"
+                    type="email"
+                    value={email}
+                    onChange={(e) =>
+                      setEmail(e.target.value)
+                    }
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    disabled={loading}
+                  />
+
+                  {error && (
+                    <div
+                      className="auth-error"
+                      role="alert"
+                    >
+                      {error}
+                    </div>
+                  )}
+
+                  {message && (
+                    <div
+                      className="auth-message"
+                      role="status"
+                    >
+                      {message}
+                    </div>
+                  )}
+
+                  <button
+                    className="auth-submit"
+                    type="submit"
+                    disabled={loading}
+                  >
+                    {loading
+                      ? "Sending…"
+                      : "Send reset link"}
+                  </button>
+                </form>
+
+                <div className="auth-switch">
+                  <button
+                    type="button"
+                    className="auth-switch-button"
+                    onClick={() => goToMode("signin")}
+                  >
+                    Back to sign in
+                  </button>
+                </div>
+              </>
             ) : (
               <>
                 <div className="auth-card-top">
@@ -622,7 +756,7 @@ export default function AuthScreen() {
                   }
                   placeholder={
                     isSignup
-                      ? "At least 6 characters"
+                      ? `At least ${MIN_PASSWORD_LENGTH} characters`
                       : "Your password"
                   }
                   autoComplete={
@@ -654,6 +788,19 @@ export default function AuthScreen() {
                   )}
                 </button>
               </div>
+
+              {!isSignup && (
+                <div className="auth-switch">
+                  <button
+                    type="button"
+                    className="auth-switch-button"
+                    onClick={() => goToMode("forgot")}
+                    disabled={loading}
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
 
               {error && (
                 <div

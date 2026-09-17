@@ -214,6 +214,51 @@ export function AuthProvider({ children }) {
     }
   }
 
+  async function resetPasswordForEmail(email) {
+    if (!supabase) {
+      throw new Error(
+        "Supabase is not configured."
+      );
+    }
+
+    const {
+      error,
+    } = await supabase.auth.resetPasswordForEmail(
+      email,
+      {
+        redirectTo:
+          "https://adanse.app/reset-password",
+      }
+    );
+
+    if (error) {
+      throw error;
+    }
+  }
+
+  async function updatePassword(password) {
+    if (!supabase) {
+      throw new Error(
+        "Supabase is not configured."
+      );
+    }
+
+    const {
+      data,
+      error,
+    } = await supabase.auth.updateUser({
+      password,
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    setUser(data.user ?? null);
+
+    return data;
+  }
+
   async function markWelcomeSeen() {
     if (!supabase) {
       return;
@@ -260,6 +305,8 @@ export function AuthProvider({ children }) {
         signUp,
         verifySignupOtp,
         resendSignupOtp,
+        resetPasswordForEmail,
+        updatePassword,
         markWelcomeSeen,
         signOut,
       }}

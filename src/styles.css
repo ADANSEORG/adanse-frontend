@@ -1359,6 +1359,13 @@ button {
 .auth-brand {
   font: 700 28px var(--display);
   letter-spacing: -0.04em;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.auth-standalone {
+  max-width: 460px;
+  margin: 40px auto 0;
 }
 
 .auth-tagline {
