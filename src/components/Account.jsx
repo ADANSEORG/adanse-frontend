@@ -1,8 +1,53 @@
+import { useState } from "react";
+import { useAuth } from "../AuthContext.jsx";
+import { validateNewPassword } from "../passwordValidation.js";
+
 export default function Account({
   user,
   onBack,
   onSignOut,
 }) {
+  const { updatePassword } = useAuth();
+
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordMessage, setPasswordMessage] = useState("");
+
+  async function handlePasswordSubmit(event) {
+    event.preventDefault();
+
+    setPasswordError("");
+    setPasswordMessage("");
+
+    const validationError = validateNewPassword(
+      newPassword,
+      confirmPassword
+    );
+
+    if (validationError) {
+      setPasswordError(validationError);
+      return;
+    }
+
+    setPasswordLoading(true);
+
+    try {
+      await updatePassword(newPassword);
+      setPasswordMessage("Your password has been updated.");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err) {
+      setPasswordError(
+        err?.message ||
+          "We couldn't update your password. Please try again."
+      );
+    } finally {
+      setPasswordLoading(false);
+    }
+  }
+
   const fullName =
     user?.user_metadata?.full_name ||
     user?.user_metadata?.name ||
@@ -136,6 +181,98 @@ export default function Account({
               Active
             </strong>
           </div>
+        </div>
+      </div>
+
+      {/* SECURITY */}
+      <div style={styles.section}>
+        <div className="section-kicker">
+          SECURITY
+        </div>
+
+        <div style={styles.passwordCard}>
+          <strong style={styles.settingTitle}>
+            Change password
+          </strong>
+
+          <p style={styles.settingDescription}>
+            Choose a new password for your account.
+          </p>
+
+          <form
+            className="auth-form"
+            style={styles.passwordForm}
+            onSubmit={handlePasswordSubmit}
+          >
+            <label
+              className="auth-label"
+              htmlFor="account-new-password"
+            >
+              New password
+            </label>
+
+            <input
+              id="account-new-password"
+              className="auth-input"
+              type="password"
+              value={newPassword}
+              onChange={(e) =>
+                setNewPassword(e.target.value)
+              }
+              placeholder="At least 6 characters"
+              autoComplete="new-password"
+              disabled={passwordLoading}
+            />
+
+            <label
+              className="auth-label"
+              htmlFor="account-confirm-password"
+            >
+              Confirm new password
+            </label>
+
+            <input
+              id="account-confirm-password"
+              className="auth-input"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) =>
+                setConfirmPassword(e.target.value)
+              }
+              placeholder="Re-enter your new password"
+              autoComplete="new-password"
+              disabled={passwordLoading}
+            />
+
+            {passwordError && (
+              <div
+                className="auth-error"
+                role="alert"
+              >
+                {passwordError}
+              </div>
+            )}
+
+            {passwordMessage && (
+              <div
+                className="auth-message"
+                role="status"
+              >
+                {passwordMessage}
+              </div>
+            )}
+
+            <button
+              className="auth-submit"
+              type="submit"
+              disabled={passwordLoading}
+              style={styles.passwordSubmit}
+            >
+              {passwordLoading
+                ? "Updating…"
+                : "Update password"}
+            </button>
+          </form>
         </div>
       </div>
 
@@ -309,5 +446,22 @@ const styles = {
     color: "var(--red)",
     borderColor: "#e8c8c1",
     flexShrink: 0,
+  },
+
+  passwordCard: {
+    padding: "22px",
+    background: "var(--surface)",
+    border: "1px solid var(--line)",
+    borderRadius: "16px",
+  },
+
+  passwordForm: {
+    maxWidth: "380px",
+    marginTop: "18px",
+  },
+
+  passwordSubmit: {
+    width: "auto",
+    padding: "11px 24px",
   },
 };
