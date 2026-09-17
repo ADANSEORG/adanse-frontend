@@ -1,0 +1,964 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Adanse — Your research. Understood.</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      @font-face {
+        font-family: 'Space Grotesk';
+        font-weight: 500 700;
+        font-style: normal;
+        src: url('assets/fonts/spacegrotesk-variable.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'DM Sans';
+        font-weight: 400 700;
+        font-style: normal;
+        src: url('assets/fonts/dmsans-variable.woff2') format('woff2');
+      }
+
+      :root {
+        --near-black: #0a0906;
+        --cream-bg: #faf5e9;
+        --cream-surface: #fffdf8;
+        --ink: #211b16;
+        --muted: #74695e;
+        --line: #e4d8c3;
+        --gold: #dda622;
+        --gold-soft: #f5e7bf;
+        --green: #245b42;
+        --green-soft: #e9f0eb;
+        --glow-mult: 1;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--near-black);
+        font-family: 'DM Sans', sans-serif;
+      }
+
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: var(--near-black);
+      }
+
+      .clip {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+
+      .full {
+        position: absolute;
+        inset: 0;
+      }
+
+      /* ============ SCENE 1 — THE PROBLEM ============ */
+
+      #scene-hook .bg {
+        background: var(--near-black);
+      }
+
+      .hook-vignette {
+        position: absolute;
+        left: 50%;
+        top: 44%;
+        width: 1600px;
+        height: 1600px;
+        margin: -800px 0 0 -800px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(221, 166, 34, 0.14), rgba(10, 9, 6, 0) 62%);
+      }
+
+      .hook-mote {
+        position: absolute;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--gold-soft);
+        opacity: 0.14;
+      }
+
+      .hook-rule {
+        position: absolute;
+        left: 50%;
+        top: 37%;
+        width: 110px;
+        height: 2px;
+        margin-left: -55px;
+        background: var(--gold);
+        opacity: 0.55;
+        transform-origin: 50% 50%;
+      }
+
+      .hook-text-wrap {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 0 8%;
+      }
+
+      .hook-line {
+        grid-area: 1 / 1;
+        text-align: center;
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 600;
+        font-size: 66px;
+        letter-spacing: -0.01em;
+        color: var(--cream-surface);
+        opacity: 0;
+      }
+
+      /* ============ SCENE 2 — THE REVEAL ============ */
+
+      .bg-black-base {
+        background: var(--near-black);
+      }
+
+      .bg-cream-layer {
+        background: var(--cream-bg);
+        opacity: 0;
+      }
+
+      .reveal-glow {
+        position: absolute;
+        left: 50%;
+        top: 42%;
+        width: 1100px;
+        height: 1100px;
+        margin: -550px 0 0 -550px;
+        opacity: 0;
+      }
+
+      .glow-core {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(221, 166, 34, 0.5), rgba(221, 166, 34, 0) 64%);
+      }
+
+      .reveal-glow .glow-core {
+        opacity: calc(0.55 * var(--glow-mult, 1));
+      }
+
+      .reveal-wrap {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .nyansapo-mark {
+        display: block;
+        opacity: 0;
+      }
+
+      .nyansapo-mark.reveal-mark {
+        width: 84px;
+        height: 84px;
+        margin-bottom: 22px;
+        color: var(--ink);
+      }
+
+      .nyansapo-mark.hero-mark {
+        width: 106px;
+        height: 106px;
+        margin-bottom: 28px;
+        color: var(--gold);
+      }
+
+      .wordmark {
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 700;
+        font-size: 132px;
+        letter-spacing: -0.04em;
+        color: var(--ink);
+        opacity: 0;
+      }
+
+      .reveal-tagline {
+        margin-top: 18px;
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 500;
+        font-size: 30px;
+        letter-spacing: 0.02em;
+        color: var(--muted);
+        opacity: 0;
+      }
+
+      /* ============ SCENE 3 — THE PRODUCT, IN MOTION ============ */
+
+      .bg-cream-persist {
+        background: var(--cream-bg);
+      }
+
+      .product-ambient-glow {
+        position: absolute;
+        right: -220px;
+        top: -260px;
+        width: 1300px;
+        height: 1300px;
+        opacity: 0;
+      }
+
+      .product-ambient-glow .glow-core {
+        opacity: calc(0.2 * var(--glow-mult, 1));
+      }
+
+      .product-progress-rule {
+        position: absolute;
+        left: 50%;
+        top: 66px;
+        width: 1160px;
+        margin-left: -580px;
+        height: 3px;
+        background: var(--gold);
+        opacity: 0.45;
+        transform-origin: 0% 50%;
+      }
+
+      .camera-viewport {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+
+      .camera-stage {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 11520px;
+        height: 1080px;
+        display: flex;
+      }
+
+      .ui-slot {
+        flex: 0 0 1920px;
+        width: 1920px;
+        height: 1080px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
+
+      .slot-step {
+        position: absolute;
+        left: 96px;
+        top: 40px;
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 600;
+        font-size: 340px;
+        letter-spacing: -0.03em;
+        color: var(--ink);
+        opacity: 0.055;
+      }
+
+      .slot-card {
+        position: relative;
+        width: 1160px;
+        background: var(--cream-surface);
+        border: 2px solid var(--line);
+        border-radius: 28px;
+        box-shadow: 0 30px 80px rgba(33, 23, 12, 0.16);
+        padding: 72px 84px;
+      }
+
+      .kicker {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 600;
+        font-size: 22px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+        opacity: 0;
+      }
+
+      /* Slot 0 — upload */
+
+      .file-chip {
+        position: absolute;
+        left: 50%;
+        top: -40px;
+        width: 108px;
+        height: 108px;
+        margin-left: -54px;
+        border-radius: 20px;
+        background: var(--gold-soft);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 700;
+        font-size: 22px;
+        color: var(--ink);
+        opacity: 0;
+        box-shadow: 0 18px 40px rgba(221, 166, 34, 0.28);
+      }
+
+      .dataset-filename {
+        margin-top: 18px;
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 600;
+        font-size: 46px;
+        color: var(--ink);
+        opacity: 0;
+      }
+
+      .dataset-meta {
+        margin-top: 14px;
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 500;
+        font-size: 27px;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+        opacity: 0;
+      }
+
+      /* Slot 1 — column classification */
+
+      .chip-row {
+        margin-top: 26px;
+        display: flex;
+        gap: 22px;
+      }
+
+      .col-chip {
+        flex: 1;
+        border: 2px solid var(--line);
+        border-radius: 18px;
+        padding: 26px 22px;
+        background: var(--cream-surface);
+        opacity: 0;
+      }
+
+      .col-chip-name {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 23px;
+        color: var(--ink);
+      }
+
+      .col-chip-type {
+        margin-top: 12px;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 600;
+        font-size: 20px;
+        color: var(--muted);
+      }
+
+      .type-dot {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+      }
+
+      .type-dot.numeric {
+        background: var(--green);
+      }
+
+      .type-dot.categorical {
+        background: var(--gold);
+      }
+
+      /* Slot 2 — cleaning + validation */
+
+      .report-lines {
+        margin-top: 26px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .report-line {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 500;
+        font-size: 27px;
+        color: var(--muted);
+        opacity: 0;
+      }
+
+      .status-pill {
+        margin-top: 34px;
+        display: inline-flex;
+        align-items: center;
+        padding: 14px 28px;
+        border-radius: 999px;
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 24px;
+        background: var(--gold-soft);
+        color: var(--gold);
+        opacity: 0;
+      }
+
+      /* Slot 3 — distribution stats */
+
+      .stat-grid {
+        margin-top: 30px;
+        display: flex;
+        gap: 24px;
+      }
+
+      .stat-tile {
+        flex: 1;
+        border: 2px solid var(--line);
+        border-radius: 18px;
+        padding: 28px 20px;
+        text-align: center;
+        opacity: 0;
+      }
+
+      .stat-label {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 600;
+        font-size: 19px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .stat-value {
+        margin-top: 10px;
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 600;
+        font-size: 50px;
+        color: var(--ink);
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* Slot 4 — quant + qual */
+
+      .split-row {
+        margin-top: 28px;
+        display: flex;
+        gap: 26px;
+      }
+
+      .split-card {
+        flex: 1;
+        border: 2px solid var(--line);
+        border-radius: 20px;
+        padding: 34px 32px;
+        opacity: 0;
+      }
+
+      .split-title {
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 600;
+        font-size: 26px;
+        color: var(--ink);
+      }
+
+      .split-stat {
+        margin-top: 16px;
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 600;
+        font-size: 26px;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .split-quote {
+        margin-top: 16px;
+        font-family: 'DM Sans', sans-serif;
+        font-style: italic;
+        font-weight: 500;
+        font-size: 23px;
+        color: var(--ink);
+        line-height: 1.4;
+      }
+
+      /* Slot 5 — chapter 4 document */
+
+      .doc-heading {
+        margin-top: 22px;
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 600;
+        font-size: 44px;
+        color: var(--ink);
+        opacity: 0;
+      }
+
+      .docx-badge {
+        margin-top: 22px;
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+        padding: 10px 20px 10px 10px;
+        border-radius: 999px;
+        background: var(--green-soft);
+        opacity: 0;
+      }
+
+      .docx-badge-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 700;
+        font-size: 18px;
+        color: var(--cream-surface);
+        background: var(--green);
+      }
+
+      .docx-badge span:last-child {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 600;
+        font-size: 21px;
+        color: var(--green);
+      }
+
+      .doc-lines {
+        margin-top: 26px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      .doc-line {
+        height: 16px;
+        border-radius: 8px;
+        background: var(--line);
+        transform-origin: 0% 50%;
+      }
+
+      /* ============ SCENE 4 — THE MESSAGE ============ */
+
+      .message-bg-texture {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 1300px;
+        height: 700px;
+        margin: -350px 0 0 -650px;
+        border-radius: 40px;
+        background: var(--cream-surface);
+        border: 2px solid var(--line);
+        filter: blur(18px);
+        opacity: 0;
+      }
+
+      .message-wrap {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 0 6%;
+      }
+
+      .message-line {
+        grid-area: 1 / 1;
+        text-align: center;
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 600;
+        font-size: 94px;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+        opacity: 0;
+      }
+
+      /* ============ SCENE 5 — THE HERO CLOSE ============ */
+
+      .hero-glow {
+        position: absolute;
+        left: 50%;
+        top: 40%;
+        width: 1500px;
+        height: 1500px;
+        margin: -750px 0 0 -750px;
+        opacity: 0;
+      }
+
+      .hero-glow .glow-core {
+        opacity: calc(0.6 * var(--glow-mult, 1));
+      }
+
+      .hero-wrap {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .hero-wordmark {
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 700;
+        font-size: 172px;
+        letter-spacing: -0.04em;
+        color: var(--cream-surface);
+        opacity: 0;
+      }
+
+      .hero-tagline {
+        margin-top: 26px;
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 500;
+        font-size: 34px;
+        letter-spacing: 0.01em;
+        color: var(--gold-soft);
+        opacity: 0;
+      }
+
+      .hero-site {
+        margin-top: 34px;
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 600;
+        font-size: 22px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #c9c0ae;
+        opacity: 0;
+      }
+
+      .fade-to-black {
+        background: var(--near-black);
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="adanse" data-start="0" data-duration="30" data-width="1920" data-height="1080">
+
+      <!-- ============ SCENE 1 — THE PROBLEM (0-4s) ============ -->
+      <section id="scene-hook" class="clip" data-start="0" data-duration="4" data-track-index="0">
+        <div class="full bg"></div>
+        <div class="hook-vignette" id="hook-vignette" data-layout-allow-overflow="true"></div>
+        <div class="hook-mote" id="hook-mote-1" style="left: 26%; top: 30%;"></div>
+        <div class="hook-mote" id="hook-mote-2" style="left: 70%; top: 62%;"></div>
+        <div class="hook-mote" id="hook-mote-3" style="left: 60%; top: 24%;"></div>
+        <div class="hook-rule" id="hook-rule"></div>
+        <div class="hook-text-wrap">
+          <p class="hook-line" id="hook-line-1">Your thesis data has answers.</p>
+          <p class="hook-line" id="hook-line-2">Finding them shouldn't take weeks.</p>
+        </div>
+      </section>
+
+      <!-- ============ SCENE 2 — THE REVEAL (4-8s) ============ -->
+      <section id="scene-reveal" class="clip" data-start="4" data-duration="4" data-track-index="1">
+        <div class="full bg-black-base"></div>
+        <div class="full bg-cream-layer" id="reveal-cream"></div>
+        <div class="reveal-glow" id="reveal-glow" data-layout-allow-overflow="true"><div class="glow-core"></div></div>
+        <div class="reveal-wrap">
+          <svg class="nyansapo-mark reveal-mark" id="reveal-mark" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" aria-label="Nyansapo — the Adinkra wisdom knot">
+            <path d="M50,50 C38,38 38,18 50,18 C62,18 62,38 50,50 C62,62 62,82 50,82 C38,82 38,62 50,50 Z" />
+            <path d="M50,50 C38,38 18,38 18,50 C18,62 38,62 50,50 C62,38 82,38 82,50 C82,62 62,62 50,50 Z" />
+          </svg>
+          <h1 class="wordmark" id="reveal-wordmark">Adanse</h1>
+          <p class="reveal-tagline" id="reveal-tagline">Thesis Analysis</p>
+        </div>
+      </section>
+
+      <!-- ============ SCENE 3 — THE PRODUCT, IN MOTION (8-18s) ============ -->
+      <section id="scene-product" class="clip" data-start="8" data-duration="10" data-track-index="2">
+        <div class="full bg-cream-persist"></div>
+        <div class="product-ambient-glow" id="product-glow" data-layout-allow-overflow="true"><div class="glow-core"></div></div>
+        <div class="product-progress-rule" id="product-progress"></div>
+
+        <div class="camera-viewport">
+          <div class="camera-stage" id="camera-stage" data-layout-allow-overflow="true">
+
+            <!-- Slot 0 — upload -->
+            <div class="ui-slot" id="slot-0">
+              <span class="slot-step" data-layout-allow-occlusion="true">01</span>
+              <div class="slot-card">
+                <div class="file-chip" id="s0-chip">XLSX</div>
+                <p class="kicker" id="s0-kicker">CURRENT DATASET</p>
+                <p class="dataset-filename" id="s0-filename">thesis_survey_data.xlsx</p>
+                <p class="dataset-meta" id="s0-meta">1,204 responses · 18 variables</p>
+              </div>
+            </div>
+
+            <!-- Slot 1 — column classification -->
+            <div class="ui-slot" id="slot-1">
+              <span class="slot-step" data-layout-allow-occlusion="true">02</span>
+              <div class="slot-card">
+                <p class="kicker" id="s1-kicker">VARIABLES, CLASSIFIED AUTOMATICALLY</p>
+                <div class="chip-row">
+                  <div class="col-chip" id="s1-chip-1">
+                    <div class="col-chip-name">Study Hours</div>
+                    <div class="col-chip-type"><span class="type-dot numeric"></span>Numeric</div>
+                  </div>
+                  <div class="col-chip" id="s1-chip-2">
+                    <div class="col-chip-name">GPA</div>
+                    <div class="col-chip-type"><span class="type-dot numeric"></span>Numeric</div>
+                  </div>
+                  <div class="col-chip" id="s1-chip-3">
+                    <div class="col-chip-name">AI Tool Use</div>
+                    <div class="col-chip-type"><span class="type-dot categorical"></span>Categorical</div>
+                  </div>
+                  <div class="col-chip" id="s1-chip-4">
+                    <div class="col-chip-name">Year Level</div>
+                    <div class="col-chip-type"><span class="type-dot categorical"></span>Categorical</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Slot 2 — cleaning + validation -->
+            <div class="ui-slot" id="slot-2">
+              <span class="slot-step" data-layout-allow-occlusion="true">03</span>
+              <div class="slot-card">
+                <p class="kicker" id="s2-kicker">DATASET REVIEW</p>
+                <div class="report-lines">
+                  <p class="report-line" id="s2-line-1">Missing values imputed · 12</p>
+                  <p class="report-line" id="s2-line-2">Outliers flagged · 4</p>
+                </div>
+                <span class="status-pill" id="s2-status">Cleaned</span>
+              </div>
+            </div>
+
+            <!-- Slot 3 — distribution stats -->
+            <div class="ui-slot" id="slot-3">
+              <span class="slot-step" data-layout-allow-occlusion="true">04</span>
+              <div class="slot-card">
+                <p class="kicker" id="s3-kicker">EXPLORATORY ANALYSIS — GPA</p>
+                <div class="stat-grid">
+                  <div class="stat-tile" id="s3-tile-1"><div class="stat-label">N</div><div class="stat-value">210</div></div>
+                  <div class="stat-tile" id="s3-tile-2"><div class="stat-label">Mean</div><div class="stat-value">3.42</div></div>
+                  <div class="stat-tile" id="s3-tile-3"><div class="stat-label">SD</div><div class="stat-value">0.58</div></div>
+                  <div class="stat-tile" id="s3-tile-4"><div class="stat-label">Median</div><div class="stat-value">3.50</div></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Slot 4 — quant + qual -->
+            <div class="ui-slot" id="slot-4">
+              <span class="slot-step" data-layout-allow-occlusion="true">05</span>
+              <div class="slot-card">
+                <p class="kicker" id="s4-kicker">QUANTITATIVE &amp; QUALITATIVE, TOGETHER</p>
+                <div class="split-row">
+                  <div class="split-card" id="s4-left">
+                    <div class="split-title">Pearson correlation</div>
+                    <div class="split-stat">r = 0.41 · p = .003</div>
+                  </div>
+                  <div class="split-card" id="s4-right">
+                    <div class="split-title">Time Pressure</div>
+                    <div class="split-quote">“I just didn't have enough time to prepare.”</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Slot 5 — chapter 4 document -->
+            <div class="ui-slot" id="slot-5">
+              <span class="slot-step" data-layout-allow-occlusion="true">06</span>
+              <div class="slot-card">
+                <p class="kicker" id="s5-kicker">CHAPTER FOUR</p>
+                <p class="doc-heading" id="s5-heading">Results and Discussion</p>
+                <div class="docx-badge" id="s5-docx">
+                  <span class="docx-badge-icon">W</span>
+                  <span>Exports as a Word document (.docx)</span>
+                </div>
+                <div class="doc-lines">
+                  <div class="doc-line" id="s5-line-1" style="width: 92%;"></div>
+                  <div class="doc-line" id="s5-line-2" style="width: 100%;"></div>
+                  <div class="doc-line" id="s5-line-3" style="width: 84%;"></div>
+                  <div class="doc-line" id="s5-line-4" style="width: 58%;"></div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SCENE 4 — THE MESSAGE (18-24s) ============ -->
+      <section id="scene-message" class="clip" data-start="18" data-duration="6" data-track-index="3">
+        <div class="full bg-cream-persist"></div>
+        <div class="message-bg-texture" id="message-texture"></div>
+        <div class="message-wrap">
+          <p class="message-line" id="message-line-1">Complex research data.</p>
+          <p class="message-line" id="message-line-2">Understood clearly.</p>
+        </div>
+      </section>
+
+      <!-- ============ SCENE 5 — THE HERO CLOSE (24-30s) ============ -->
+      <section id="scene-hero" class="clip" data-start="24" data-duration="6" data-track-index="4">
+        <div class="full bg"></div>
+        <div class="hero-glow" id="hero-glow" data-layout-allow-overflow="true"><div class="glow-core"></div></div>
+        <div class="hero-wrap">
+          <svg class="nyansapo-mark hero-mark" id="hero-mark" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" aria-label="Nyansapo — the Adinkra wisdom knot">
+            <path d="M50,50 C38,38 38,18 50,18 C62,18 62,38 50,50 C62,62 62,82 50,82 C38,82 38,62 50,50 Z" />
+            <path d="M50,50 C38,38 18,38 18,50 C18,62 38,62 50,50 C62,38 82,38 82,50 C82,62 62,62 50,50 Z" />
+          </svg>
+          <h1 class="hero-wordmark" id="hero-wordmark">Adanse</h1>
+          <p class="hero-tagline" id="hero-tagline">Your research. Understood.</p>
+          <p class="hero-site" id="hero-site">www.adanse.app</p>
+        </div>
+        <div class="full fade-to-black" id="hero-fade-out"></div>
+      </section>
+
+      <!-- ============ AUDIO ============ -->
+      <audio id="bg-music" data-start="0" data-duration="30" data-track-index="10" data-volume="0.02"
+        data-automation='{"version":1,"lanes":[{"target":"volume","points":[
+          {"t":0,"v":0.02},{"t":3.5,"v":0.05},{"t":4,"v":0.22},{"t":8,"v":0.27},
+          {"t":18,"v":0.28},{"t":20,"v":0.34},{"t":24,"v":0.30},{"t":27.5,"v":0.12},{"t":29.5,"v":0}
+        ]}]}'
+        src="assets/music/happy-beats-business-moves-vol-12-by-ende-dot-app.mp3"></audio>
+
+      <audio id="sfx-hook-tone" data-start="0.15" data-volume="0.35" data-track-index="11"
+        src="assets/sfx/impact/impactSoft_medium_002.ogg"></audio>
+
+      <audio id="sfx-logo-hit" data-start="5.3" data-volume="0.5" data-track-index="12"
+        src="assets/sfx/impact/impactBell_heavy_003.ogg"></audio>
+
+      <audio id="sfx-tick-1" data-start="8.74" data-volume="0.28" data-track-index="13"
+        src="assets/sfx/interface/drop_001.ogg"></audio>
+      <audio id="sfx-tick-2" data-start="10.37" data-volume="0.28" data-track-index="14"
+        src="assets/sfx/interface/drop_001.ogg"></audio>
+      <audio id="sfx-tick-3" data-start="12.02" data-volume="0.36" data-track-index="15"
+        src="assets/sfx/interface/drop_001.ogg"></audio>
+      <audio id="sfx-tick-4" data-start="13.64" data-volume="0.28" data-track-index="16"
+        src="assets/sfx/interface/drop_001.ogg"></audio>
+      <audio id="sfx-tick-5" data-start="15.29" data-volume="0.28" data-track-index="17"
+        src="assets/sfx/interface/drop_001.ogg"></audio>
+      <audio id="sfx-tick-6" data-start="16.93" data-volume="0.28" data-track-index="18"
+        src="assets/sfx/interface/drop_001.ogg"></audio>
+
+      <audio id="sfx-resolve" data-start="25.9" data-volume="0.45" data-track-index="19"
+        src="assets/sfx/impact/impactBell_heavy_000.ogg"></audio>
+
+    </div>
+
+    <script src="assets/music/audio-data.js"></script>
+    <script>
+      var tl = gsap.timeline({ paused: true });
+
+      /* ---------- Scene 1 — The problem (0-4s) ---------- */
+
+      tl.fromTo('#hook-rule', { scaleX: 0 }, { scaleX: 1, duration: 1.0, ease: 'power2.out' }, 0);
+      tl.fromTo('#hook-vignette', { scale: 0.9, opacity: 0.6 }, { scale: 1.08, opacity: 1, duration: 2.0, ease: 'sine.inOut', yoyo: true, repeat: 1 }, 0);
+      tl.fromTo(['#hook-mote-1', '#hook-mote-2', '#hook-mote-3'],
+        { y: 0 }, { y: -26, duration: 2.0, ease: 'sine.inOut', yoyo: true, repeat: 1, stagger: 0.3 }, 0.2);
+
+      tl.fromTo('#hook-line-1', { opacity: 0 }, { opacity: 1, duration: 0.5, ease: 'power2.out' }, 0.15);
+      tl.to('#hook-line-1', { opacity: 0, duration: 0.3, ease: 'power1.in' }, 1.75);
+      tl.fromTo('#hook-line-2', { opacity: 0 }, { opacity: 1, duration: 0.5, ease: 'power2.out' }, 2.05);
+
+      /* ---------- Scene 2 — The reveal (4-8s) ---------- */
+
+      tl.fromTo('#reveal-cream', { opacity: 0 }, { opacity: 1, duration: 0.9, ease: 'power2.out' }, 4.0);
+      tl.fromTo('#reveal-glow', { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 1.1, ease: 'power2.out' }, 4.0);
+      tl.fromTo('#reveal-mark', { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.7, ease: 'power3.out' }, 4.3);
+      tl.fromTo('#reveal-wordmark', { opacity: 0, scale: 0.92 }, { opacity: 1, scale: 1, duration: 0.8, ease: 'power3.out' }, 4.5);
+      tl.fromTo('#reveal-tagline', { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.45, ease: 'power2.out' }, 5.6);
+
+      /* ---------- Scene 3 — The product, in motion (8-18s) ---------- */
+
+      tl.set('#camera-stage', { x: 0 }, 8.0);
+      tl.fromTo('#product-glow', { opacity: 0 }, { opacity: 1, duration: 0.6, ease: 'power1.out' }, 8.0);
+      tl.fromTo('#product-progress', { scaleX: 0 }, { scaleX: 1, duration: 10.0, ease: 'none' }, 8.0);
+
+      // Slot 0 — upload (lands 8.74)
+      tl.fromTo('#s0-chip', { opacity: 0, y: -50 }, { opacity: 1, y: 0, duration: 0.42, ease: 'power2.out' }, 8.05);
+      tl.to('#s0-chip', { opacity: 0, duration: 0.16, ease: 'power1.in' }, 8.55);
+      tl.fromTo('#s0-kicker', { opacity: 0 }, { opacity: 1, duration: 0.3 }, 8.4);
+      tl.fromTo('#s0-filename', { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' }, 8.5);
+      tl.fromTo('#s0-meta', { opacity: 0 }, { opacity: 1, duration: 0.3 }, 8.64);
+
+      // Pan 0 -> 1, lands 10.37
+      tl.to('#camera-stage', { x: -1920, duration: 0.4, ease: 'power2.inOut' }, 9.97);
+      tl.fromTo('#s1-kicker', { opacity: 0 }, { opacity: 1, duration: 0.25 }, 9.97);
+      tl.fromTo(['#s1-chip-1', '#s1-chip-2', '#s1-chip-3', '#s1-chip-4'],
+        { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out', stagger: 0.08 }, 10.05);
+
+      // Pan 1 -> 2, lands 12.02 (cleaning resolves to Validated)
+      tl.to('#camera-stage', { x: -3840, duration: 0.4, ease: 'power2.inOut' }, 11.62);
+      tl.fromTo('#s2-kicker', { opacity: 0 }, { opacity: 1, duration: 0.25 }, 11.62);
+      tl.fromTo(['#s2-line-1', '#s2-line-2'], { opacity: 0 }, { opacity: 1, duration: 0.3, stagger: 0.12 }, 11.68);
+      tl.fromTo('#s2-status', { opacity: 0 }, { opacity: 1, duration: 0.2 }, 11.7);
+      tl.call(
+        function () {
+          var pill = document.getElementById('s2-status');
+          pill.textContent = 'Validated';
+        },
+        [],
+        12.02,
+      );
+      tl.set('#s2-status', { backgroundColor: '#e9f0eb', color: '#245b42' }, 12.02);
+
+      // Pan 2 -> 3, lands 13.64 (distribution grid)
+      tl.to('#camera-stage', { x: -5760, duration: 0.4, ease: 'power2.inOut' }, 13.24);
+      tl.fromTo('#s3-kicker', { opacity: 0 }, { opacity: 1, duration: 0.25 }, 13.24);
+      tl.fromTo(['#s3-tile-1', '#s3-tile-2', '#s3-tile-3', '#s3-tile-4'],
+        { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.28, ease: 'power2.out', stagger: 0.07 }, 13.3);
+
+      // Pan 3 -> 4, lands 15.29 (quant + qual)
+      tl.to('#camera-stage', { x: -7680, duration: 0.4, ease: 'power2.inOut' }, 14.89);
+      tl.fromTo('#s4-kicker', { opacity: 0 }, { opacity: 1, duration: 0.25 }, 14.89);
+      tl.fromTo('#s4-left', { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: 0.32, ease: 'power2.out' }, 14.95);
+      tl.fromTo('#s4-right', { opacity: 0, x: 14 }, { opacity: 1, x: 0, duration: 0.32, ease: 'power2.out' }, 15.02);
+
+      // Pan 4 -> 5, lands 16.93 (chapter 4 document)
+      tl.to('#camera-stage', { x: -9600, duration: 0.4, ease: 'power2.inOut' }, 16.53);
+      tl.fromTo('#s5-kicker', { opacity: 0 }, { opacity: 1, duration: 0.25 }, 16.53);
+      tl.fromTo('#s5-heading', { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' }, 16.58);
+      tl.fromTo('#s5-docx', { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' }, 16.64);
+      tl.fromTo(['#s5-line-1', '#s5-line-2', '#s5-line-3', '#s5-line-4'],
+        { scaleX: 0 }, { scaleX: 1, duration: 0.28, ease: 'power2.out', stagger: 0.06 }, 16.72);
+
+      /* ---------- Scene 4 — The message (18-24s) ---------- */
+
+      tl.fromTo('#message-texture', { opacity: 0 }, { opacity: 1, duration: 1.0, ease: 'power1.out' }, 18.0);
+      tl.fromTo('#message-line-1', { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }, 18.3);
+      tl.to('#message-line-1', { opacity: 0, duration: 0.3, ease: 'power1.in' }, 19.8);
+      tl.fromTo('#message-line-2', { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }, 20.2);
+
+      /* ---------- Scene 5 — The hero close (24-30s) ---------- */
+
+      tl.fromTo('#hero-glow', { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 1.0, ease: 'power2.out' }, 24.0);
+      tl.fromTo('#hero-mark', { opacity: 0, scale: 0.82 }, { opacity: 1, scale: 1, duration: 0.75, ease: 'power3.out' }, 24.0);
+      tl.fromTo('#hero-wordmark', { opacity: 0, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.85, ease: 'power3.out' }, 24.15);
+      tl.fromTo('#hero-tagline', { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }, 25.4);
+      tl.fromTo('#hero-site', { opacity: 0 }, { opacity: 1, duration: 0.5, ease: 'power1.out' }, 26.3);
+      tl.fromTo('#hero-fade-out', { opacity: 0 }, { opacity: 1, duration: 1.4, ease: 'none' }, 28.6);
+
+      /* ---------- Audio-reactive: subtle glow breathing off the music ---------- */
+
+      var root = document.documentElement;
+      if (window.AUDIO_DATA && AUDIO_DATA.frames) {
+        for (var f = 0; f < AUDIO_DATA.totalFrames; f++) {
+          (function (frame) {
+            tl.call(
+              function () {
+                var mult = 0.82 + Math.min(frame.rms, 1) * 0.5;
+                root.style.setProperty('--glow-mult', mult.toFixed(3));
+              },
+              [],
+              frame.time,
+            );
+          })(AUDIO_DATA.frames[f]);
+        }
+      }
+
+      window.__timelines['adanse'] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>
