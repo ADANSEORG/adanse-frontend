@@ -8,16 +8,16 @@ import { useEffect, useRef } from "react";
  * static frame immediately and only starts animating after that.
  */
 
-const DOT_COUNT = 32;
-const MAX_LINK_DISTANCE = 140;
+const DOT_COUNT = 55;
+const MAX_LINK_DISTANCE = 160;
 // --gold (#dda622) as an rgb() triple, so opacity can vary per draw call.
 const DOT_COLOR_RGB = "221, 166, 34";
-const DOT_RADIUS = 1.7;
-const DOT_OPACITY = 0.32;
+const DOT_RADIUS = 2.4;
+const DOT_OPACITY = 0.6;
 // Lines are fainter than the dots themselves -- ambient texture only.
-const LINE_OPACITY = 0.1;
-// Pixels per animation frame (~60fps) -- near-imperceptible drift.
-const DRIFT_SPEED = 0.045;
+const LINE_OPACITY = 0.24;
+// Pixels per animation frame (~60fps) -- gentle but noticeable drift.
+const DRIFT_SPEED = 0.14;
 const MAX_DPR = 2;
 
 function createDots(width, height, count) {
@@ -123,12 +123,16 @@ export default function ParticleField() {
       }
 
       ctx.fillStyle = `rgba(${DOT_COLOR_RGB}, ${DOT_OPACITY})`;
+      ctx.shadowColor = `rgba(${DOT_COLOR_RGB}, 0.9)`;
+      ctx.shadowBlur = 6;
 
       for (const dot of dots) {
         ctx.beginPath();
         ctx.arc(dot.x, dot.y, DOT_RADIUS, 0, Math.PI * 2);
         ctx.fill();
       }
+
+      ctx.shadowBlur = 0;
     }
 
     function animate() {
