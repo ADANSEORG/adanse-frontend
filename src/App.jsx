@@ -79,6 +79,7 @@ export default function App() {
     applyGroupings,
     activateDataset,
     build,
+    confirmQualitativeColumns,
     run,
     onQualitativeFinalized,
     goToChapter4,
@@ -638,6 +639,9 @@ export default function App() {
                 analysis={analysis}
                 onBuildPlan={
                   build
+                }
+                onConfirmQualitativeColumns={
+                  confirmQualitativeColumns
                 }
                 onRun={run}
                 onContinueChapter4={

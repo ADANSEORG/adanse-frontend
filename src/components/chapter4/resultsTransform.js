@@ -972,13 +972,132 @@ export function respondentProfileNarrative(categorical, numeric, n) {
   return sentences.join(" ");
 }
 
-export function objectiveInterpretationSentence(group) {
+/*
+ * =========================================================
+ * QUALITATIVE FINDINGS <-> OBJECTIVE RELEVANCE
+ * =========================================================
+ *
+ * JS mirror of thesis.py's _word_overlap_score()/_theme_objective_matches():
+ * a deterministic, no-AI-call word-stem overlap between an objective's own
+ * wording and a theme's name/central organizing concept, computed fresh
+ * every render -- never persisted, never a UI mapping step. Kept in sync
+ * with the Python version so the live preview and the downloaded docx
+ * never disagree about which themes relate to which objectives.
+ */
+
+function stemWord(word) {
+  if (word.length > 3 && word.endsWith("s") && !word.endsWith("ss")) {
+    return word.slice(0, -1);
+  }
+  return word;
+}
+
+function wordSet(text) {
+  const matches = String(text || "").toLowerCase().match(/[a-z0-9]+/g) || [];
+  return new Set(matches.map(stemWord));
+}
+
+export function wordOverlapScore(textA, textB) {
+  const a = wordSet(textA);
+  const b = wordSet(textB);
+  let score = 0;
+  a.forEach((word) => {
+    if (b.has(word)) score += 1;
+  });
+  return score;
+}
+
+/*
+ * Reads analysis.qualitative_results (the flat, column-keyed list --
+ * see run_plan()/finalize_qualitative_column() on the backend) into a
+ * {column: result} map of finalized findings only. Qualitative results
+ * are never nested under an objective, so there is nothing to search by
+ * objective slot here.
+ */
+export function collectQualitativeFindings(analysis) {
+  const findings = {};
+  const entries = Array.isArray(analysis?.qualitative_results) ? analysis.qualitative_results : [];
+  entries.forEach((entry) => {
+    if (entry?.column && entry?.result) {
+      findings[entry.column] = entry.result;
+    }
+  });
+  return findings;
+}
+
+export function themeObjectiveMatches(qualitativeFindings, objectiveGroups) {
+  const matches = [];
+  Object.entries(qualitativeFindings || {}).forEach(([column, result]) => {
+    (result?.themes || []).forEach((theme) => {
+      const themeText = `${theme?.theme || ""} ${theme?.central_organizing_concept || theme?.description || ""}`;
+      (objectiveGroups || []).forEach((group) => {
+        const score = wordOverlapScore(group?.objective, themeText);
+        if (score > 0) {
+          matches.push({
+            objectiveId: group?.id,
+            objectiveText: group?.objective,
+            column,
+            themeName: theme?.theme || "Theme",
+            score,
+          });
+        }
+      });
+    });
+  });
+  return matches;
+}
+
+export function themeNamesForObjective(objectiveId, themeMatches) {
+  const names = [];
+  (themeMatches || []).forEach((m) => {
+    if (m.objectiveId === objectiveId && !names.includes(m.themeName)) {
+      names.push(m.themeName);
+    }
+  });
+  return names;
+}
+
+export function objectivesForTheme(column, themeName, themeMatches) {
+  const pairs = [];
+  (themeMatches || []).forEach((m) => {
+    if (m.column === column && m.themeName === themeName) {
+      const exists = pairs.some((p) => p.objectiveId === m.objectiveId);
+      if (!exists) pairs.push({ objectiveId: m.objectiveId, objectiveText: m.objectiveText });
+    }
+  });
+  return pairs;
+}
+
+export function joinAnd(items) {
+  const quoted = items.map((i) => `"${i}"`);
+  if (quoted.length === 1) return quoted[0];
+  if (quoted.length === 2) return quoted.join(" and ");
+  return quoted.slice(0, -1).join("; ") + `; and ${quoted[quoted.length - 1]}`;
+}
+
+export function objectiveInterpretationSentence(group, qualitativeFindings = {}, themeMatches = []) {
   const number = group?.id;
   const objectiveText =
     group?.objective || `Research Objective ${number}`;
   const completed = Array.isArray(group?.results) ? group.results : [];
 
   if (completed.length === 0) {
+    const themeNames = themeNamesForObjective(number, themeMatches);
+    if (themeNames.length > 0) {
+      return (
+        `Objective ${number} ("${objectiveText}") was addressed qualitatively: ` +
+        `reflexive thematic analysis of the open-ended responses surfaced ${joinAnd(themeNames)} ` +
+        `as the theme${themeNames.length !== 1 ? "s" : ""} most relevant to this objective's wording ` +
+        "(see the Thematic Analysis Findings section for the full definitions and evidence)."
+      );
+    }
+    if (Object.keys(qualitativeFindings || {}).length > 0) {
+      return (
+        `Objective ${number} ("${objectiveText}") was addressed qualitatively through reflexive ` +
+        "thematic analysis of the open-ended responses; see the Thematic Analysis Findings section " +
+        "for the full set of themes."
+      );
+    }
     return (
       `Objective ${number} ("${objectiveText}") could not be linked to a ` +
       "completed analysis; see the Results section for the reason."
@@ -991,11 +1110,17 @@ export function objectiveInterpretationSentence(group) {
     const testName = getTestName(result, item);
 
     if (test === "thematic_analysis") {
+      // Legacy only: a pre-refactor project could still have a
+      // thematic_analysis result nested directly under an objective. New
+      // data never takes this branch -- qualitative results live in
+      // analysis.qualitative_results, handled via the "also speaks to
+      // this objective" sentence appended below instead.
       const nThemes = Array.isArray(result.themes) ? result.themes.length : 0;
 
       return (
-        `${testName} identified ${nThemes} theme${nThemes !== 1 ? "s" : ""} ` +
-        "in the open-ended responses that speak directly to this objective"
+        `${testName} of the open-ended responses (see the Thematic Analysis Findings section) ` +
+        `surfaced ${nThemes} theme${nThemes !== 1 ? "s" : ""} from that data; the themes most ` +
+        "relevant to this objective are discussed there"
       );
     }
 
@@ -1031,16 +1156,33 @@ export function objectiveInterpretationSentence(group) {
     return `${testName} was completed in relation to this objective`;
   });
 
-  return `Objective ${number} ("${objectiveText}") was addressed as follows: ${clauses.join(
-    "; "
-  )}.`;
+  const body = clauses.join("; ");
+  let sentence = `Objective ${number} ("${objectiveText}") was addressed as follows: ${body}.`;
+
+  // Mixed-methods case: this objective already has a quantitative result
+  // above, but its wording also overlaps with one or more qualitative
+  // themes -- append a short pointer rather than only covering the
+  // quantitative side.
+  const mixedThemeNames = themeNamesForObjective(number, themeMatches);
+  if (mixedThemeNames.length > 0) {
+    sentence += ` Open-ended responses also speak to this objective through ${joinAnd(mixedThemeNames)} (see the Thematic Analysis Findings section).`;
+  }
+
+  return sentence;
 }
 
-export function objectiveRecapSentence(group) {
+export function objectiveRecapSentence(group, qualitativeFindings = {}, themeMatches = []) {
   const number = group?.id;
   const completed = Array.isArray(group?.results) ? group.results : [];
 
   if (completed.length === 0) {
+    const themeNames = themeNamesForObjective(number, themeMatches);
+    if (themeNames.length > 0) {
+      return `Objective ${number}: informed by ${joinAnd(themeNames)} from thematic analysis.`;
+    }
+    if (Object.keys(qualitativeFindings || {}).length > 0) {
+      return `Objective ${number}: addressed qualitatively through thematic analysis of open-ended responses.`;
+    }
     return `Objective ${number}: could not be answered with the available data.`;
   }
 
@@ -1050,8 +1192,9 @@ export function objectiveRecapSentence(group) {
     const testName = getTestName(result, item);
 
     if (test === "thematic_analysis") {
+      // Legacy only -- see objectiveInterpretationSentence().
       const nThemes = Array.isArray(result.themes) ? result.themes.length : 0;
-      return `${testName} yielded ${nThemes} theme${nThemes !== 1 ? "s" : ""}`;
+      return `${testName} (open-ended responses) surfaced ${nThemes} theme${nThemes !== 1 ? "s" : ""}`;
     }
 
     if (test === "distribution") {
@@ -1069,5 +1212,12 @@ export function objectiveRecapSentence(group) {
     return testName;
   });
 
-  return `Objective ${number}: ${parts.join("; ")}.`;
+  let recap = `Objective ${number}: ${parts.join("; ")}.`;
+
+  const mixedThemeNames = themeNamesForObjective(number, themeMatches);
+  if (mixedThemeNames.length > 0) {
+    recap += ` Also informed by ${joinAnd(mixedThemeNames)} from thematic analysis.`;
+  }
+
+  return recap;
 }

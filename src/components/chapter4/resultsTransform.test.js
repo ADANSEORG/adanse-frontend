@@ -7,6 +7,13 @@ import {
   respondentProfileNarrative,
   describeRemainingIssues,
   getTestName,
+  wordOverlapScore,
+  collectQualitativeFindings,
+  themeObjectiveMatches,
+  themeNamesForObjective,
+  objectivesForTheme,
+  objectiveInterpretationSentence,
+  objectiveRecapSentence,
 } from "./resultsTransform.js";
 
 /*
@@ -177,4 +184,101 @@ test("getTestName still prefers the hardcoded name over item.test_name when both
 
 test("getTestName falls back to the raw test enum when neither a hardcoded name nor item.test_name exists", () => {
   assert.equal(getTestName({ test: "distribution" }), "distribution");
+});
+
+/*
+ * =========================================================
+ * QUALITATIVE FINDINGS <-> OBJECTIVE RELEVANCE
+ *
+ * JS mirror of thesis.py's word-overlap objective/theme matching. These
+ * cover the preview's version of the fix for the "Objective N ...
+ * identified X themes" misleading language.
+ * =========================================================
+ */
+
+test("wordOverlapScore finds shared word stems between objective wording and theme text", () => {
+  assert.equal(
+    wordOverlapScore(
+      "Identify challenges faced by student entrepreneurs.",
+      "Financial Constraints Challenges accessing startup capital."
+    ),
+    1
+  );
+  assert.equal(wordOverlapScore("Explore coping strategies.", "Financial Constraints"), 0);
+});
+
+test("collectQualitativeFindings reads the flat qualitative_results list, not objective_results", () => {
+  const analysis = {
+    qualitative_results: [
+      { column: "ChallengesFaced", status: "complete", result: { themes: [{ theme: "Financial Constraints" }] } },
+      { column: "Recommendations", status: "needs_review", result: null },
+    ],
+  };
+  const findings = collectQualitativeFindings(analysis);
+  assert.deepEqual(Object.keys(findings), ["ChallengesFaced"]);
+});
+
+test("themeObjectiveMatches lets one theme relate to multiple objectives and one objective have multiple themes", () => {
+  const objectiveGroups = [
+    { id: 1, objective: "Identify challenges faced by student entrepreneurs." },
+    { id: 2, objective: "Explore coping strategies for student entrepreneurs." },
+  ];
+  const findings = {
+    ChallengesFaced: {
+      themes: [
+        { theme: "Financial Constraints", central_organizing_concept: "Challenges accessing capital." },
+        { theme: "Balancing Coursework and Business", central_organizing_concept: "Managing student entrepreneurs' time." },
+      ],
+    },
+  };
+  const matches = themeObjectiveMatches(findings, objectiveGroups);
+
+  // Objective 1 ("challenges ... student entrepreneurs") is informed by
+  // BOTH themes: "Financial Constraints" shares "challenge", and
+  // "Balancing Coursework and Business" shares "student"/"entrepreneurs"
+  // -- no one-to-one relationship is enforced.
+  assert.deepEqual(
+    themeNamesForObjective(1, matches).sort(),
+    ["Balancing Coursework and Business", "Financial Constraints"].sort()
+  );
+  // Objective 2 ("coping strategies ... student entrepreneurs") only
+  // shares wording with "Balancing Coursework and Business" -- a theme
+  // that is NOT relevant to an objective correctly does not appear.
+  assert.deepEqual(themeNamesForObjective(2, matches), ["Balancing Coursework and Business"]);
+
+  // Symmetric: "Balancing Coursework and Business" relates to both
+  // objectives -- one theme can inform more than one objective.
+  const related = objectivesForTheme("ChallengesFaced", "Balancing Coursework and Business", matches);
+  assert.ok(related.some((r) => r.objectiveId === 1));
+  assert.ok(related.some((r) => r.objectiveId === 2));
+});
+
+test("objectiveInterpretationSentence never claims the objective produced a theme count", () => {
+  const group = { id: 1, objective: "Identify challenges faced by student entrepreneurs.", results: [] };
+  const qualitativeFindings = {
+    ChallengesFaced: { themes: [{ theme: "Financial Constraints", central_organizing_concept: "Challenges accessing capital." }] },
+  };
+  const themeMatches = themeObjectiveMatches(qualitativeFindings, [group]);
+
+  const sentence = objectiveInterpretationSentence(group, qualitativeFindings, themeMatches);
+
+  assert.ok(!sentence.includes("identified"));
+  assert.ok(sentence.includes("Financial Constraints"));
+  assert.ok(sentence.includes("addressed qualitatively"));
+});
+
+test("objectiveRecapSentence falls back to 'could not be answered' only when there are no qualitative findings at all", () => {
+  const group = { id: 1, objective: "Identify challenges faced by student entrepreneurs.", results: [] };
+  assert.equal(
+    objectiveRecapSentence(group, {}, []),
+    "Objective 1: could not be answered with the available data."
+  );
+
+  const qualitativeFindings = {
+    ChallengesFaced: { themes: [{ theme: "Financial Constraints", central_organizing_concept: "Challenges accessing capital." }] },
+  };
+  const themeMatches = themeObjectiveMatches(qualitativeFindings, [group]);
+  const recap = objectiveRecapSentence(group, qualitativeFindings, themeMatches);
+  assert.ok(recap.includes("informed by"));
+  assert.ok(recap.includes("Financial Constraints"));
 });
