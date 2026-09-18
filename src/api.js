@@ -366,6 +366,83 @@ export const applyDatasetGroupings = (
 
 /*
  * ---------------------------------------------------------
+ * QUALITATIVE REVIEW (Braun & Clarke phases 3-6)
+ * ---------------------------------------------------------
+ *
+ * Phases 1-2 (familiarize + initial coding) run once inside
+ * runThesisAnalysis(). Everything here is interactive, one
+ * call per review step, and uncharged.
+ */
+
+export const getQualitativeSession = (
+  id,
+  column
+) =>
+  request(
+    `/thesis/projects/${id}/qualitative/${encodeURIComponent(column)}`
+  );
+
+export const submitCodeReview = (
+  id,
+  column,
+  codes
+) =>
+  request(
+    `/thesis/projects/${id}/qualitative/${encodeURIComponent(column)}/codes`,
+    {
+      method: "PATCH",
+      body: { codes },
+    }
+  );
+
+export const groupCodesIntoThemes = (
+  id,
+  column
+) =>
+  request(
+    `/thesis/projects/${id}/qualitative/${encodeURIComponent(column)}/group`,
+    {
+      method: "POST",
+    }
+  );
+
+export const submitThemeReview = (
+  id,
+  column,
+  themes
+) =>
+  request(
+    `/thesis/projects/${id}/qualitative/${encodeURIComponent(column)}/themes`,
+    {
+      method: "PATCH",
+      body: { themes },
+    }
+  );
+
+export const defineQualitativeThemes = (
+  id,
+  column
+) =>
+  request(
+    `/thesis/projects/${id}/qualitative/${encodeURIComponent(column)}/define`,
+    {
+      method: "POST",
+    }
+  );
+
+export const finalizeQualitativeThemes = (
+  id,
+  column
+) =>
+  request(
+    `/thesis/projects/${id}/qualitative/${encodeURIComponent(column)}/finalize`,
+    {
+      method: "POST",
+    }
+  );
+
+/*
+ * ---------------------------------------------------------
  * ANALYSIS PLAN
  * ---------------------------------------------------------
  */

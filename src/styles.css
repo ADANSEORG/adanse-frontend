@@ -3385,6 +3385,106 @@ button {
   border-top: 1px solid var(--line);
 }
 
+/* =================================================
+   QUALITATIVE REVIEW (Braun & Clarke phases 1-6)
+================================================= */
+
+.qualitative-review {
+  margin-top: 14px;
+}
+
+.qualitative-review-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.qualitative-review-step {
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.qualitative-review-step.active {
+  border-color: var(--gold);
+  background: var(--gold-soft);
+  color: var(--ink);
+}
+
+.qualitative-highlight-note {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-style: normal;
+}
+
+.qualitative-graph {
+  margin-top: 6px;
+}
+
+.qualitative-flow-container {
+  height: 420px;
+  margin: 14px 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.qualitative-theme-review-card {
+  display: grid;
+  gap: 10px;
+}
+
+.qualitative-theme-review-card .dataset-grouping-canonical {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.qualitative-theme-review-card .dataset-grouping-canonical input[type="text"],
+.qualitative-theme-review-card .dataset-grouping-canonical textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.qualitative-verdict-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--gold);
+  background: var(--gold-soft);
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.qualitative-verdict-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.qualitative-define {
+  display: grid;
+  gap: 4px;
+}
+
 .analysis-action-bar strong,
 .analysis-action-bar span {
   display: block;

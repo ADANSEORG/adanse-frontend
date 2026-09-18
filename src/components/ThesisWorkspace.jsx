@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { toFixedHalfEven } from "./chapter4/resultsTransform.js";
 import CreditActionButton from "./CreditActionButton.jsx";
+import QualitativeReview from "./QualitativeReview.jsx";
 
 const TEST_NAMES = {
   distribution: "Descriptive distribution",
@@ -90,12 +91,13 @@ function QualitativeResult({ result }) {
   );
 }
 
-function AnalysisCard({ item }) {
+function AnalysisCard({ item, conversationId, onQualitativeFinalized }) {
   const result = item?.result;
   const method = result?.test || item?.test;
   const name = TEST_NAMES[method] || item?.method || item?.test_name || "Analysis";
   const columns = result?.columns || item?.columns || (item?.column ? [item.column] : []);
   const complete = item?.status === "complete" && result;
+  const needsQualitativeReview = item?.status === "needs_review" && !result && columns.length > 0;
 
   return (
     <article className={`analysis-result-card ${complete ? "" : "planned"}`}>
@@ -107,15 +109,24 @@ function AnalysisCard({ item }) {
         <span className={`analysis-status ${complete ? "complete" : "review"}`}>{complete ? "Complete" : "Needs review"}</span>
       </div>
       {columns.length > 0 && <div className="analysis-variable-pair">{columns.map(pretty).join(" × ")}</div>}
-      <p className="analysis-reasoning">{item?.reasoning || item?.error || "Selected from the structure of the uploaded dataset."}</p>
+      {!needsQualitativeReview && (
+        <p className="analysis-reasoning">{item?.reasoning || item?.error || "Selected from the structure of the uploaded dataset."}</p>
+      )}
       {complete && (result.test === "thematic_analysis" ? <QualitativeResult result={result} /> : <QuantitativeResult result={result} />)}
+      {needsQualitativeReview && (
+        <QualitativeReview
+          conversationId={conversationId}
+          column={columns[0]}
+          onFinalized={(updatedItem) => onQualitativeFinalized?.(updatedItem)}
+        />
+      )}
       {result?.interpretation && <div className="analysis-result-section"><h5>Interpretation</h5><p>{result.interpretation}</p></div>}
       {item?.error && <div className="analysis-warning"><strong>Review</strong><span>{item.error}</span></div>}
     </article>
   );
 }
 
-export default function ThesisWorkspace({ project, upload, plan, analysis, onBuildPlan, onRun, onContinueChapter4, loading, credits, costs, onBuyCredits }) {
+export default function ThesisWorkspace({ project, upload, plan, analysis, onBuildPlan, onRun, onContinueChapter4, onQualitativeFinalized, loading, credits, costs, onBuyCredits, conversationId }) {
   const objectives = useMemo(() => plan?.items || [], [plan]);
   const datasetType = analysis?.dataset_type || plan?.dataset_type;
   const summary = analysis?.dataset_summary || plan?.dataset_summary || {};
@@ -176,13 +187,39 @@ export default function ThesisWorkspace({ project, upload, plan, analysis, onBui
       {hasResults && (analysis?.objective_results || []).map((objective) => (
         <section className="objective-analysis-section" key={objective.id}>
           <div className="objective-heading"><span>OBJECTIVE {objective.id}</span><h2>{objective.objective}</h2></div>
-          <div className="analysis-list">{(objective.analyses || []).map((item) => <AnalysisCard key={item.id} item={item} />)}</div>
+          <div className="analysis-list">
+            {(objective.analyses || []).map((item) => (
+              <AnalysisCard
+                key={item.id}
+                item={item}
+                conversationId={conversationId}
+                onQualitativeFinalized={onQualitativeFinalized}
+              />
+            ))}
+          </div>
         </section>
       ))}
 
-      {hasResults && (
-        <div className="analysis-action-bar"><div><strong>Analysis complete.</strong><span>Review the findings above, then generate Chapter 4.</span></div><button className="btn btn-primary" onClick={onContinueChapter4}>Continue to Chapter 4 →</button></div>
-      )}
+      {hasResults && (() => {
+        const pendingReview = (analysis?.objective_results || []).some((objective) =>
+          (objective.analyses || []).some((item) => item.status === "needs_review")
+        );
+        return (
+          <div className="analysis-action-bar">
+            <div>
+              <strong>{pendingReview ? "Finish reviewing themes above." : "Analysis complete."}</strong>
+              <span>
+                {pendingReview
+                  ? "Chapter 4 can't be generated until every qualitative objective's themes are finalized."
+                  : "Review the findings above, then generate Chapter 4."}
+              </span>
+            </div>
+            <button className="btn btn-primary" onClick={onContinueChapter4} disabled={pendingReview}>
+              Continue to Chapter 4 →
+            </button>
+          </div>
+        );
+      })()}
     </section>
   );
 }

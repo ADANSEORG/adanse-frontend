@@ -712,6 +712,37 @@ export function useThesisWorkflow({ user, authLoading }) {
 
   /*
    * ---------------------------------------------------------
+   * QUALITATIVE REVIEW (Braun & Clarke phases 3-6)
+   * ---------------------------------------------------------
+   *
+   * Finalizing a column's themes updates just that one analysis
+   * item in place -- the rest of `analysis` (other objectives,
+   * completed quantitative results) is untouched.
+   */
+
+  const onQualitativeFinalized = (updatedItem) => {
+    if (!updatedItem?.id) return;
+
+    setAnalysis((prev) => {
+      if (!prev) return prev;
+
+      const objectiveResults = (prev.objective_results || []).map((group) => ({
+        ...group,
+        analyses: (group.analyses || []).map((item) =>
+          item.id === updatedItem.id ? updatedItem : item
+        ),
+      }));
+
+      return {
+        ...prev,
+        objective_results: objectiveResults,
+        results: objectiveResults.flatMap((group) => group.analyses || []),
+      };
+    });
+  };
+
+  /*
+   * ---------------------------------------------------------
    * CHAPTER 4
    * ---------------------------------------------------------
    */
@@ -923,6 +954,7 @@ export function useThesisWorkflow({ user, authLoading }) {
     activateDataset,
     build,
     run,
+    onQualitativeFinalized,
     goToChapter4,
     backToAnalysis,
     openAccount,
