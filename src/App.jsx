@@ -80,6 +80,7 @@ export default function App() {
     activateDataset,
     build,
     run,
+    onQualitativeFinalized,
     goToChapter4,
     backToAnalysis,
     openAccount,
@@ -641,6 +642,9 @@ export default function App() {
                 onRun={run}
                 onContinueChapter4={
                   goToChapter4
+                }
+                onQualitativeFinalized={
+                  onQualitativeFinalized
                 }
                 loading={
                   loading
