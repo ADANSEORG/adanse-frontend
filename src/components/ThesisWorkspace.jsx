@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { toFixedHalfEven } from "./chapter4/resultsTransform.js";
 import CreditActionButton from "./CreditActionButton.jsx";
 import QualitativeReview from "./QualitativeReview.jsx";
@@ -91,6 +91,105 @@ function QualitativeResult({ result }) {
   );
 }
 
+function QualitativeDataSelector({ detectedColumns, selectedColumns, onConfirm, loading }) {
+  const [checked, setChecked] = useState(() =>
+    new Set(selectedColumns && selectedColumns.length ? selectedColumns : detectedColumns)
+  );
+  const confirmed = Array.isArray(selectedColumns);
+
+  const toggle = (column) => {
+    setChecked((prev) => {
+      const next = new Set(prev);
+      if (next.has(column)) next.delete(column);
+      else next.add(column);
+      return next;
+    });
+  };
+
+  return (
+    <section className="objective-analysis-section qualitative-data-selector">
+      <div className="objective-heading">
+        <span>QUALITATIVE DATA</span>
+        <h2>Which open-ended responses should Adanse analyse?</h2>
+      </div>
+      <p className="analysis-reasoning">
+        Adanse detected {detectedColumns.length} open-ended column{detectedColumns.length === 1 ? "" : "s"} in your
+        dataset. Select the ones you want analysed through reflexive thematic analysis — this is a choice about
+        which qualitative data to analyse, not about assigning a column to a specific objective. Your research
+        objectives stay available as background context once analysis runs.
+      </p>
+      <div className="dataset-variable-list">
+        {detectedColumns.map((column) => (
+          <label className="dataset-grouping-checkbox dataset-variable-row" key={column}>
+            <input
+              type="checkbox"
+              checked={checked.has(column)}
+              onChange={() => toggle(column)}
+              disabled={loading}
+            />
+            {pretty(column)}
+          </label>
+        ))}
+      </div>
+      <div className="analysis-action-bar">
+        <div>
+          <strong>{checked.size} of {detectedColumns.length} columns selected</strong>
+          <span>
+            {confirmed
+              ? "Selection confirmed. Re-confirm below if you change it before running analysis."
+              : "Confirm your selection to continue to Run analysis."}
+          </span>
+        </div>
+        <button
+          className="btn btn-secondary"
+          type="button"
+          onClick={() => onConfirm(Array.from(checked))}
+          disabled={loading}
+        >
+          {loading ? "Saving…" : confirmed ? "Update selection" : "Confirm qualitative data →"}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function QualitativeAnalysisSection({ qualitativeResults, conversationId, onQualitativeFinalized }) {
+  if (!qualitativeResults || qualitativeResults.length === 0) return null;
+
+  return (
+    <section className="objective-analysis-section">
+      <div className="objective-heading">
+        <span>QUALITATIVE ANALYSIS</span>
+        <h2>Thematic analysis of your selected open-ended responses</h2>
+      </div>
+      <div className="analysis-list">
+        {qualitativeResults.map((entry) => (
+          <article className="analysis-result-card" key={entry.column}>
+            <div className="analysis-result-top">
+              <div>
+                <div className="analysis-result-kicker">{entry.status === "complete" ? "ANALYSIS RESULT" : "PLANNED ANALYSIS"}</div>
+                <h4>Thematic analysis — {pretty(entry.column)}</h4>
+              </div>
+              <span className={`analysis-status ${entry.status === "complete" ? "complete" : "review"}`}>
+                {entry.status === "complete" ? "Complete" : "Needs review"}
+              </span>
+            </div>
+            {entry.status === "complete" && entry.result ? (
+              <QualitativeResult result={entry.result} />
+            ) : (
+              <QualitativeReview
+                conversationId={conversationId}
+                column={entry.column}
+                onFinalized={(outcome) => onQualitativeFinalized?.(outcome)}
+              />
+            )}
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function AnalysisCard({ item, conversationId, onQualitativeFinalized }) {
   const result = item?.result;
   const method = result?.test || item?.test;
@@ -126,11 +225,19 @@ function AnalysisCard({ item, conversationId, onQualitativeFinalized }) {
   );
 }
 
-export default function ThesisWorkspace({ project, upload, plan, analysis, onBuildPlan, onRun, onContinueChapter4, onQualitativeFinalized, loading, credits, costs, onBuyCredits, conversationId }) {
+export default function ThesisWorkspace({ project, upload, plan, analysis, onBuildPlan, onRun, onConfirmQualitativeColumns, onContinueChapter4, onQualitativeFinalized, loading, credits, costs, onBuyCredits, conversationId }) {
   const objectives = useMemo(() => plan?.items || [], [plan]);
   const datasetType = analysis?.dataset_type || plan?.dataset_type;
   const summary = analysis?.dataset_summary || plan?.dataset_summary || {};
-  const hasResults = (analysis?.objective_results || []).length > 0 || (analysis?.results || []).length > 0;
+  const hasResults =
+    (analysis?.objective_results || []).length > 0 ||
+    (analysis?.results || []).length > 0 ||
+    (analysis?.qualitative_results || []).length > 0;
+
+  const detectedQualitativeColumns = plan?.qualitative?.detected_columns || [];
+  const selectedQualitativeColumns = plan?.qualitative?.selected_columns ?? null;
+  const qualitativeConfirmed = Array.isArray(selectedQualitativeColumns);
+  const qualitativeSelectionPending = detectedQualitativeColumns.length > 0 && !qualitativeConfirmed;
 
   return (
     <section>
@@ -165,12 +272,34 @@ export default function ThesisWorkspace({ project, upload, plan, analysis, onBui
           <div className="objective-heading"><span>OBJECTIVE {objective.id}</span><h2>{objective.objective}</h2></div>
           <p className="analysis-reasoning">{objective.reasoning}</p>
           <div className="analysis-list">{(objective.analyses || []).map((item) => <AnalysisCard key={item.id} item={item} />)}</div>
+          {objective.expresses_qualitative_intent && (objective.analyses || []).length === 0 && (
+            <p className="analysis-reasoning">
+              This objective has a qualitative dimension. It will be informed by whichever open-ended responses you
+              select below, once analysed — no column is assigned to it in advance.
+            </p>
+          )}
         </section>
       ))}
 
+      {plan && !hasResults && detectedQualitativeColumns.length > 0 && (
+        <QualitativeDataSelector
+          detectedColumns={detectedQualitativeColumns}
+          selectedColumns={selectedQualitativeColumns}
+          onConfirm={onConfirmQualitativeColumns}
+          loading={loading}
+        />
+      )}
+
       {plan && !hasResults && (
         <div className="analysis-action-bar">
-          <div><strong>{objectives.reduce((n, x) => n + (x.analyses?.length || 0), 0)} data-supported analyses planned</strong><span>Quantitative and qualitative methods can coexist when the CSV supports both.</span></div>
+          <div>
+            <strong>{objectives.reduce((n, x) => n + (x.analyses?.length || 0), 0)} data-supported analyses planned</strong>
+            <span>
+              {qualitativeSelectionPending
+                ? "Confirm your qualitative data sources above before running analysis."
+                : "Quantitative and qualitative methods can coexist when the CSV supports both."}
+            </span>
+          </div>
           <CreditActionButton
             label="Run analysis →"
             confirmLabel="Confirm — run analysis →"
@@ -180,6 +309,7 @@ export default function ThesisWorkspace({ project, upload, plan, analysis, onBui
             loading={loading}
             onConfirm={onRun}
             onBuyCredits={onBuyCredits}
+            disabled={qualitativeSelectionPending}
           />
         </div>
       )}
@@ -200,17 +330,27 @@ export default function ThesisWorkspace({ project, upload, plan, analysis, onBui
         </section>
       ))}
 
+      {hasResults && (
+        <QualitativeAnalysisSection
+          qualitativeResults={analysis?.qualitative_results}
+          conversationId={conversationId}
+          onQualitativeFinalized={onQualitativeFinalized}
+        />
+      )}
+
       {hasResults && (() => {
-        const pendingReview = (analysis?.objective_results || []).some((objective) =>
-          (objective.analyses || []).some((item) => item.status === "needs_review")
-        );
+        const pendingReview =
+          (analysis?.objective_results || []).some((objective) =>
+            (objective.analyses || []).some((item) => item.status === "needs_review")
+          ) ||
+          (analysis?.qualitative_results || []).some((entry) => entry.status === "needs_review");
         return (
           <div className="analysis-action-bar">
             <div>
               <strong>{pendingReview ? "Finish reviewing themes above." : "Analysis complete."}</strong>
               <span>
                 {pendingReview
-                  ? "Chapter 4 can't be generated until every qualitative objective's themes are finalized."
+                  ? "Chapter 4 can't be generated until every qualitative data source's themes are finalized."
                   : "Review the findings above, then generate Chapter 4."}
               </span>
             </div>

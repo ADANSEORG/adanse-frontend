@@ -17,6 +17,10 @@ import {
   respondentProfileNarrative,
   objectiveInterpretationSentence,
   objectiveRecapSentence,
+  collectQualitativeFindings,
+  themeObjectiveMatches,
+  objectivesForTheme,
+  joinAnd,
 } from "./chapter4/resultsTransform.js";
 
 /*
@@ -398,6 +402,30 @@ export default function Chapter4({
     objectives,
     completedResults,
   ]);
+
+  /*
+   * -------------------------------------------------------
+   * QUALITATIVE FINDINGS
+   *
+   * Sourced from analysis.qualitative_results (the flat, column-keyed
+   * list -- never nested under an objective; see run_plan()/
+   * finalize_qualitative_column() on the backend). themeObjectiveMatches
+   * relates them back to objectives via word overlap, computed once here
+   * and reused everywhere below so 4.4, 4.5 and 4.8 never disagree with
+   * each other about which themes relate to which objectives -- the same
+   * approach generate_chapter() uses for the downloaded docx.
+   * -------------------------------------------------------
+   */
+
+  const qualitativeFindings = useMemo(
+    () => collectQualitativeFindings(analysis),
+    [analysis]
+  );
+
+  const themeMatches = useMemo(
+    () => themeObjectiveMatches(qualitativeFindings, objectiveGroups),
+    [qualitativeFindings, objectiveGroups]
+  );
 
   /*
    * -------------------------------------------------------
@@ -1524,6 +1552,67 @@ export default function Chapter4({
           </section>
 
           {/* =================================================
+              THEMATIC ANALYSIS FINDINGS
+
+              Braun & Clarke thematic analysis is organised strictly by
+              theme, never forced into a one-theme-per-objective structure
+              -- sourced from analysis.qualitative_results, never from an
+              objective's own analyses list. Mirrors generate_chapter()'s
+              docx section of the same name.
+              ================================================= */}
+
+          {Object.keys(qualitativeFindings).length > 0 && (
+            <section id="chapter-thematic-findings" className="chapter-section">
+              <h4>Thematic Analysis Findings</h4>
+              <p>
+                The following themes were developed through reflexive thematic analysis (Braun &amp; Clarke, 2006).
+                Themes emerged from the open-ended responses themselves and are organised by theme, not by research
+                objective. Each theme&rsquo;s Interpretation note below identifies which stated objective(s), if any,
+                its content relates to most closely, based on overlap between the theme&rsquo;s focus and the
+                objective&rsquo;s own wording — it records where a theme is relevant, not that the objective produced
+                or determined it.
+              </p>
+
+              {Object.entries(qualitativeFindings).map(([column, result]) => (
+                <div key={column} className="chapter-qualitative-column">
+                  <h5>Themes from {formatVariableName(column)}</h5>
+
+                  {result.warning && (
+                    <div className="chapter-warning">
+                      <strong>Caution</strong>
+                      <p>{result.warning}</p>
+                    </div>
+                  )}
+
+                  <QualitativeResult result={result} />
+
+                  {(result.themes || []).map((theme, index) => {
+                    const themeName = theme?.theme || "Theme";
+                    const related = objectivesForTheme(column, themeName, themeMatches);
+                    return (
+                      <p key={`interpretation-${column}-${themeName}-${index}`} className="chapter-theme-interpretation">
+                        {related.length > 0 ? (
+                          <>
+                            Interpretation: this theme relates to{" "}
+                            {joinAnd(related.map((r) => `Objective ${r.objectiveId} ("${r.objectiveText}")`))}, based
+                            on overlap between the theme&rsquo;s focus and the objective&rsquo;s wording; it was not
+                            generated for that objective specifically.
+                          </>
+                        ) : (
+                          <>
+                            Interpretation: this theme did not overlap closely with the specific wording of a stated
+                            research objective, but contributes to the study&rsquo;s broader qualitative findings.
+                          </>
+                        )}
+                      </p>
+                    );
+                  })}
+                </div>
+              ))}
+            </section>
+          )}
+
+          {/* =================================================
               4.5 ANALYSIS AND INTERPRETATION
               ================================================= */}
 
@@ -1544,7 +1633,9 @@ export default function Chapter4({
             {objectiveGroups.map((group) => (
               <p key={`interpretation-${group.id}`}>
                 {objectiveInterpretationSentence(
-                  group
+                  group,
+                  qualitativeFindings,
+                  themeMatches
                 )}
               </p>
             ))}
@@ -1827,7 +1918,7 @@ export default function Chapter4({
 
             {objectiveGroups.map((group) => (
               <p key={`recap-${group.id}`}>
-                {objectiveRecapSentence(group)}
+                {objectiveRecapSentence(group, qualitativeFindings, themeMatches)}
               </p>
             ))}
 

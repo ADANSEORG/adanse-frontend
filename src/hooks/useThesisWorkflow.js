@@ -18,6 +18,7 @@ import {
   activateDatasetVersion,
   applyDatasetGroupings,
   buildAnalysisPlan,
+  selectQualitativeColumns,
   runThesisAnalysis,
   downloadChapter4,
   getCredits,
@@ -654,6 +655,31 @@ export function useThesisWorkflow({ user, authLoading }) {
 
   /*
    * ---------------------------------------------------------
+   * QUALITATIVE DATA SOURCES
+   *
+   * "Which qualitative data should be analysed?" -- a project-wide choice
+   * confirmed once, independent of any objective. Updates `plan` in place
+   * with the server's confirmed plan.qualitative.selected_columns so
+   * ThesisWorkspace re-renders from the source of truth rather than
+   * trusting the checkboxes' own local state.
+   * ---------------------------------------------------------
+   */
+
+  const confirmQualitativeColumns = async (columns) => {
+    if (!active) return;
+
+    await runAction({
+      setBusy: setLoading,
+      setError,
+      action: async () => {
+        const p = await selectQualitativeColumns(active.id, columns);
+        setPlan(p);
+      },
+    });
+  };
+
+  /*
+   * ---------------------------------------------------------
    * RUN ANALYSIS
    * ---------------------------------------------------------
    */
@@ -715,28 +741,28 @@ export function useThesisWorkflow({ user, authLoading }) {
    * QUALITATIVE REVIEW (Braun & Clarke phases 3-6)
    * ---------------------------------------------------------
    *
-   * Finalizing a column's themes updates just that one analysis
-   * item in place -- the rest of `analysis` (other objectives,
-   * completed quantitative results) is untouched.
+   * Finalizing a column updates just that one entry in
+   * `analysis.qualitative_results` (the flat, column-keyed list --
+   * see run_plan()/finalize_qualitative_column() on the backend) in
+   * place. Qualitative results are never nested under an objective, so
+   * there is no objective_results tree to patch here.
    */
 
-  const onQualitativeFinalized = (updatedItem) => {
-    if (!updatedItem?.id) return;
+  const onQualitativeFinalized = (outcome) => {
+    if (!outcome?.column) return;
 
     setAnalysis((prev) => {
       if (!prev) return prev;
 
-      const objectiveResults = (prev.objective_results || []).map((group) => ({
-        ...group,
-        analyses: (group.analyses || []).map((item) =>
-          item.id === updatedItem.id ? updatedItem : item
-        ),
-      }));
+      const existing = prev.qualitative_results || [];
+      const found = existing.some((entry) => entry.column === outcome.column);
+      const qualitativeResults = found
+        ? existing.map((entry) => (entry.column === outcome.column ? outcome : entry))
+        : [...existing, outcome];
 
       return {
         ...prev,
-        objective_results: objectiveResults,
-        results: objectiveResults.flatMap((group) => group.analyses || []),
+        qualitative_results: qualitativeResults,
       };
     });
   };
@@ -953,6 +979,7 @@ export function useThesisWorkflow({ user, authLoading }) {
     applyGroupings,
     activateDataset,
     build,
+    confirmQualitativeColumns,
     run,
     onQualitativeFinalized,
     goToChapter4,

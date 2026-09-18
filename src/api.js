@@ -459,6 +459,27 @@ export const buildAnalysisPlan = (
 
 /*
  * ---------------------------------------------------------
+ * QUALITATIVE DATA SOURCES
+ *
+ * "Which qualitative data should be analysed?" -- confirmed once for the
+ * whole project after the plan is built, never per objective.
+ * ---------------------------------------------------------
+ */
+
+export const selectQualitativeColumns = (
+  id,
+  columns
+) =>
+  request(
+    `/thesis/projects/${id}/qualitative-columns`,
+    {
+      method: "PATCH",
+      body: { columns },
+    }
+  );
+
+/*
+ * ---------------------------------------------------------
  * STATISTICAL ANALYSIS
  * ---------------------------------------------------------
  *
