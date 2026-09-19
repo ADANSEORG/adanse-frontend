@@ -12,6 +12,8 @@ import {
   objectivesTaggedToColumn,
   themeNamesFromColumns,
   qualitativeSynthesisClause,
+  themeSummariesFromColumns,
+  themeSummarySentence,
   qualitativeObjectiveParagraph,
   evidenceGroundedThemeRelationships,
   guardPrevalenceLanguage,
@@ -263,6 +265,34 @@ test("qualitativeObjectiveParagraph draws only from tagged columns when tagged, 
   assert.ok(untagged.includes("Borrowing From Family"));
 });
 
+test("themeSummariesFromColumns pairs each theme with its own concept, restricted to the given columns", () => {
+  const findings = {
+    ChallengesFaced: { themes: [{ theme: "Financial Constraints", central_organizing_concept: "Access to startup capital is limited." }] },
+    CopingStrategies: { themes: [{ theme: "Borrowing From Family", central_organizing_concept: "Informal loans cover shortfalls." }] },
+  };
+  const summaries = themeSummariesFromColumns(findings, ["ChallengesFaced"]);
+  assert.deepEqual(summaries, [["Financial Constraints", "Access to startup capital is limited."]]);
+});
+
+test("themeSummarySentence assembles real per-theme concept text, never inventing content", () => {
+  const sentence = themeSummarySentence([
+    ["Financial Constraints", "Access to startup capital is limited."],
+    ["Borrowing From Family", ""],
+  ]);
+  assert.ok(sentence.includes('"Financial Constraints" (access to startup capital is limited)'));
+  assert.ok(sentence.includes('"Borrowing From Family"'));
+  assert.ok(!sentence.includes('"Borrowing From Family" ('));
+});
+
+test("qualitativeObjectiveParagraph's tagged branch names each theme with its own concept, not just a bare list", () => {
+  const group = { id: 1, objective: "Identify challenges faced by student entrepreneurs." };
+  const findings = {
+    ChallengesFaced: { themes: [{ theme: "Financial Constraints", central_organizing_concept: "Access to startup capital is limited." }] },
+  };
+  const tagged = qualitativeObjectiveParagraph(group, findings, { ChallengesFaced: [1] });
+  assert.ok(tagged.includes("access to startup capital is limited"));
+});
+
 test("objectiveInterpretationSentence never claims the objective produced a theme count", () => {
   const group = { id: 1, objective: "Identify challenges faced by student entrepreneurs.", results: [] };
   const qualitativeFindings = {
@@ -272,7 +302,12 @@ test("objectiveInterpretationSentence never claims the objective produced a them
 
   const sentence = objectiveInterpretationSentence(group, qualitativeFindings, columnObjectives);
 
-  assert.ok(!sentence.includes("identified"));
+  // "identified" itself isn't banned (the analysis process genuinely
+  // identifies themes) -- what's banned is the objective being credited
+  // with a theme COUNT, e.g. "identified 4 themes" / "identified 1 theme".
+  for (let n = 0; n <= 5; n += 1) {
+    assert.ok(!sentence.includes(`identified ${n} theme`));
+  }
   assert.ok(!sentence.includes("based on overlap"));
   assert.ok(sentence.includes("Financial Constraints"));
   assert.ok(sentence.includes("designated by the researcher"));

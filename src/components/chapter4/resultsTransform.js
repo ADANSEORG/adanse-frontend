@@ -1062,30 +1062,64 @@ export function qualitativeSynthesisClause(themeNames) {
   return `the data reflects patterns of ${joinAnd(themeNames)}`;
 }
 
+// Each theme's name plus its own central organizing concept/description,
+// drawn from exactly these columns -- real per-theme substance, not just
+// a name list; still a plain lookup, no scoring involved.
+export function themeSummariesFromColumns(qualitativeFindings, columns) {
+  const summaries = [];
+  const seen = new Set();
+  (columns || []).forEach((column) => {
+    (qualitativeFindings?.[column]?.themes || []).forEach((theme) => {
+      const name = theme?.theme;
+      if (!name || seen.has(name)) return;
+      seen.add(name);
+      const concept = String(theme?.central_organizing_concept || theme?.description || "").trim();
+      summaries.push([name, concept]);
+    });
+  });
+  return summaries;
+}
+
+// One sentence per theme naming it and stating its own concept -- nothing
+// invented, just assembled from each theme's already-defined concept text.
+export function themeSummarySentence(themeSummaries) {
+  return themeSummaries
+    .map(([name, concept]) => {
+      if (!concept) return `"${name}"`;
+      const stripped = concept.endsWith(".") ? concept.slice(0, -1) : concept;
+      const lowered = stripped.charAt(0).toLowerCase() + stripped.slice(1);
+      return `"${name}" (${lowered})`;
+    })
+    .join("; ");
+}
+
 /*
  * Text relating an objective to the study's qualitative findings.
  *
  * If the researcher explicitly tagged one or more columns as informing
- * this objective, the synthesis is built ONLY from those columns' themes.
- * If nothing was tagged, this falls back to a single synthesis drawn from
- * the FULL theme set, explicitly labelled as not objective-specific --
- * and only for an objective whose own wording suggests a qualitative
- * dimension at all, so a purely quantitative objective doesn't get an
- * unrelated qualitative aside appended.
+ * this objective, the synthesis is built ONLY from those columns' themes,
+ * naming each theme with its own concept. If nothing was tagged, this
+ * falls back to a single synthesis drawn from the FULL theme set,
+ * explicitly labelled as not objective-specific -- and only for an
+ * objective whose own wording suggests a qualitative dimension at all, so
+ * a purely quantitative objective doesn't get an unrelated qualitative
+ * aside appended.
  */
 export function qualitativeObjectiveParagraph(group, qualitativeFindings, columnObjectives) {
   if (!qualitativeFindings || Object.keys(qualitativeFindings).length === 0) return null;
 
   const taggedColumns = columnsTaggedToObjective(columnObjectives, group?.id, qualitativeFindings);
   if (taggedColumns.length > 0) {
-    const themeNames = themeNamesFromColumns(qualitativeFindings, taggedColumns);
-    if (themeNames.length === 0) return null;
+    const themeSummaries = themeSummariesFromColumns(qualitativeFindings, taggedColumns);
+    if (themeSummaries.length === 0) return null;
     const columnsText = joinAnd([...taggedColumns].sort());
+    const plural = themeSummaries.length !== 1 ? "s" : "";
     return (
       `This objective was designated by the researcher as informed by ${columnsText}. ` +
-      "Reflexive thematic analysis (Braun & Clarke, 2006) of that data shows " +
-      `${qualitativeSynthesisClause(themeNames)}. See the Thematic Analysis ` +
-      "Findings section below for the full definitions, subthemes and evidence."
+      "Reflexive thematic analysis (Braun & Clarke, 2006) of that data identified the " +
+      `following theme${plural} relevant to this objective: ${themeSummarySentence(themeSummaries)}. ` +
+      "See the Thematic Analysis Findings section below for the full definitions, " +
+      "subthemes and evidence."
     );
   }
 

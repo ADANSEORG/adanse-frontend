@@ -20,8 +20,8 @@ import {
   collectQualitativeFindings,
   columnsTaggedToObjective,
   objectivesTaggedToColumn,
-  themeNamesFromColumns,
-  qualitativeSynthesisClause,
+  themeSummariesFromColumns,
+  themeSummarySentence,
   qualitativeObjectiveParagraph,
   evidenceGroundedThemeRelationships,
   guardPrevalenceLanguage,
@@ -1958,13 +1958,14 @@ export default function Chapter4({
             </p>
 
             {(() => {
-              const allThemeNames = themeNamesFromColumns(qualitativeFindings, Object.keys(qualitativeFindings));
-              if (allThemeNames.length === 0) return null;
+              const allThemeSummaries = themeSummariesFromColumns(qualitativeFindings, Object.keys(qualitativeFindings));
+              if (allThemeSummaries.length === 0) return null;
               return (
                 <p>
-                  Across the qualitative data sources analysed, {qualitativeSynthesisClause(allThemeNames)}.
-                  Collectively, these findings inform the study&rsquo;s qualitative objectives; see the Thematic
-                  Analysis Findings section for the full definitions, subthemes and evidence behind each theme.
+                  Across the qualitative data sources analysed, the following themes were identified:{" "}
+                  {themeSummarySentence(allThemeSummaries)}. Collectively, these findings inform the
+                  study&rsquo;s qualitative objectives; see the Thematic Analysis Findings section for the
+                  full definitions, subthemes and evidence behind each theme.
                 </p>
               );
             })()}
