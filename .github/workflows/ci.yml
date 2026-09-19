@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   test:
-    name: Test and build (Node 22)
+    name: Test and build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -21,7 +21,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
           cache: "npm"
 
       - name: Install dependencies
