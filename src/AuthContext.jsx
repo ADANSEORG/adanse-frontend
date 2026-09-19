@@ -6,6 +6,7 @@ import {
 } from "react";
 
 import { supabase } from "./supabaseClient";
+import { resolveSiteUrl } from "./siteUrl";
 
 const AuthContext = createContext(null);
 
@@ -226,8 +227,13 @@ export function AuthProvider({ children }) {
     } = await supabase.auth.resetPasswordForEmail(
       email,
       {
+        // VITE_SITE_URL lets each environment (production, a Vercel
+        // preview, local dev) point the reset email back at itself
+        // instead of always landing on production; falls back to the
+        // browser's own origin when unset, so previews/local dev work
+        // with zero extra configuration.
         redirectTo:
-          "https://adanse.app/reset-password",
+          `${resolveSiteUrl(import.meta.env.VITE_SITE_URL, window.location.origin)}/reset-password`,
       }
     );
 
