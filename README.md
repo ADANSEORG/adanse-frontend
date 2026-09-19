@@ -142,4 +142,4 @@ Runs `node --test src/**/*.test.js` — Node's built-in test runner (`node:test`
 
 ## Deployment
 
-`vercel.json` is a single SPA-fallback rewrite (`/(.*)` → `/index.html`). `.github/workflows/ci.yml` runs on every push/PR to `main`/`develop`, running `npm test` and `npm run build`; Vercel is configured to require that check before deploying.
+`vercel.json` is a single SPA-fallback rewrite (`/(.*)` → `/index.html`). `.github/workflows/ci.yml` runs on every push/PR to `main`/`develop`, running `npm test` and `npm run build`; Vercel is configured to require that check before deploying. The production site is deployed by Vercel from `main`.
