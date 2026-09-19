@@ -3307,6 +3307,46 @@ button {
 }
 
 /* =========================================================
+   QUALITATIVE DATA SOURCE SELECTION + OBJECTIVE TAGGING
+   ========================================================= */
+
+.qualitative-column-row {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.qualitative-column-objective-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-left: 24px;
+  padding: 8px 10px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.qualitative-tag-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.qualitative-tag-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* =========================================================
    QUALITATIVE RESULTS
    ========================================================= */
 

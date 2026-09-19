@@ -658,21 +658,24 @@ export function useThesisWorkflow({ user, authLoading }) {
    * QUALITATIVE DATA SOURCES
    *
    * "Which qualitative data should be analysed?" -- a project-wide choice
-   * confirmed once, independent of any objective. Updates `plan` in place
-   * with the server's confirmed plan.qualitative.selected_columns so
+   * confirmed once, independent of any objective. columnObjectives is a
+   * separate, optional researcher-declared signal alongside it -- which
+   * objective(s) each selected column was designed to inform -- never
+   * required, never inferred. Updates `plan` in place with the server's
+   * confirmed plan.qualitative (selected_columns + column_objectives) so
    * ThesisWorkspace re-renders from the source of truth rather than
    * trusting the checkboxes' own local state.
    * ---------------------------------------------------------
    */
 
-  const confirmQualitativeColumns = async (columns) => {
+  const confirmQualitativeColumns = async (columns, columnObjectives) => {
     if (!active) return;
 
     await runAction({
       setBusy: setLoading,
       setError,
       action: async () => {
-        const p = await selectQualitativeColumns(active.id, columns);
+        const p = await selectQualitativeColumns(active.id, columns, columnObjectives);
         setPlan(p);
       },
     });
