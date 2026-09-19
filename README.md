@@ -73,9 +73,10 @@ Copy `.env.example` to `.env`:
 VITE_SUPABASE_URL=...
 VITE_SUPABASE_ANON_KEY=...
 VITE_API_BASE=http://127.0.0.1:8000/api/v1
+VITE_SITE_URL=
 ```
 
-These are the **only** environment variables the frontend reads. `VITE_API_BASE` falls back to `http://127.0.0.1:8000/api/v1` if unset. Dev server runs on port 5173 (`vite.config.js`); no path aliases, no custom env prefix.
+These are the **only** environment variables the frontend reads. `VITE_API_BASE` falls back to `http://127.0.0.1:8000/api/v1` if unset; `VITE_SITE_URL` is optional and falls back to the browser's own origin (see [Auth integration](#auth-integration)). Dev server runs on port 5173 (`vite.config.js`); no path aliases, no custom env prefix.
 
 ## Product flow
 
@@ -125,7 +126,7 @@ Grouped by area:
 
 `supabaseClient.js` creates the one Supabase client from `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` (warns to console and falls back to placeholders rather than crashing if unset). `AuthContext.jsx` wraps every auth operation — sign in, sign up (stamps `needs_welcome: true` for the one-time `WelcomeModal`), email OTP verify/resend, password reset, password update, sign out — and subscribes to `supabase.auth.onAuthStateChange` to keep the user in sync across tabs. `api.js` independently pulls the access token per-request rather than sharing a cache with `AuthContext`; both just ask the Supabase SDK directly, which is safe since the SDK itself caches/refreshes the session.
 
-**Known gap**: `AuthContext.resetPasswordForEmail` hardcodes `redirectTo: "https://adanse.app/reset-password"`. Password reset will redirect to production regardless of which environment triggered it — this needs to become env-driven if local/staging password-reset needs to work standalone.
+`AuthContext.resetPasswordForEmail`'s redirect is env-driven: it uses `VITE_SITE_URL` when set, falling back to `window.location.origin` otherwise, so production, Vercel previews, and local dev each redirect back to themselves.
 
 ## Styling
 
@@ -141,9 +142,4 @@ Runs `node --test src/**/*.test.js` — Node's built-in test runner (`node:test`
 
 ## Deployment
 
-`vercel.json` is a single SPA-fallback rewrite (`/(.*)` → `/index.html`); no other deploy configuration exists in this repo. No CI workflow is configured — tests and build are run manually before deploying.
-
-## Known gaps
-
-- `AuthContext.resetPasswordForEmail`'s hardcoded production redirect URL (see [Auth integration](#auth-integration)).
-- No CI — `npm test` and `npm run build` are not automatically enforced before merge/deploy.
+`vercel.json` is a single SPA-fallback rewrite (`/(.*)` → `/index.html`). `.github/workflows/ci.yml` runs on every push/PR to `main`/`develop`, running `npm test` and `npm run build`; Vercel is configured to require that check before deploying.
