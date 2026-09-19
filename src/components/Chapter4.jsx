@@ -18,8 +18,13 @@ import {
   objectiveInterpretationSentence,
   objectiveRecapSentence,
   collectQualitativeFindings,
-  themeObjectiveMatches,
-  objectivesForTheme,
+  columnsTaggedToObjective,
+  objectivesTaggedToColumn,
+  themeNamesFromColumns,
+  qualitativeSynthesisClause,
+  qualitativeObjectiveParagraph,
+  evidenceGroundedThemeRelationships,
+  guardPrevalenceLanguage,
   joinAnd,
 } from "./chapter4/resultsTransform.js";
 
@@ -78,32 +83,52 @@ function QualitativeResult({ result, item }) {
         </p>
       )}
 
-      {themes.map((theme, index) => (
-        <div
-          key={`theme-detail-${theme?.theme || "theme"}-${index}`}
-          className="chapter-qualitative-theme"
-        >
-          <h6>{theme?.theme || "Theme"}</h6>
+      {themes.map((theme, index) => {
+        // Guarded with this theme's own stored response_count/percentage
+        // -- e.g. a theme with response_count=1 can't read "repeatedly
+        // described" or "the majority of respondents" here, mirroring
+        // generate_chapter()'s docx rendering exactly.
+        const narrative = guardPrevalenceLanguage(
+          String(theme?.narrative || "").trim(),
+          Number(theme?.response_count) || 0,
+          Number(theme?.percentage) || 0
+        );
 
-          {theme?.description && (
-            <p>{theme.description}</p>
-          )}
+        return (
+          <div
+            key={`theme-detail-${theme?.theme || "theme"}-${index}`}
+            className="chapter-qualitative-theme"
+          >
+            <h6>{theme?.theme || "Theme"}</h6>
 
-          {Array.isArray(theme?.excerpts) &&
-            theme.excerpts.length > 0 && (
-              <div>
-                <strong>Representative responses</strong>
-                {theme.excerpts.slice(0, 3).map((quote, quoteIndex) => (
-                  <blockquote
-                    key={`quote-${index}-${quoteIndex}`}
-                  >
-                    “{quote}”
-                  </blockquote>
-                ))}
-              </div>
+            {theme?.description && (
+              <p>{theme.description}</p>
             )}
-        </div>
-      ))}
+
+            {narrative &&
+              narrative.split(/\n\s*\n/).map((paragraph, paraIndex) => {
+                const trimmed = paragraph.trim();
+                return trimmed ? (
+                  <p key={`narrative-${index}-${paraIndex}`}>{trimmed}</p>
+                ) : null;
+              })}
+
+            {Array.isArray(theme?.excerpts) &&
+              theme.excerpts.length > 0 && (
+                <div>
+                  <strong>Representative responses</strong>
+                  {theme.excerpts.slice(0, 3).map((quote, quoteIndex) => (
+                    <blockquote
+                      key={`quote-${index}-${quoteIndex}`}
+                    >
+                      “{quote}”
+                    </blockquote>
+                  ))}
+                </div>
+              )}
+          </div>
+        );
+      })}
 
       {result.warning && (
         <div className="chapter-warning">
@@ -409,10 +434,13 @@ export default function Chapter4({
    *
    * Sourced from analysis.qualitative_results (the flat, column-keyed
    * list -- never nested under an objective; see run_plan()/
-   * finalize_qualitative_column() on the backend). themeObjectiveMatches
-   * relates them back to objectives via word overlap, computed once here
-   * and reused everywhere below so 4.4, 4.5 and 4.8 never disagree with
-   * each other about which themes relate to which objectives -- the same
+   * finalize_qualitative_column() on the backend). columnObjectives is
+   * the researcher's own declared intent (plan.qualitative.column_
+   * objectives, set via select_qualitative_columns()) -- the ONLY basis
+   * 4.4/4.5/4.6/4.8 use to relate a theme back to an objective. There is
+   * no computed relevance score of any kind: an untagged column/objective
+   * gets a shared, explicitly-unattributed synthesis instead (see
+   * qualitativeObjectiveParagraph()), never a guessed match -- the same
    * approach generate_chapter() uses for the downloaded docx.
    * -------------------------------------------------------
    */
@@ -422,10 +450,7 @@ export default function Chapter4({
     [analysis]
   );
 
-  const themeMatches = useMemo(
-    () => themeObjectiveMatches(qualitativeFindings, objectiveGroups),
-    [qualitativeFindings, objectiveGroups]
-  );
+  const columnObjectives = plan?.qualitative?.column_objectives || {};
 
   /*
    * -------------------------------------------------------
@@ -1567,48 +1592,43 @@ export default function Chapter4({
               <p>
                 The following themes were developed through reflexive thematic analysis (Braun &amp; Clarke, 2006).
                 Themes emerged from the open-ended responses themselves and are organised by theme, not by research
-                objective. Each theme&rsquo;s Interpretation note below identifies which stated objective(s), if any,
-                its content relates to most closely, based on overlap between the theme&rsquo;s focus and the
-                objective&rsquo;s own wording — it records where a theme is relevant, not that the objective produced
-                or determined it.
+                objective. Where the researcher explicitly designated an open-ended data source as informing a
+                specific objective, that is noted below; no relationship between a theme and an objective is
+                inferred or scored — it is only ever the researcher&rsquo;s own stated intent.
               </p>
 
-              {Object.entries(qualitativeFindings).map(([column, result]) => (
-                <div key={column} className="chapter-qualitative-column">
-                  <h5>Themes from {formatVariableName(column)}</h5>
+              {Object.entries(qualitativeFindings).map(([column, result]) => {
+                const taggedObjectives = objectivesTaggedToColumn(columnObjectives, column, objectiveGroups);
+                return (
+                  <div key={column} className="chapter-qualitative-column">
+                    <h5>Themes from {formatVariableName(column)}</h5>
 
-                  {result.warning && (
-                    <div className="chapter-warning">
-                      <strong>Caution</strong>
-                      <p>{result.warning}</p>
-                    </div>
-                  )}
+                    {result.warning && (
+                      <div className="chapter-warning">
+                        <strong>Caution</strong>
+                        <p>{result.warning}</p>
+                      </div>
+                    )}
 
-                  <QualitativeResult result={result} />
+                    <p className="chapter-theme-interpretation">
+                      {taggedObjectives.length > 0 ? (
+                        <>
+                          Interpretation: the researcher designated {formatVariableName(column)} as informing{" "}
+                          {joinAnd(taggedObjectives.map((o) => `Objective ${o.objectiveId} ("${o.objectiveText}")`))}.
+                          The themes below, drawn from this column, may support it.
+                        </>
+                      ) : (
+                        <>
+                          Interpretation: this column was not linked by the researcher to a specific research
+                          objective; the themes below contribute to the study&rsquo;s broader qualitative findings.
+                        </>
+                      )}
+                    </p>
 
-                  {(result.themes || []).map((theme, index) => {
-                    const themeName = theme?.theme || "Theme";
-                    const related = objectivesForTheme(column, themeName, themeMatches);
-                    return (
-                      <p key={`interpretation-${column}-${themeName}-${index}`} className="chapter-theme-interpretation">
-                        {related.length > 0 ? (
-                          <>
-                            Interpretation: this theme relates to{" "}
-                            {joinAnd(related.map((r) => `Objective ${r.objectiveId} ("${r.objectiveText}")`))}, based
-                            on overlap between the theme&rsquo;s focus and the objective&rsquo;s wording; it was not
-                            generated for that objective specifically.
-                          </>
-                        ) : (
-                          <>
-                            Interpretation: this theme did not overlap closely with the specific wording of a stated
-                            research objective, but contributes to the study&rsquo;s broader qualitative findings.
-                          </>
-                        )}
-                      </p>
-                    );
-                  })}
-                </div>
-              ))}
+                    <QualitativeResult result={result} />
+                  </div>
+                );
+              })}
             </section>
           )}
 
@@ -1635,10 +1655,31 @@ export default function Chapter4({
                 {objectiveInterpretationSentence(
                   group,
                   qualitativeFindings,
-                  themeMatches
+                  columnObjectives
                 )}
               </p>
             ))}
+
+            {evidenceGroundedThemeRelationships(qualitativeFindings).length > 0 && (
+              <>
+                <p>
+                  The qualitative findings also show the following relationships between themes, grounded in
+                  responses from the same participant(s) appearing in more than one theme:
+                </p>
+                <ul>
+                  {evidenceGroundedThemeRelationships(qualitativeFindings).map((rel, index) => {
+                    const n = rel.sharedRespondents.length;
+                    return (
+                      <li key={`relationship-${index}`}>
+                        Responses from {n} shared respondent{n !== 1 ? "s" : ""} appear in both &ldquo;{rel.themeA}
+                        &rdquo; ({rel.columnA}) and &ldquo;{rel.themeB}&rdquo; ({rel.columnB}), suggesting these
+                        patterns co-occur for at least some participants.
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            )}
           </section>
 
           {/* =================================================
@@ -1916,9 +1957,21 @@ export default function Chapter4({
               overall research design.
             </p>
 
+            {(() => {
+              const allThemeNames = themeNamesFromColumns(qualitativeFindings, Object.keys(qualitativeFindings));
+              if (allThemeNames.length === 0) return null;
+              return (
+                <p>
+                  Across the qualitative data sources analysed, {qualitativeSynthesisClause(allThemeNames)}.
+                  Collectively, these findings inform the study&rsquo;s qualitative objectives; see the Thematic
+                  Analysis Findings section for the full definitions, subthemes and evidence behind each theme.
+                </p>
+              );
+            })()}
+
             {objectiveGroups.map((group) => (
               <p key={`recap-${group.id}`}>
-                {objectiveRecapSentence(group, qualitativeFindings, themeMatches)}
+                {objectiveRecapSentence(group, qualitativeFindings, columnObjectives)}
               </p>
             ))}
 

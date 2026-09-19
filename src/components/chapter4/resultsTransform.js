@@ -977,34 +977,28 @@ export function respondentProfileNarrative(categorical, numeric, n) {
  * QUALITATIVE FINDINGS <-> OBJECTIVE RELEVANCE
  * =========================================================
  *
- * JS mirror of thesis.py's _word_overlap_score()/_theme_objective_matches():
- * a deterministic, no-AI-call word-stem overlap between an objective's own
- * wording and a theme's name/central organizing concept, computed fresh
- * every render -- never persisted, never a UI mapping step. Kept in sync
- * with the Python version so the live preview and the downloaded docx
- * never disagree about which themes relate to which objectives.
+ * JS mirror of thesis.py's column_objectives-based design: a researcher-
+ * declared {column: [objectiveId, ...]} link (set via
+ * select_qualitative_columns()), captured alongside qualitative column
+ * selection -- never a computed relevance score of any kind. An untagged
+ * objective gets an explicitly-unattributed shared synthesis instead of a
+ * guessed match. Kept in sync with the Python version so the live preview
+ * and the downloaded docx never disagree.
  */
 
-function stemWord(word) {
-  if (word.length > 3 && word.endsWith("s") && !word.endsWith("ss")) {
-    return word.slice(0, -1);
-  }
-  return word;
-}
+// Objective wording that signals the researcher wants open-ended,
+// experiential evidence rather than a numeric comparison. Mirrors
+// thesis.py's _QUALITATIVE_INTENT_WORDS exactly.
+const QUALITATIVE_INTENT_WORDS = [
+  "experience", "experiences", "perception", "perceptions", "views",
+  "challenge", "challenges", "attitude", "attitudes", "opinion",
+  "opinions", "feel", "feeling", "describe", "explore", "barriers",
+  "reasons", "why",
+];
 
-function wordSet(text) {
-  const matches = String(text || "").toLowerCase().match(/[a-z0-9]+/g) || [];
-  return new Set(matches.map(stemWord));
-}
-
-export function wordOverlapScore(textA, textB) {
-  const a = wordSet(textA);
-  const b = wordSet(textB);
-  let score = 0;
-  a.forEach((word) => {
-    if (b.has(word)) score += 1;
-  });
-  return score;
+export function expressesQualitativeIntent(text) {
+  const q = String(text || "").toLowerCase();
+  return QUALITATIVE_INTENT_WORDS.some((word) => q.includes(word));
 }
 
 /*
@@ -1025,47 +1019,34 @@ export function collectQualitativeFindings(analysis) {
   return findings;
 }
 
-export function themeObjectiveMatches(qualitativeFindings, objectiveGroups) {
-  const matches = [];
-  Object.entries(qualitativeFindings || {}).forEach(([column, result]) => {
-    (result?.themes || []).forEach((theme) => {
-      const themeText = `${theme?.theme || ""} ${theme?.central_organizing_concept || theme?.description || ""}`;
-      (objectiveGroups || []).forEach((group) => {
-        const score = wordOverlapScore(group?.objective, themeText);
-        if (score > 0) {
-          matches.push({
-            objectiveId: group?.id,
-            objectiveText: group?.objective,
-            column,
-            themeName: theme?.theme || "Theme",
-            score,
-          });
-        }
-      });
+// Columns the researcher explicitly declared as informing this objective
+// (plan.qualitative.column_objectives), restricted to columns that
+// actually have finalized findings -- a pure lookup, never a guess.
+export function columnsTaggedToObjective(columnObjectives, objectiveId, qualitativeFindings) {
+  return Object.entries(columnObjectives || {})
+    .filter(([column, ids]) => (ids || []).includes(objectiveId) && qualitativeFindings?.[column])
+    .map(([column]) => column);
+}
+
+// The inverse lookup: which objectives (restricted to ones that still
+// exist in this report) the researcher declared this column as informing.
+export function objectivesTaggedToColumn(columnObjectives, column, objectiveGroups) {
+  const ids = new Set((columnObjectives || {})[column] || []);
+  return (objectiveGroups || [])
+    .filter((g) => ids.has(g?.id))
+    .map((g) => ({ objectiveId: g.id, objectiveText: g.objective }));
+}
+
+// Every theme name drawn from exactly these columns' finalized findings.
+// No scoring, no matching -- a plain lookup restricted to the given set.
+export function themeNamesFromColumns(qualitativeFindings, columns) {
+  const names = [];
+  (columns || []).forEach((column) => {
+    (qualitativeFindings?.[column]?.themes || []).forEach((theme) => {
+      if (theme?.theme && !names.includes(theme.theme)) names.push(theme.theme);
     });
   });
-  return matches;
-}
-
-export function themeNamesForObjective(objectiveId, themeMatches) {
-  const names = [];
-  (themeMatches || []).forEach((m) => {
-    if (m.objectiveId === objectiveId && !names.includes(m.themeName)) {
-      names.push(m.themeName);
-    }
-  });
   return names;
-}
-
-export function objectivesForTheme(column, themeName, themeMatches) {
-  const pairs = [];
-  (themeMatches || []).forEach((m) => {
-    if (m.column === column && m.themeName === themeName) {
-      const exists = pairs.some((p) => p.objectiveId === m.objectiveId);
-      if (!exists) pairs.push({ objectiveId: m.objectiveId, objectiveText: m.objectiveText });
-    }
-  });
-  return pairs;
 }
 
 export function joinAnd(items) {
@@ -1075,28 +1056,167 @@ export function joinAnd(items) {
   return quoted.slice(0, -1).join("; ") + `; and ${quoted[quoted.length - 1]}`;
 }
 
-export function objectiveInterpretationSentence(group, qualitativeFindings = {}, themeMatches = []) {
+// Turns a real list of theme names into one prose clause -- built fresh
+// from the study's own theme set every time, never a fixed template.
+export function qualitativeSynthesisClause(themeNames) {
+  return `the data reflects patterns of ${joinAnd(themeNames)}`;
+}
+
+/*
+ * Text relating an objective to the study's qualitative findings.
+ *
+ * If the researcher explicitly tagged one or more columns as informing
+ * this objective, the synthesis is built ONLY from those columns' themes.
+ * If nothing was tagged, this falls back to a single synthesis drawn from
+ * the FULL theme set, explicitly labelled as not objective-specific --
+ * and only for an objective whose own wording suggests a qualitative
+ * dimension at all, so a purely quantitative objective doesn't get an
+ * unrelated qualitative aside appended.
+ */
+export function qualitativeObjectiveParagraph(group, qualitativeFindings, columnObjectives) {
+  if (!qualitativeFindings || Object.keys(qualitativeFindings).length === 0) return null;
+
+  const taggedColumns = columnsTaggedToObjective(columnObjectives, group?.id, qualitativeFindings);
+  if (taggedColumns.length > 0) {
+    const themeNames = themeNamesFromColumns(qualitativeFindings, taggedColumns);
+    if (themeNames.length === 0) return null;
+    const columnsText = joinAnd([...taggedColumns].sort());
+    return (
+      `This objective was designated by the researcher as informed by ${columnsText}. ` +
+      "Reflexive thematic analysis (Braun & Clarke, 2006) of that data shows " +
+      `${qualitativeSynthesisClause(themeNames)}. See the Thematic Analysis ` +
+      "Findings section below for the full definitions, subthemes and evidence."
+    );
+  }
+
+  if (!expressesQualitativeIntent(group?.objective)) return null;
+
+  const themeNames = themeNamesFromColumns(qualitativeFindings, Object.keys(qualitativeFindings));
+  if (themeNames.length === 0) return null;
+
+  return (
+    "No specific open-ended data source was designated for this objective, so this " +
+    "reflects the study's qualitative findings as a whole rather than evidence chosen " +
+    `for this objective: ${qualitativeSynthesisClause(themeNames)}. See the ` +
+    "Thematic Analysis Findings section below for the full definitions, subthemes " +
+    "and evidence."
+  );
+}
+
+// Whether this objective has ANY qualitative basis to draw on -- either
+// explicit researcher tagging or (as a fallback) qualitative findings
+// existing at all combined with the objective's own wording.
+export function objectiveHasQualitativeRelevance(group, qualitativeFindings, columnObjectives) {
+  if (!qualitativeFindings || Object.keys(qualitativeFindings).length === 0) return false;
+  if (columnsTaggedToObjective(columnObjectives, group?.id, qualitativeFindings).length > 0) return true;
+  return expressesQualitativeIntent(group?.objective);
+}
+
+// Every respondent id backing a theme, drawn from its subthemes'
+// supporting quotes -- an objective fact already in the coded data.
+function themeRespondentIds(theme) {
+  const ids = new Set();
+  (theme?.subthemes || []).forEach((subtheme) => {
+    (subtheme?.quotes || []).forEach((quote) => {
+      if (quote?.respondent_id) ids.add(quote.respondent_id);
+    });
+  });
+  return ids;
+}
+
+/*
+ * Pairs of themes whose supporting evidence traces back to at least one
+ * of the same respondents -- the only basis on which this report states
+ * a relationship between two themes. Never based on theme names/topics
+ * sounding related: two themes with no shared respondent produce no
+ * relationship here, however similar their names look.
+ */
+export function evidenceGroundedThemeRelationships(qualitativeFindings) {
+  const entries = [];
+  Object.entries(qualitativeFindings || {}).forEach(([column, result]) => {
+    (result?.themes || []).forEach((theme) => {
+      const ids = themeRespondentIds(theme);
+      if (ids.size > 0) entries.push({ column, name: theme?.theme || "Theme", ids });
+    });
+  });
+
+  const relationships = [];
+  const seenPairs = new Set();
+  for (let i = 0; i < entries.length; i += 1) {
+    for (let j = i + 1; j < entries.length; j += 1) {
+      const a = entries[i];
+      const b = entries[j];
+      if (a.column === b.column && a.name === b.name) continue;
+      const shared = [...a.ids].filter((id) => b.ids.has(id)).sort();
+      if (shared.length === 0) continue;
+      const pairKey = [`${a.column}::${a.name}`, `${b.column}::${b.name}`].sort().join("|");
+      if (seenPairs.has(pairKey)) continue;
+      seenPairs.add(pairKey);
+      relationships.push({
+        themeA: a.name, columnA: a.column,
+        themeB: b.name, columnB: b.column,
+        sharedRespondents: shared,
+      });
+    }
+  }
+  return relationships;
+}
+
+/*
+ * Strips or replaces prevalence claims ("the majority of respondents",
+ * "repeatedly", "consistently", "several participants"...) that a
+ * theme's own stored response_count/percentage don't actually support --
+ * e.g. a theme with responseCount=1 must never read "repeatedly
+ * described". Mirrors thesis.py's _guard_prevalence_language() exactly;
+ * does not touch the AI generation prompt, only the render-time text.
+ */
+const PREVALENCE_RULES = [
+  {
+    pattern: /\bthe majority of (respondents|participants|students)\b/gi,
+    supported: (count, pct) => pct > 50,
+  },
+  {
+    pattern: /\bmost (respondents|participants|students)\b/gi,
+    supported: (count, pct) => pct > 50,
+  },
+  {
+    pattern: /\b(several|many) (respondents|participants|students)\b/gi,
+    supported: (count) => count >= 3,
+  },
+  {
+    pattern: /\brepeatedly\b/gi,
+    supported: (count) => count >= 2,
+    replacement: () => "",
+  },
+  {
+    pattern: /\bconsistently\b/gi,
+    supported: (count) => count >= 2,
+    replacement: () => "",
+  },
+];
+
+export function guardPrevalenceLanguage(text, responseCount, percentage) {
+  if (!text) return text;
+  let guarded = text;
+  PREVALENCE_RULES.forEach(({ pattern, supported, replacement }) => {
+    if (supported(responseCount, percentage)) return;
+    const replace = replacement || (() => `${responseCount} respondent${responseCount !== 1 ? "s" : ""}`);
+    guarded = guarded.replace(pattern, replace);
+  });
+  guarded = guarded.replace(/[ \t]{2,}/g, " ").replace(/\s+([.,;])/g, "$1");
+  return guarded.trim();
+}
+
+export function objectiveInterpretationSentence(group, qualitativeFindings = {}, columnObjectives = {}) {
   const number = group?.id;
   const objectiveText =
     group?.objective || `Research Objective ${number}`;
   const completed = Array.isArray(group?.results) ? group.results : [];
 
   if (completed.length === 0) {
-    const themeNames = themeNamesForObjective(number, themeMatches);
-    if (themeNames.length > 0) {
-      return (
-        `Objective ${number} ("${objectiveText}") was addressed qualitatively: ` +
-        `reflexive thematic analysis of the open-ended responses surfaced ${joinAnd(themeNames)} ` +
-        `as the theme${themeNames.length !== 1 ? "s" : ""} most relevant to this objective's wording ` +
-        "(see the Thematic Analysis Findings section for the full definitions and evidence)."
-      );
-    }
-    if (Object.keys(qualitativeFindings || {}).length > 0) {
-      return (
-        `Objective ${number} ("${objectiveText}") was addressed qualitatively through reflexive ` +
-        "thematic analysis of the open-ended responses; see the Thematic Analysis Findings section " +
-        "for the full set of themes."
-      );
+    const qualParagraph = qualitativeObjectiveParagraph(group, qualitativeFindings, columnObjectives);
+    if (qualParagraph) {
+      return `Objective ${number} ("${objectiveText}"): ${qualParagraph}`;
     }
     return (
       `Objective ${number} ("${objectiveText}") could not be linked to a ` +
@@ -1113,8 +1233,8 @@ export function objectiveInterpretationSentence(group, qualitativeFindings = {},
       // Legacy only: a pre-refactor project could still have a
       // thematic_analysis result nested directly under an objective. New
       // data never takes this branch -- qualitative results live in
-      // analysis.qualitative_results, handled via the "also speaks to
-      // this objective" sentence appended below instead.
+      // analysis.qualitative_results, handled via the mixed-methods
+      // pointer appended below instead.
       const nThemes = Array.isArray(result.themes) ? result.themes.length : 0;
 
       return (
@@ -1160,28 +1280,23 @@ export function objectiveInterpretationSentence(group, qualitativeFindings = {},
   let sentence = `Objective ${number} ("${objectiveText}") was addressed as follows: ${body}.`;
 
   // Mixed-methods case: this objective already has a quantitative result
-  // above, but its wording also overlaps with one or more qualitative
-  // themes -- append a short pointer rather than only covering the
-  // quantitative side.
-  const mixedThemeNames = themeNamesForObjective(number, themeMatches);
-  if (mixedThemeNames.length > 0) {
-    sentence += ` Open-ended responses also speak to this objective through ${joinAnd(mixedThemeNames)} (see the Thematic Analysis Findings section).`;
+  // above, but also has a qualitative dimension -- append a pointer
+  // rather than only covering the quantitative side.
+  const qualParagraph = qualitativeObjectiveParagraph(group, qualitativeFindings, columnObjectives);
+  if (qualParagraph) {
+    sentence += ` ${qualParagraph}`;
   }
 
   return sentence;
 }
 
-export function objectiveRecapSentence(group, qualitativeFindings = {}, themeMatches = []) {
+export function objectiveRecapSentence(group, qualitativeFindings = {}, columnObjectives = {}) {
   const number = group?.id;
   const completed = Array.isArray(group?.results) ? group.results : [];
 
   if (completed.length === 0) {
-    const themeNames = themeNamesForObjective(number, themeMatches);
-    if (themeNames.length > 0) {
-      return `Objective ${number}: informed by ${joinAnd(themeNames)} from thematic analysis.`;
-    }
-    if (Object.keys(qualitativeFindings || {}).length > 0) {
-      return `Objective ${number}: addressed qualitatively through thematic analysis of open-ended responses.`;
+    if (objectiveHasQualitativeRelevance(group, qualitativeFindings, columnObjectives)) {
+      return `Objective ${number}: addressed qualitatively; see the qualitative findings summary below.`;
     }
     return `Objective ${number}: could not be answered with the available data.`;
   }
@@ -1212,12 +1327,8 @@ export function objectiveRecapSentence(group, qualitativeFindings = {}, themeMat
     return testName;
   });
 
-  let recap = `Objective ${number}: ${parts.join("; ")}.`;
-
-  const mixedThemeNames = themeNamesForObjective(number, themeMatches);
-  if (mixedThemeNames.length > 0) {
-    recap += ` Also informed by ${joinAnd(mixedThemeNames)} from thematic analysis.`;
-  }
-
-  return recap;
+  // Deliberately never names specific themes here, tagged or not: 4.8
+  // gets one combined qualitative-findings summary (see Chapter4.jsx),
+  // not a per-objective theme list.
+  return `Objective ${number}: ${parts.join("; ")}.`;
 }

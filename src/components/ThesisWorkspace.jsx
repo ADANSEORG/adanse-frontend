@@ -91,19 +91,45 @@ function QualitativeResult({ result }) {
   );
 }
 
-function QualitativeDataSelector({ detectedColumns, selectedColumns, onConfirm, loading }) {
+function QualitativeDataSelector({ detectedColumns, selectedColumns, columnObjectives, objectives, onConfirm, loading }) {
   const [checked, setChecked] = useState(() =>
     new Set(selectedColumns && selectedColumns.length ? selectedColumns : detectedColumns)
   );
+  const [tags, setTags] = useState(() => {
+    const initial = {};
+    detectedColumns.forEach((column) => {
+      initial[column] = new Set((columnObjectives?.[column] || []).map(Number));
+    });
+    return initial;
+  });
   const confirmed = Array.isArray(selectedColumns);
 
-  const toggle = (column) => {
+  const toggleColumn = (column) => {
     setChecked((prev) => {
       const next = new Set(prev);
       if (next.has(column)) next.delete(column);
       else next.add(column);
       return next;
     });
+  };
+
+  const toggleTag = (column, objectiveId) => {
+    setTags((prev) => {
+      const current = new Set(prev[column] || []);
+      if (current.has(objectiveId)) current.delete(objectiveId);
+      else current.add(objectiveId);
+      return { ...prev, [column]: current };
+    });
+  };
+
+  const handleConfirm = () => {
+    const columns = Array.from(checked);
+    const payloadTags = {};
+    columns.forEach((column) => {
+      const ids = Array.from(tags[column] || []);
+      if (ids.length > 0) payloadTags[column] = ids;
+    });
+    onConfirm(columns, payloadTags);
   };
 
   return (
@@ -120,17 +146,41 @@ function QualitativeDataSelector({ detectedColumns, selectedColumns, onConfirm, 
       </p>
       <div className="dataset-variable-list">
         {detectedColumns.map((column) => (
-          <label className="dataset-grouping-checkbox dataset-variable-row" key={column}>
-            <input
-              type="checkbox"
-              checked={checked.has(column)}
-              onChange={() => toggle(column)}
-              disabled={loading}
-            />
-            {pretty(column)}
-          </label>
+          <div className="dataset-variable-row qualitative-column-row" key={column}>
+            <label className="dataset-grouping-checkbox">
+              <input
+                type="checkbox"
+                checked={checked.has(column)}
+                onChange={() => toggleColumn(column)}
+                disabled={loading}
+              />
+              {pretty(column)}
+            </label>
+            {checked.has(column) && objectives.length > 0 && (
+              <div className="qualitative-column-objective-tags">
+                <span className="qualitative-tag-label">Informs (optional):</span>
+                {objectives.map((objective) => (
+                  <label className="qualitative-tag-checkbox" key={objective.id}>
+                    <input
+                      type="checkbox"
+                      checked={(tags[column] || new Set()).has(objective.id)}
+                      onChange={() => toggleTag(column, objective.id)}
+                      disabled={loading}
+                    />
+                    Objective {objective.id}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
         ))}
       </div>
+      <p className="analysis-reasoning">
+        Tagging a column to an objective is optional. It tells Adanse which objective(s) that open-ended data was
+        designed to inform — Chapter 4 uses this to relate specific themes to specific objectives. Untagged columns
+        are still analysed in full; their themes appear as general qualitative findings without objective
+        attribution.
+      </p>
       <div className="analysis-action-bar">
         <div>
           <strong>{checked.size} of {detectedColumns.length} columns selected</strong>
@@ -143,7 +193,7 @@ function QualitativeDataSelector({ detectedColumns, selectedColumns, onConfirm, 
         <button
           className="btn btn-secondary"
           type="button"
-          onClick={() => onConfirm(Array.from(checked))}
+          onClick={handleConfirm}
           disabled={loading}
         >
           {loading ? "Saving…" : confirmed ? "Update selection" : "Confirm qualitative data →"}
@@ -285,6 +335,8 @@ export default function ThesisWorkspace({ project, upload, plan, analysis, onBui
         <QualitativeDataSelector
           detectedColumns={detectedQualitativeColumns}
           selectedColumns={selectedQualitativeColumns}
+          columnObjectives={plan?.qualitative?.column_objectives}
+          objectives={objectives}
           onConfirm={onConfirmQualitativeColumns}
           loading={loading}
         />

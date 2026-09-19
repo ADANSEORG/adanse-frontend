@@ -468,13 +468,14 @@ export const buildAnalysisPlan = (
 
 export const selectQualitativeColumns = (
   id,
-  columns
+  columns,
+  columnObjectives
 ) =>
   request(
     `/thesis/projects/${id}/qualitative-columns`,
     {
       method: "PATCH",
-      body: { columns },
+      body: { columns, column_objectives: columnObjectives ?? null },
     }
   );
 
