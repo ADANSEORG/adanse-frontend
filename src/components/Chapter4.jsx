@@ -83,32 +83,52 @@ function QualitativeResult({ result, item }) {
         </p>
       )}
 
-      {themes.map((theme, index) => (
-        <div
-          key={`theme-detail-${theme?.theme || "theme"}-${index}`}
-          className="chapter-qualitative-theme"
-        >
-          <h6>{theme?.theme || "Theme"}</h6>
+      {themes.map((theme, index) => {
+        // Guarded with this theme's own stored response_count/percentage
+        // -- e.g. a theme with response_count=1 can't read "repeatedly
+        // described" or "the majority of respondents" here, mirroring
+        // generate_chapter()'s docx rendering exactly.
+        const narrative = guardPrevalenceLanguage(
+          String(theme?.narrative || "").trim(),
+          Number(theme?.response_count) || 0,
+          Number(theme?.percentage) || 0
+        );
 
-          {theme?.description && (
-            <p>{theme.description}</p>
-          )}
+        return (
+          <div
+            key={`theme-detail-${theme?.theme || "theme"}-${index}`}
+            className="chapter-qualitative-theme"
+          >
+            <h6>{theme?.theme || "Theme"}</h6>
 
-          {Array.isArray(theme?.excerpts) &&
-            theme.excerpts.length > 0 && (
-              <div>
-                <strong>Representative responses</strong>
-                {theme.excerpts.slice(0, 3).map((quote, quoteIndex) => (
-                  <blockquote
-                    key={`quote-${index}-${quoteIndex}`}
-                  >
-                    “{quote}”
-                  </blockquote>
-                ))}
-              </div>
+            {theme?.description && (
+              <p>{theme.description}</p>
             )}
-        </div>
-      ))}
+
+            {narrative &&
+              narrative.split(/\n\s*\n/).map((paragraph, paraIndex) => {
+                const trimmed = paragraph.trim();
+                return trimmed ? (
+                  <p key={`narrative-${index}-${paraIndex}`}>{trimmed}</p>
+                ) : null;
+              })}
+
+            {Array.isArray(theme?.excerpts) &&
+              theme.excerpts.length > 0 && (
+                <div>
+                  <strong>Representative responses</strong>
+                  {theme.excerpts.slice(0, 3).map((quote, quoteIndex) => (
+                    <blockquote
+                      key={`quote-${index}-${quoteIndex}`}
+                    >
+                      “{quote}”
+                    </blockquote>
+                  ))}
+                </div>
+              )}
+          </div>
+        );
+      })}
 
       {result.warning && (
         <div className="chapter-warning">
