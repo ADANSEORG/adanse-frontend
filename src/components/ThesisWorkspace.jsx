@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { toFixedHalfEven } from "./chapter4/resultsTransform.js";
 import CreditActionButton from "./CreditActionButton.jsx";
 import QualitativeReview from "./QualitativeReview.jsx";
+import { isRegressionAnalysis, buildPairwiseOverridePayload } from "../analysisOverride.js";
 
 const TEST_NAMES = {
   distribution: "Descriptive distribution",
@@ -247,6 +248,7 @@ function AnalysisCard({ item, conversationId, onQualitativeFinalized }) {
   const columns = result?.columns || item?.columns || (item?.column ? [item.column] : []);
   const complete = item?.status === "complete" && result;
   const needsQualitativeReview = item?.status === "needs_review" && !result && columns.length > 0;
+  const lowConfidence = item?.confidence === "low";
 
   return (
     <article className={`analysis-result-card ${complete ? "" : "planned"}`}>
@@ -260,6 +262,12 @@ function AnalysisCard({ item, conversationId, onQualitativeFinalized }) {
       {columns.length > 0 && <div className="analysis-variable-pair">{columns.map(pretty).join(" × ")}</div>}
       {!needsQualitativeReview && (
         <p className="analysis-reasoning">{item?.reasoning || item?.error || "Selected from the structure of the uploaded dataset."}</p>
+      )}
+      {lowConfidence && (
+        <div className="analysis-warning">
+          <strong>Low confidence</strong>
+          <span>{item.review_reason || "Adanse could not confidently match this objective to dataset variables."}</span>
+        </div>
       )}
       {complete && (result.test === "thematic_analysis" ? <QualitativeResult result={result} /> : <QuantitativeResult result={result} />)}
       {needsQualitativeReview && (
@@ -275,7 +283,66 @@ function AnalysisCard({ item, conversationId, onQualitativeFinalized }) {
   );
 }
 
-export default function ThesisWorkspace({ project, upload, plan, analysis, onBuildPlan, onRun, onConfirmQualitativeColumns, onContinueChapter4, onQualitativeFinalized, loading, credits, costs, onBuyCredits, conversationId }) {
+// An objective's plan-time analysis picked by low-confidence lexical
+// matching or an inferred abbreviation (build_plan()'s "review" status)
+// isn't a dead end: the researcher can pick the variables directly here,
+// which calls the server-side override (validated against the dataset
+// and select_test()'s own type rules) instead of guessing further.
+//
+// Regression's predictor list + outcome picker is a larger control than
+// a two-variable dropdown pair and is deliberately left for a follow-up
+// -- see the message shown in its place below.
+function AnalysisOverrideForm({ objectiveId, numericColumns, categoricalColumns, onOverride, loading }) {
+  const allColumns = useMemo(
+    () => [...numericColumns, ...categoricalColumns],
+    [numericColumns, categoricalColumns]
+  );
+  const [columnA, setColumnA] = useState("");
+  const [columnB, setColumnB] = useState("");
+
+  const payload = buildPairwiseOverridePayload(columnA, columnB);
+
+  const handleSubmit = () => {
+    if (!payload) return;
+    onOverride?.(objectiveId, payload);
+  };
+
+  return (
+    <div className="analysis-override-form">
+      <p className="analysis-reasoning">Choose the two variables this objective should be analysed with:</p>
+      <div className="analysis-override-fields">
+        <label className="analysis-override-field">
+          <span>Variable A</span>
+          <select value={columnA} onChange={(e) => setColumnA(e.target.value)} disabled={loading}>
+            <option value="">Select a variable…</option>
+            {allColumns.map((c) => (
+              <option key={c} value={c}>{pretty(c)}</option>
+            ))}
+          </select>
+        </label>
+        <label className="analysis-override-field">
+          <span>Variable B</span>
+          <select value={columnB} onChange={(e) => setColumnB(e.target.value)} disabled={loading}>
+            <option value="">Select a variable…</option>
+            {allColumns.map((c) => (
+              <option key={c} value={c}>{pretty(c)}</option>
+            ))}
+          </select>
+        </label>
+        <button
+          className="btn btn-secondary"
+          type="button"
+          onClick={handleSubmit}
+          disabled={loading || !payload}
+        >
+          {loading ? "Saving…" : "Use these variables →"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function ThesisWorkspace({ project, upload, plan, analysis, onBuildPlan, onRun, onConfirmQualitativeColumns, onOverrideAnalysis, onContinueChapter4, onQualitativeFinalized, loading, credits, costs, onBuyCredits, conversationId }) {
   const objectives = useMemo(() => plan?.items || [], [plan]);
   const datasetType = analysis?.dataset_type || plan?.dataset_type;
   const summary = analysis?.dataset_summary || plan?.dataset_summary || {};
@@ -317,19 +384,47 @@ export default function ThesisWorkspace({ project, upload, plan, analysis, onBui
         </div>
       )}
 
-      {plan && !hasResults && objectives.map((objective) => (
-        <section className="objective-analysis-section" key={objective.id}>
-          <div className="objective-heading"><span>OBJECTIVE {objective.id}</span><h2>{objective.objective}</h2></div>
-          <p className="analysis-reasoning">{objective.reasoning}</p>
-          <div className="analysis-list">{(objective.analyses || []).map((item) => <AnalysisCard key={item.id} item={item} />)}</div>
-          {objective.expresses_qualitative_intent && (objective.analyses || []).length === 0 && (
-            <p className="analysis-reasoning">
-              This objective has a qualitative dimension. It will be informed by whichever open-ended responses you
-              select below, once analysed — no column is assigned to it in advance.
-            </p>
-          )}
-        </section>
-      ))}
+      {plan && !hasResults && objectives.map((objective) => {
+        const needsReview = objective.status === "review";
+        const isRegression = isRegressionAnalysis(objective.analyses);
+        return (
+          <section className="objective-analysis-section" key={objective.id}>
+            <div className="objective-heading">
+              <span>OBJECTIVE {objective.id}</span>
+              <h2>{objective.objective}</h2>
+              {objective.status && (
+                <span className={`analysis-status ${needsReview ? "review" : "complete"}`}>
+                  {needsReview ? "Needs review" : "Ready"}
+                </span>
+              )}
+            </div>
+            <p className="analysis-reasoning">{objective.reasoning}</p>
+            <div className="analysis-list">{(objective.analyses || []).map((item) => <AnalysisCard key={item.id} item={item} />)}</div>
+            {objective.expresses_qualitative_intent && (objective.analyses || []).length === 0 && (
+              <p className="analysis-reasoning">
+                This objective has a qualitative dimension. It will be informed by whichever open-ended responses you
+                select below, once analysed — no column is assigned to it in advance.
+              </p>
+            )}
+            {needsReview && !isRegression && (
+              <AnalysisOverrideForm
+                objectiveId={objective.id}
+                numericColumns={summary.numeric_columns || []}
+                categoricalColumns={summary.categorical_columns || []}
+                onOverride={onOverrideAnalysis}
+                loading={loading}
+              />
+            )}
+            {needsReview && isRegression && (
+              <p className="analysis-reasoning">
+                Choosing predictors for a regression isn't supported here yet — that needs its own multi-select
+                picker. This is coming in a follow-up; for now, review the picked variables above and confirm they're
+                correct before running analysis.
+              </p>
+            )}
+          </section>
+        );
+      })}
 
       {plan && !hasResults && detectedQualitativeColumns.length > 0 && (
         <QualitativeDataSelector
