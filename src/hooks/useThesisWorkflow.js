@@ -700,8 +700,14 @@ export function useThesisWorkflow({ user, authLoading }) {
       setBusy: setLoading,
       setError,
       action: async () => {
-        const p = await overrideAnalysisVariables(active.id, objectiveId, override);
+        const { plan: p, analysis_results: updatedAnalysis } =
+          await overrideAnalysisVariables(active.id, objectiveId, override);
         setPlan(p);
+        // null means nothing existed to flag stale yet (analysis never
+        // run) -- leave `analysis` state as-is rather than clearing it.
+        if (updatedAnalysis) {
+          setAnalysis(updatedAnalysis);
+        }
       },
     });
   };

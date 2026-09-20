@@ -2,7 +2,12 @@ import { useMemo, useState } from "react";
 import { toFixedHalfEven } from "./chapter4/resultsTransform.js";
 import CreditActionButton from "./CreditActionButton.jsx";
 import QualitativeReview from "./QualitativeReview.jsx";
-import { isRegressionAnalysis, buildPairwiseOverridePayload } from "../analysisOverride.js";
+import {
+  isRegressionAnalysis,
+  buildPairwiseOverridePayload,
+  buildRegressionOverridePayload,
+  hasStaleResults,
+} from "../analysisOverride.js";
 
 const TEST_NAMES = {
   distribution: "Descriptive distribution",
@@ -241,7 +246,7 @@ function QualitativeAnalysisSection({ qualitativeResults, conversationId, onQual
   );
 }
 
-function AnalysisCard({ item, conversationId, onQualitativeFinalized }) {
+function AnalysisCard({ item, objectiveId, numericColumns, categoricalColumns, onOverride, conversationId, onQualitativeFinalized }) {
   const result = item?.result;
   const method = result?.test || item?.test;
   const name = TEST_NAMES[method] || item?.method || item?.test_name || "Analysis";
@@ -249,6 +254,11 @@ function AnalysisCard({ item, conversationId, onQualitativeFinalized }) {
   const complete = item?.status === "complete" && result;
   const needsQualitativeReview = item?.status === "needs_review" && !result && columns.length > 0;
   const lowConfidence = item?.confidence === "low";
+  const stale = item?.stale === true;
+  // Overriding variables is a quantitative-pair/regression concept --
+  // there's nothing to swap for open-ended thematic analysis, which the
+  // separate qualitative data-source selector already governs.
+  const canChangeVariables = Boolean(objectiveId) && method !== "thematic_analysis" && !needsQualitativeReview;
 
   return (
     <article className={`analysis-result-card ${complete ? "" : "planned"}`}>
@@ -269,6 +279,12 @@ function AnalysisCard({ item, conversationId, onQualitativeFinalized }) {
           <span>{item.review_reason || "Adanse could not confidently match this objective to dataset variables."}</span>
         </div>
       )}
+      {stale && (
+        <div className="analysis-warning analysis-warning-stale">
+          <strong>Results out of date</strong>
+          <span>These variables were changed after this result was computed. Run analysis again to update it.</span>
+        </div>
+      )}
       {complete && (result.test === "thematic_analysis" ? <QualitativeResult result={result} /> : <QuantitativeResult result={result} />)}
       {needsQualitativeReview && (
         <QualitativeReview
@@ -279,19 +295,82 @@ function AnalysisCard({ item, conversationId, onQualitativeFinalized }) {
       )}
       {result?.interpretation && <div className="analysis-result-section"><h5>Interpretation</h5><p>{result.interpretation}</p></div>}
       {item?.error && <div className="analysis-warning"><strong>Review</strong><span>{item.error}</span></div>}
+      {canChangeVariables && (
+        <ChangeVariablesControl
+          objectiveId={objectiveId}
+          isRegression={isRegressionAnalysis([item])}
+          numericColumns={numericColumns}
+          categoricalColumns={categoricalColumns}
+          onOverride={onOverride}
+        />
+      )}
     </article>
   );
 }
 
-// An objective's plan-time analysis picked by low-confidence lexical
-// matching or an inferred abbreviation (build_plan()'s "review" status)
-// isn't a dead end: the researcher can pick the variables directly here,
-// which calls the server-side override (validated against the dataset
-// and select_test()'s own type rules) instead of guessing further.
-//
-// Regression's predictor list + outcome picker is a larger control than
-// a two-variable dropdown pair and is deliberately left for a follow-up
-// -- see the message shown in its place below.
+// A toggle -- "Change variables" -- available on every objective's
+// analysis card, whether it's a fresh plan-time pick, a low-confidence
+// one flagged for review, or an already-computed (possibly now stale)
+// result. Expanding it shows the two-variable dropdown form, or, for a
+// regression, the predictor multi-select + outcome dropdown; submitting
+// calls the server-side override (validated against the dataset and
+// select_test()'s own type rules) and collapses back.
+function ChangeVariablesControl({ objectiveId, isRegression, numericColumns, categoricalColumns, onOverride }) {
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const handleOverride = async (targetObjectiveId, payload) => {
+    setSaving(true);
+    try {
+      await onOverride?.(targetObjectiveId, payload);
+      setOpen(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        className="btn btn-tertiary analysis-change-variables-toggle"
+        onClick={() => setOpen(true)}
+      >
+        Change variables
+      </button>
+    );
+  }
+
+  return (
+    <div className="analysis-override-wrapper">
+      {isRegression ? (
+        <RegressionOverrideForm
+          objectiveId={objectiveId}
+          numericColumns={numericColumns}
+          onOverride={handleOverride}
+          loading={saving}
+        />
+      ) : (
+        <AnalysisOverrideForm
+          objectiveId={objectiveId}
+          numericColumns={numericColumns}
+          categoricalColumns={categoricalColumns}
+          onOverride={handleOverride}
+          loading={saving}
+        />
+      )}
+      <button
+        type="button"
+        className="btn btn-tertiary"
+        onClick={() => setOpen(false)}
+        disabled={saving}
+      >
+        Cancel
+      </button>
+    </div>
+  );
+}
+
 function AnalysisOverrideForm({ objectiveId, numericColumns, categoricalColumns, onOverride, loading }) {
   const allColumns = useMemo(
     () => [...numericColumns, ...categoricalColumns],
@@ -342,6 +421,75 @@ function AnalysisOverrideForm({ objectiveId, numericColumns, categoricalColumns,
   );
 }
 
+// Multiple regression needs a predictor LIST (2+) plus a single outcome
+// -- a different shape from the two-dropdown pairwise form. Only numeric
+// columns are offered: regression requires numeric variables on both
+// sides, same as the server validates.
+function RegressionOverrideForm({ objectiveId, numericColumns, onOverride, loading }) {
+  const [dependentColumn, setDependentColumn] = useState("");
+  const [predictors, setPredictors] = useState(() => new Set());
+
+  const togglePredictor = (column) => {
+    setPredictors((prev) => {
+      const next = new Set(prev);
+      if (next.has(column)) next.delete(column);
+      else next.add(column);
+      return next;
+    });
+  };
+
+  const predictorList = Array.from(predictors);
+  const payload = buildRegressionOverridePayload(dependentColumn, predictorList);
+
+  const handleSubmit = () => {
+    if (!payload) return;
+    onOverride?.(objectiveId, payload);
+  };
+
+  return (
+    <div className="analysis-override-form">
+      <p className="analysis-reasoning">
+        Choose the outcome variable and at least two predictor variables for this regression:
+      </p>
+      <div className="analysis-override-fields">
+        <label className="analysis-override-field">
+          <span>Outcome variable</span>
+          <select value={dependentColumn} onChange={(e) => setDependentColumn(e.target.value)} disabled={loading}>
+            <option value="">Select a variable…</option>
+            {numericColumns.map((c) => (
+              <option key={c} value={c} disabled={predictors.has(c)}>{pretty(c)}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <div className="analysis-override-predictors">
+        <span className="analysis-override-predictors-label">Predictor variables (choose 2 or more):</span>
+        <div className="analysis-override-predictor-list">
+          {numericColumns.map((c) => (
+            <label key={c} className="analysis-override-predictor-checkbox">
+              <input
+                type="checkbox"
+                checked={predictors.has(c)}
+                disabled={loading || c === dependentColumn}
+                onChange={() => togglePredictor(c)}
+              />
+              {pretty(c)}
+            </label>
+          ))}
+        </div>
+      </div>
+      <button
+        className="btn btn-secondary"
+        type="button"
+        onClick={handleSubmit}
+        disabled={loading || !payload}
+      >
+        {loading ? "Saving…" : "Use these variables →"}
+      </button>
+    </div>
+  );
+}
+
 export default function ThesisWorkspace({ project, upload, plan, analysis, onBuildPlan, onRun, onConfirmQualitativeColumns, onOverrideAnalysis, onContinueChapter4, onQualitativeFinalized, loading, credits, costs, onBuyCredits, conversationId }) {
   const objectives = useMemo(() => plan?.items || [], [plan]);
   const datasetType = analysis?.dataset_type || plan?.dataset_type;
@@ -386,7 +534,6 @@ export default function ThesisWorkspace({ project, upload, plan, analysis, onBui
 
       {plan && !hasResults && objectives.map((objective) => {
         const needsReview = objective.status === "review";
-        const isRegression = isRegressionAnalysis(objective.analyses);
         return (
           <section className="objective-analysis-section" key={objective.id}>
             <div className="objective-heading">
@@ -399,27 +546,22 @@ export default function ThesisWorkspace({ project, upload, plan, analysis, onBui
               )}
             </div>
             <p className="analysis-reasoning">{objective.reasoning}</p>
-            <div className="analysis-list">{(objective.analyses || []).map((item) => <AnalysisCard key={item.id} item={item} />)}</div>
+            <div className="analysis-list">
+              {(objective.analyses || []).map((item) => (
+                <AnalysisCard
+                  key={item.id}
+                  item={item}
+                  objectiveId={objective.id}
+                  numericColumns={summary.numeric_columns || []}
+                  categoricalColumns={summary.categorical_columns || []}
+                  onOverride={onOverrideAnalysis}
+                />
+              ))}
+            </div>
             {objective.expresses_qualitative_intent && (objective.analyses || []).length === 0 && (
               <p className="analysis-reasoning">
                 This objective has a qualitative dimension. It will be informed by whichever open-ended responses you
                 select below, once analysed — no column is assigned to it in advance.
-              </p>
-            )}
-            {needsReview && !isRegression && (
-              <AnalysisOverrideForm
-                objectiveId={objective.id}
-                numericColumns={summary.numeric_columns || []}
-                categoricalColumns={summary.categorical_columns || []}
-                onOverride={onOverrideAnalysis}
-                loading={loading}
-              />
-            )}
-            {needsReview && isRegression && (
-              <p className="analysis-reasoning">
-                Choosing predictors for a regression isn't supported here yet — that needs its own multi-select
-                picker. This is coming in a follow-up; for now, review the picked variables above and confirm they're
-                correct before running analysis.
               </p>
             )}
           </section>
@@ -461,6 +603,16 @@ export default function ThesisWorkspace({ project, upload, plan, analysis, onBui
         </div>
       )}
 
+      {hasResults && hasStaleResults(analysis) && (
+        <div className="analysis-warning analysis-warning-stale analysis-warning-page">
+          <strong>Results out of date</strong>
+          <span>
+            One or more objectives' variables were changed since analysis last ran. Run analysis again to update
+            every result before generating Chapter 4.
+          </span>
+        </div>
+      )}
+
       {hasResults && (analysis?.objective_results || []).map((objective) => (
         <section className="objective-analysis-section" key={objective.id}>
           <div className="objective-heading"><span>OBJECTIVE {objective.id}</span><h2>{objective.objective}</h2></div>
@@ -469,6 +621,10 @@ export default function ThesisWorkspace({ project, upload, plan, analysis, onBui
               <AnalysisCard
                 key={item.id}
                 item={item}
+                objectiveId={objective.id}
+                numericColumns={summary.numeric_columns || []}
+                categoricalColumns={summary.categorical_columns || []}
+                onOverride={onOverrideAnalysis}
                 conversationId={conversationId}
                 onQualitativeFinalized={onQualitativeFinalized}
               />
@@ -491,17 +647,24 @@ export default function ThesisWorkspace({ project, upload, plan, analysis, onBui
             (objective.analyses || []).some((item) => item.status === "needs_review")
           ) ||
           (analysis?.qualitative_results || []).some((entry) => entry.status === "needs_review");
+        const stale = hasStaleResults(analysis);
+        const blocked = pendingReview || stale;
+        let message = "Review the findings above, then generate Chapter 4.";
+        let heading = "Analysis complete.";
+        if (pendingReview) {
+          heading = "Finish reviewing themes above.";
+          message = "Chapter 4 can't be generated until every qualitative data source's themes are finalized.";
+        } else if (stale) {
+          heading = "Results out of date.";
+          message = "Run analysis again to update the variables you changed before generating Chapter 4.";
+        }
         return (
           <div className="analysis-action-bar">
             <div>
-              <strong>{pendingReview ? "Finish reviewing themes above." : "Analysis complete."}</strong>
-              <span>
-                {pendingReview
-                  ? "Chapter 4 can't be generated until every qualitative data source's themes are finalized."
-                  : "Review the findings above, then generate Chapter 4."}
-              </span>
+              <strong>{heading}</strong>
+              <span>{message}</span>
             </div>
-            <button className="btn btn-primary" onClick={onContinueChapter4} disabled={pendingReview}>
+            <button className="btn btn-primary" onClick={onContinueChapter4} disabled={blocked}>
               Continue to Chapter 4 →
             </button>
           </div>

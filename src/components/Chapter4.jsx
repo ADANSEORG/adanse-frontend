@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import CreditActionButton from "./CreditActionButton.jsx";
+import { hasStaleResults } from "../analysisOverride.js";
 import {
   formatVariableName,
   formatNumber,
@@ -472,6 +473,14 @@ export default function Chapter4({
   const completedAnalysisCount =
     completedResults.length;
 
+  // A researcher can change an objective's variables after analysis has
+  // already run (see ThesisWorkspace.jsx's "Change variables"), which
+  // flags that objective's stored result stale rather than silently
+  // keeping the old numbers. The backend also refuses (409) to generate
+  // Chapter 4 while anything is stale -- this is the matching frontend
+  // gate, not the only enforcement.
+  const resultsAreStale = hasStaleResults(analysis);
+
   /*
    * -------------------------------------------------------
    * DESCRIPTIVES
@@ -697,27 +706,36 @@ export default function Chapter4({
       <div className="chapter4-action">
         <div>
           <div className="chapter4-action-label">
-            READY TO EXPORT
+            {resultsAreStale ? "RESULTS OUT OF DATE" : "READY TO EXPORT"}
           </div>
 
-          <strong>
-            {completedObjectiveCount} research
-            objective
-            {completedObjectiveCount === 1
-              ? ""
-              : "s"}{" "}
-            analysed
-          </strong>
+          {resultsAreStale ? (
+            <>
+              <strong>Some variables changed since analysis last ran.</strong>
+              <p>Go back and run analysis again — the download is disabled until every result is up to date.</p>
+            </>
+          ) : (
+            <>
+              <strong>
+                {completedObjectiveCount} research
+                objective
+                {completedObjectiveCount === 1
+                  ? ""
+                  : "s"}{" "}
+                analysed
+              </strong>
 
-          <p>
-            {completedAnalysisCount} completed
-            statistical{" "}
-            {completedAnalysisCount === 1
-              ? "analysis"
-              : "analyses"}{" "}
-            will be included in the editable
-            Chapter 4 document.
-          </p>
+              <p>
+                {completedAnalysisCount} completed
+                statistical{" "}
+                {completedAnalysisCount === 1
+                  ? "analysis"
+                  : "analyses"}{" "}
+                will be included in the editable
+                Chapter 4 document.
+              </p>
+            </>
+          )}
         </div>
 
         <CreditActionButton
@@ -729,6 +747,7 @@ export default function Chapter4({
           loading={loading}
           onConfirm={onDownload}
           onBuyCredits={onBuyCredits}
+          disabled={resultsAreStale}
           className="btn btn-primary btn-large"
         />
       </div>
@@ -2038,6 +2057,7 @@ export default function Chapter4({
           loading={loading}
           onConfirm={onDownload}
           onBuyCredits={onBuyCredits}
+          disabled={resultsAreStale}
           className="btn btn-primary btn-large"
         />
 
