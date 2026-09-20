@@ -3126,6 +3126,45 @@ button {
 }
 
 /* =========================================================
+   ANALYSIS OVERRIDE
+   ========================================================= */
+
+.analysis-override-form {
+  margin-top: 18px;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.analysis-override-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.analysis-override-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  min-width: 200px;
+}
+
+.analysis-override-field select {
+  font-family: var(--body);
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 9px 11px;
+}
+
+/* =========================================================
    ANALYSIS ACTION
    ========================================================= */
 

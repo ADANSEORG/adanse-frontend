@@ -80,6 +80,7 @@ export default function App() {
     activateDataset,
     build,
     confirmQualitativeColumns,
+    overrideAnalysis,
     run,
     onQualitativeFinalized,
     goToChapter4,
@@ -642,6 +643,9 @@ export default function App() {
                 }
                 onConfirmQualitativeColumns={
                   confirmQualitativeColumns
+                }
+                onOverrideAnalysis={
+                  overrideAnalysis
                 }
                 onRun={run}
                 onContinueChapter4={

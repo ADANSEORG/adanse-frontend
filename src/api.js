@@ -481,6 +481,33 @@ export const selectQualitativeColumns = (
 
 /*
  * ---------------------------------------------------------
+ * ANALYSIS OVERRIDE
+ *
+ * Replaces one objective's plan-time analysis with variables the
+ * researcher chose directly, instead of Adanse's automatic pick --
+ * validated server-side against the dataset and select_test()'s own
+ * type rules. `override` is either {column_a, column_b} for a
+ * two-variable test, or {dependent_column, independent_columns} for a
+ * multiple regression (not yet exposed in the UI -- see
+ * ThesisWorkspace.jsx).
+ * ---------------------------------------------------------
+ */
+
+export const overrideAnalysisVariables = (
+  id,
+  objectiveId,
+  override
+) =>
+  request(
+    `/thesis/projects/${id}/analysis-plan/objectives/${objectiveId}`,
+    {
+      method: "PATCH",
+      body: override,
+    }
+  );
+
+/*
+ * ---------------------------------------------------------
  * STATISTICAL ANALYSIS
  * ---------------------------------------------------------
  *

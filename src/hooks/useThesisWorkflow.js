@@ -19,6 +19,7 @@ import {
   applyDatasetGroupings,
   buildAnalysisPlan,
   selectQualitativeColumns,
+  overrideAnalysisVariables,
   runThesisAnalysis,
   downloadChapter4,
   getCredits,
@@ -683,6 +684,30 @@ export function useThesisWorkflow({ user, authLoading }) {
 
   /*
    * ---------------------------------------------------------
+   * ANALYSIS OVERRIDE
+   *
+   * Replaces one objective's plan-time analysis with variables the
+   * researcher chose directly -- server-validated, never re-scored
+   * client-side. Updates `plan` in place with the server's response,
+   * same pattern as confirmQualitativeColumns above.
+   * ---------------------------------------------------------
+   */
+
+  const overrideAnalysis = async (objectiveId, override) => {
+    if (!active) return;
+
+    await runAction({
+      setBusy: setLoading,
+      setError,
+      action: async () => {
+        const p = await overrideAnalysisVariables(active.id, objectiveId, override);
+        setPlan(p);
+      },
+    });
+  };
+
+  /*
+   * ---------------------------------------------------------
    * RUN ANALYSIS
    * ---------------------------------------------------------
    */
@@ -983,6 +1008,7 @@ export function useThesisWorkflow({ user, authLoading }) {
     activateDataset,
     build,
     confirmQualitativeColumns,
+    overrideAnalysis,
     run,
     onQualitativeFinalized,
     goToChapter4,
