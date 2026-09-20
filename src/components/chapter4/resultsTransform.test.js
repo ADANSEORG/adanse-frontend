@@ -7,6 +7,7 @@ import {
   respondentProfileNarrative,
   describeRemainingIssues,
   getTestName,
+  getStatistic,
   collectQualitativeFindings,
   columnsTaggedToObjective,
   objectivesTaggedToColumn,
@@ -364,4 +365,37 @@ test("qualitativeSynthesisClause reflects the real theme set, not a fixed templa
   assert.notEqual(clauseA, clauseB);
   assert.ok(clauseA.includes("Financial Constraints"));
   assert.ok(clauseB.includes("Transportation Access"));
+});
+
+/*
+ * =========================================================
+ * getStatistic
+ *
+ * A t-test uses Welch's method (unequal variances assumed), whose
+ * degrees of freedom are NOT the pooled n1 + n2 - 2 -- backend bug fix,
+ * see run_t_test() in stats_engine.py. Regression previously fell
+ * through to "—" with no case for it at all.
+ * =========================================================
+ */
+
+test("getStatistic reports the Welch degrees of freedom for a t-test, not a pooled guess", () => {
+  const statistic = getStatistic({
+    test: "t_test", t_statistic: -4.6205, df: 294.3,
+  });
+  assert.equal(statistic, "t(294.3) = -4.620");
+  assert.ok(!statistic.includes("298"), "must not show the pooled n1+n2-2 df (298 for this fixture)");
+});
+
+test("getStatistic reports F(df1, df2), not '—', for a regression result", () => {
+  const statistic = getStatistic({
+    test: "regression", f_statistic: 28.7516, df_model: 3, df_resid: 289,
+  });
+  assert.equal(statistic, "F(3, 289) = 28.752");
+});
+
+test("getStatistic still reports the other test types unchanged", () => {
+  assert.equal(getStatistic({ test: "correlation", r: -0.401 }), "r = -0.401");
+  assert.equal(getStatistic({ test: "cross_tab", chi2: 6.44 }), "χ² = 6.440");
+  assert.equal(getStatistic({ test: "anova", f_statistic: 5.047 }), "F = 5.047");
+  assert.equal(getStatistic(null), "—");
 });

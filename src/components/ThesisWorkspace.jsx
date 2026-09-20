@@ -50,11 +50,18 @@ function QuantitativeResult({ result }) {
       <div><span>Statistic</span><strong>
         {test === "correlation" ? `r = ${number(result.r)}` :
          test === "cross_tab" ? `χ² = ${number(result.chi2)}` :
-         test === "t_test" ? `t = ${number(result.t_statistic)}` :
-         test === "anova" ? `F = ${number(result.f_statistic)}` : "—"}
+         test === "t_test" ? `t(${number(result.df, 1)}) = ${number(result.t_statistic)}` :
+         test === "anova" ? `F = ${number(result.f_statistic)}` :
+         test === "regression" ? `F(${result.df_model}, ${result.df_resid}) = ${number(result.f_statistic)}` : "—"}
       </strong></div>
       <div><span>p-value</span><strong><PValue value={result.p_value} formatted={result.p_value_formatted} /></strong></div>
       {result.n != null && <div><span>Observations</span><strong>{result.n}</strong></div>}
+      {test === "regression" && result.r_squared != null && (
+        <div><span>R²</span><strong>{number(result.r_squared)}</strong></div>
+      )}
+      {test === "regression" && result.adj_r_squared != null && (
+        <div><span>Adjusted R²</span><strong>{number(result.adj_r_squared)}</strong></div>
+      )}
       {result.effect_size != null && (
         <div>
           <span>Effect size</span>
