@@ -77,6 +77,8 @@ export default function App() {
     file,
     validateDataset,
     applyGroupings,
+    saveColumnCategoryOrder,
+    clearColumnCategoryOrder,
     activateDataset,
     build,
     confirmQualitativeColumns,
@@ -617,6 +619,8 @@ export default function App() {
                   onValidate={validateDataset}
                   onActivate={activateDataset}
                   onApplyGroupings={applyGroupings}
+                  onSaveCategoryOrder={saveColumnCategoryOrder}
+                  onClearCategoryOrder={clearColumnCategoryOrder}
                   onReplace={() =>
                     replaceInputRef.current?.click()
                   }

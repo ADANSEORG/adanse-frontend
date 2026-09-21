@@ -17,6 +17,8 @@ import {
   validateDatasetVersion,
   activateDatasetVersion,
   applyDatasetGroupings,
+  saveCategoryOrder,
+  clearCategoryOrder,
   buildAnalysisPlan,
   selectQualitativeColumns,
   overrideAnalysisVariables,
@@ -539,6 +541,53 @@ export function useThesisWorkflow({ user, authLoading }) {
 
   /*
    * ---------------------------------------------------------
+   * SAVE / CLEAR A COLUMN'S MANUAL CATEGORY ORDER
+   *
+   * Display only — updates the same dataset version in place
+   * (no new version is created, unlike apply-groupings), since
+   * this never touches the stored dataframe.
+   * ---------------------------------------------------------
+   */
+
+  const saveColumnCategoryOrder = async (column, order) => {
+    if (!active || !datasetVersion) return;
+
+    await runAction({
+      setBusy: () => {},
+      setError,
+      action: async () => {
+        const result = await saveCategoryOrder(
+          active.id,
+          datasetVersion.id,
+          column,
+          order
+        );
+
+        setDatasetVersion(result.version);
+      },
+    });
+  };
+
+  const clearColumnCategoryOrder = async (column) => {
+    if (!active || !datasetVersion) return;
+
+    await runAction({
+      setBusy: () => {},
+      setError,
+      action: async () => {
+        const result = await clearCategoryOrder(
+          active.id,
+          datasetVersion.id,
+          column
+        );
+
+        setDatasetVersion(result.version);
+      },
+    });
+  };
+
+  /*
+   * ---------------------------------------------------------
    * ACTIVATE DATASET VERSION
    * ---------------------------------------------------------
    */
@@ -1011,6 +1060,8 @@ export function useThesisWorkflow({ user, authLoading }) {
     file,
     validateDataset,
     applyGroupings,
+    saveColumnCategoryOrder,
+    clearColumnCategoryOrder,
     activateDataset,
     build,
     confirmQualitativeColumns,
