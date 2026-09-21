@@ -20,6 +20,8 @@ import {
   guardPrevalenceLanguage,
   objectiveInterpretationSentence,
   objectiveRecapSentence,
+  objectiveHasQualitativeRelevance,
+  isQualitativeOnlyProject,
 } from "./resultsTransform.js";
 
 /*
@@ -402,4 +404,50 @@ test("getStatistic still reports the other test types unchanged", () => {
   assert.equal(getStatistic({ test: "cross_tab", chi2: 6.44 }), "χ² = 6.440");
   assert.equal(getStatistic({ test: "anova", f_statistic: 5.047 }), "F = 5.047");
   assert.equal(getStatistic(null), "—");
+});
+
+/*
+ * =========================================================
+ * QUALITATIVE-ONLY PROJECT DETECTION
+ *
+ * Mirrors generate_chapter()'s is_qualitative_only flag on the backend --
+ * used to keep 4.1/4.7/4.8's copy in the live preview from talking about
+ * statistical procedures, effect sizes or hypothesis decisions that were
+ * never run for a purely qualitative study.
+ * =========================================================
+ */
+
+test("isQualitativeOnlyProject is true when there are qualitative findings and no quantitative results", () => {
+  const qualitativeFindings = { responses: { themes: [{ theme: "Cost" }] } };
+  assert.equal(isQualitativeOnlyProject([], qualitativeFindings), true);
+});
+
+test("isQualitativeOnlyProject is false when a quantitative result exists alongside qualitative findings", () => {
+  const qualitativeFindings = { responses: { themes: [{ theme: "Cost" }] } };
+  const completedResults = [{ result: { test: "correlation", r: 0.4 } }];
+  assert.equal(isQualitativeOnlyProject(completedResults, qualitativeFindings), false);
+});
+
+test("isQualitativeOnlyProject is false when there are no qualitative findings at all", () => {
+  assert.equal(isQualitativeOnlyProject([], {}), false);
+  assert.equal(isQualitativeOnlyProject([{ result: { test: "t_test" } }], {}), false);
+});
+
+test("isQualitativeOnlyProject ignores a thematic_analysis entry inside completedResults (it never carries a quantitative test type)", () => {
+  const qualitativeFindings = { responses: { themes: [{ theme: "Cost" }] } };
+  const completedResults = [{ result: { test: "thematic_analysis" } }];
+  assert.equal(isQualitativeOnlyProject(completedResults, qualitativeFindings), true);
+});
+
+test("objectiveHasQualitativeRelevance counts an objective as addressed via a tagged qualitative column", () => {
+  const group = { id: 1, objective: "Understand student attitudes" };
+  const qualitativeFindings = { responses: { themes: [{ theme: "Cost" }] } };
+  const columnObjectives = { responses: [1] };
+  assert.equal(objectiveHasQualitativeRelevance(group, qualitativeFindings, columnObjectives), true);
+});
+
+test("objectiveHasQualitativeRelevance is false for an untagged, non-qualitative-worded objective", () => {
+  const group = { id: 2, objective: "Compare CGPA between genders" };
+  const qualitativeFindings = { responses: { themes: [{ theme: "Cost" }] } };
+  assert.equal(objectiveHasQualitativeRelevance(group, qualitativeFindings, {}), false);
 });

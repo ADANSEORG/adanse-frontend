@@ -1153,6 +1153,27 @@ export function objectiveHasQualitativeRelevance(group, qualitativeFindings, col
   return expressesQualitativeIntent(group?.objective);
 }
 
+// The quantitative test types that carry a real statistical procedure --
+// mirrors generate_chapter()'s own _QUANTITATIVE_TESTS on the backend, so
+// "does this project have any quantitative result" never disagrees between
+// the downloaded docx and this live preview.
+const QUANTITATIVE_TEST_TYPES = new Set([
+  "correlation", "t_test", "anova", "cross_tab", "regression", "distribution",
+]);
+
+// Whether the project has finalized thematic findings but no completed
+// quantitative result anywhere -- used to keep 4.1/4.7/4.8's copy from
+// talking about statistical procedures, effect sizes or hypothesis
+// decisions that were never run.
+export function isQualitativeOnlyProject(completedResults, qualitativeFindings) {
+  const hasQualitativeFindings = Object.keys(qualitativeFindings || {}).length > 0;
+  if (!hasQualitativeFindings) return false;
+  const hasQuantitativeResults = (completedResults || []).some((item) =>
+    QUANTITATIVE_TEST_TYPES.has(item?.result?.test)
+  );
+  return !hasQuantitativeResults;
+}
+
 // Every respondent id backing a theme, drawn from its subthemes'
 // supporting quotes -- an objective fact already in the coded data.
 function themeRespondentIds(theme) {
