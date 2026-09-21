@@ -192,6 +192,10 @@ test("getTestName falls back to the raw test enum when neither a hardcoded name 
   assert.equal(getTestName({ test: "distribution" }), "distribution");
 });
 
+test("getTestName labels a t-test result Welch independent-samples, matching the backend (run_t_test() always uses Welch's method)", () => {
+  assert.equal(getTestName({ test: "t_test" }), "Welch independent-samples t-test");
+});
+
 /*
  * =========================================================
  * QUALITATIVE FINDINGS <-> OBJECTIVE RELEVANCE

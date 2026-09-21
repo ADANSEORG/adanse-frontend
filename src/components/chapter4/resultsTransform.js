@@ -141,7 +141,7 @@ export function getTestName(result, item) {
   const names = {
     correlation: "Pearson correlation",
     cross_tab: "Chi-square test of association",
-    t_test: "Independent-samples t-test",
+    t_test: "Welch independent-samples t-test",
     anova: "One-way ANOVA",
   };
 
