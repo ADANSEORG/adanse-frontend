@@ -170,7 +170,7 @@ export function getStatistic(result) {
   }
 
   if (result.test === "t_test") {
-    return `t = ${formatNumber(
+    return `t(${formatNumber(result.df, 1)}) = ${formatNumber(
       result.t_statistic,
       3
     )}`;
@@ -178,6 +178,13 @@ export function getStatistic(result) {
 
   if (result.test === "anova") {
     return `F = ${formatNumber(
+      result.f_statistic,
+      3
+    )}`;
+  }
+
+  if (result.test === "regression") {
+    return `F(${result.df_model}, ${result.df_resid}) = ${formatNumber(
       result.f_statistic,
       3
     )}`;

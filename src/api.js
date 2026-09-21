@@ -365,6 +365,40 @@ export const applyDatasetGroupings = (
   );
 
 /*
+ * Manual category display order (dataset review step). Display only --
+ * never changes analysis results, only how Chapter 4 orders that
+ * column's categories the next time it's generated.
+ */
+
+export const saveCategoryOrder = (
+  id,
+  versionId,
+  column,
+  order
+) =>
+  request(
+    `/thesis/projects/${id}/datasets/${versionId}/category-order/${encodeURIComponent(column)}`,
+    {
+      method: "PATCH",
+      body: {
+        order,
+      },
+    }
+  );
+
+export const clearCategoryOrder = (
+  id,
+  versionId,
+  column
+) =>
+  request(
+    `/thesis/projects/${id}/datasets/${versionId}/category-order/${encodeURIComponent(column)}`,
+    {
+      method: "DELETE",
+    }
+  );
+
+/*
  * ---------------------------------------------------------
  * QUALITATIVE REVIEW (Braun & Clarke phases 3-6)
  * ---------------------------------------------------------
