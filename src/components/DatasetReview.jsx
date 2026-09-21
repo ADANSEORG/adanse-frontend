@@ -1,5 +1,14 @@
 import { useState } from "react";
 
+import {
+  orderableColumns,
+  moveUp,
+  moveDown,
+  isValidOrder,
+  orderHasChanged,
+  orderStatusLabel,
+} from "../categoryOrder.js";
+
 function formatVariableName(name) {
   if (!name) return "";
 
@@ -13,6 +22,147 @@ function formatVariableName(name) {
 function formatRuleLabel(rule) {
   if (!rule) return "Review item";
   return formatVariableName(rule);
+}
+
+/*
+ * CategoryOrderControl
+ * -------------------------------------------------------------
+ * One compact row per orderable categorical column (2-12 distinct
+ * values). Collapsed, it just shows the column and whether it's using
+ * an automatic or a saved custom order. Expanded, it's a plain
+ * up/down-arrow reorderable list -- no drag-and-drop library -- plus
+ * Save and (when a custom order is already saved) a Reset link.
+ * Display only: never affects analysis results, only how Chapter 4
+ * orders this column's categories the next time it's generated.
+ * -------------------------------------------------------------
+ */
+function CategoryOrderControl({ column, savedOrder, onSave, onClear }) {
+  const distinctValues = Array.isArray(column.distinct_values)
+    ? column.distinct_values
+    : [];
+  const hasSavedOrder = Array.isArray(savedOrder) && savedOrder.length > 0;
+  const baselineOrder = hasSavedOrder ? savedOrder : distinctValues;
+
+  const [expanded, setExpanded] = useState(false);
+  const [order, setOrder] = useState(baselineOrder);
+  const [busy, setBusy] = useState(false);
+
+  function openControl() {
+    setOrder(baselineOrder);
+    setExpanded(true);
+  }
+
+  const canSave =
+    isValidOrder(order, distinctValues) &&
+    orderHasChanged(order, baselineOrder);
+
+  async function handleSave() {
+    if (!canSave || busy) return;
+    setBusy(true);
+    try {
+      await onSave(column.name, order);
+      setExpanded(false);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleReset() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await onClear(column.name);
+      setExpanded(false);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="dataset-variable-row category-order-row">
+      <div className="dataset-variable-main">
+        <span className="dataset-type-badge">
+          {formatVariableName(column.name)}
+        </span>
+        <span className="category-order-status">
+          {orderStatusLabel(savedOrder)}
+        </span>
+      </div>
+
+      {!expanded ? (
+        <div className="dataset-variable-status">
+          <button
+            className="btn btn-tertiary"
+            type="button"
+            onClick={openControl}
+          >
+            Set order
+          </button>
+        </div>
+      ) : (
+        <div className="category-order-editor">
+          <ol className="category-order-list">
+            {order.map((value, index) => (
+              <li key={value}>
+                <span>{value}</span>
+                <span className="category-order-arrows">
+                  <button
+                    type="button"
+                    aria-label={`Move ${value} up`}
+                    onClick={() =>
+                      setOrder((prev) => moveUp(prev, index))
+                    }
+                    disabled={index === 0 || busy}
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Move ${value} down`}
+                    onClick={() =>
+                      setOrder((prev) => moveDown(prev, index))
+                    }
+                    disabled={index === order.length - 1 || busy}
+                  >
+                    ↓
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ol>
+
+          <div className="category-order-actions">
+            {hasSavedOrder && (
+              <button
+                className="category-order-reset-link"
+                type="button"
+                onClick={handleReset}
+                disabled={busy}
+              >
+                Reset to automatic
+              </button>
+            )}
+            <button
+              className="btn btn-secondary"
+              type="button"
+              onClick={() => setExpanded(false)}
+              disabled={busy}
+            >
+              Cancel
+            </button>
+            <button
+              className="btn btn-primary"
+              type="button"
+              onClick={handleSave}
+              disabled={!canSave || busy}
+            >
+              {busy ? "Saving…" : "Save"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 const STATUS_COPY = {
@@ -56,6 +206,8 @@ export default function DatasetReview({
   onActivate,
   onReplace,
   onApplyGroupings,
+  onSaveCategoryOrder,
+  onClearCategoryOrder,
   loading,
   error,
 }) {
@@ -149,6 +301,9 @@ export default function DatasetReview({
   const hasConfirmedGrouping = pendingGroups.some(
     (group) => getSelection(group).accepted
   );
+
+  const categoryOrderColumns = orderableColumns(version.profile);
+  const categoryOrders = version.category_orders || {};
 
   async function handleApplyGroupings() {
     if (!onApplyGroupings) return;
@@ -469,6 +624,47 @@ export default function DatasetReview({
           </div>
         </div>
       )}
+
+      {/* =====================================================
+          CATEGORY ORDER (display only — never affects analysis
+          results, only how Chapter 4 orders each column's
+          categories). Renders nothing when no column has a
+          compact enough (2-12) category count to reorder by hand.
+          ===================================================== */}
+
+      {categoryOrderColumns.length > 0 &&
+        onSaveCategoryOrder &&
+        onClearCategoryOrder && (
+          <div className="dataset-variables">
+            <div className="dataset-variables-heading">
+              <div>
+                <div className="dataset-profile-kicker">
+                  CATEGORY ORDER
+                </div>
+                <h3>Set the order categories appear in</h3>
+              </div>
+              <span>{categoryOrderColumns.length} columns</span>
+            </div>
+
+            <p className="dataset-grouping-note">
+              This only changes how tables and figures in the next
+              generated Chapter 4 display these categories — it never
+              changes any analysis result.
+            </p>
+
+            <div className="dataset-variable-list">
+              {categoryOrderColumns.map((column) => (
+                <CategoryOrderControl
+                  key={column.name}
+                  column={column}
+                  savedOrder={categoryOrders[column.name]}
+                  onSave={onSaveCategoryOrder}
+                  onClear={onClearCategoryOrder}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
       {/* =====================================================
           READINESS WARNINGS

@@ -2626,6 +2626,103 @@ button {
 }
 
 /* =========================================================
+   CATEGORY ORDER (manual display order, no drag-and-drop lib)
+   ========================================================= */
+
+.dataset-variable-row.category-order-row {
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.category-order-status {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.category-order-editor {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  min-width: 220px;
+}
+
+.category-order-list {
+  width: 100%;
+  max-width: 320px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.category-order-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.category-order-list li:last-child {
+  border-bottom: none;
+}
+
+.category-order-arrows {
+  display: flex;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.category-order-arrows button {
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.category-order-arrows button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.category-order-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.category-order-reset-link {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.category-order-reset-link:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* =========================================================
    EXPLANATION
    ========================================================= */
 

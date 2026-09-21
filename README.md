@@ -33,7 +33,8 @@ src/
     ThesisSetup.jsx          step 1: title/objectives/research questions/hypotheses/methodology
     UploadZone.jsx            drag-and-drop / click-to-browse dataset picker
     ColumnPreview.jsx         post-upload column/type preview table
-    DatasetReview.jsx         cleaning report, grouping confirmation, validate/activate
+    DatasetReview.jsx         cleaning report, grouping confirmation, manual category display
+                               order (up/down reorder, save/reset), validate/activate
     ThesisWorkspace.jsx       analysis plan (incl. per-objective status/confidence and a variable-
                                override form for objectives flagged "review"), qualitative data-source
                                selection + objective tagging, quantitative results, qualitative review
@@ -117,7 +118,7 @@ Grouped by area:
 
 - **Conversations/messages**: `listConversations`, `createConversation`, `getConversation`, `deleteConversation`, `updateConversation`, `listMessages`, `addMessage`, `chat`
 - **Thesis project**: `createThesisProject`, `getThesisProject`, `updateThesisProject`
-- **Dataset / dataset versions**: `uploadThesisDataset`, `listDatasetVersions`, `getDatasetVersion`, `validateDatasetVersion`, `activateDatasetVersion`, `applyDatasetGroupings`
+- **Dataset / dataset versions**: `uploadThesisDataset`, `listDatasetVersions`, `getDatasetVersion`, `validateDatasetVersion`, `activateDatasetVersion`, `applyDatasetGroupings`, `saveCategoryOrder(id, versionId, column, order)`, `clearCategoryOrder(id, versionId, column)` — a researcher's manual category display order per column, display only (never affects analysis results)
 - **Analysis plan**: `buildAnalysisPlan`
 - **Analysis override**: `overrideAnalysisVariables(id, objectiveId, override)` — replaces one objective's plan-time analysis with researcher-chosen variables (`{column_a, column_b}`, or `{dependent_column, independent_columns}` for a regression, not yet exposed in the UI), server-validated against the dataset and `select_test()`'s own type rules
 - **Qualitative data source selection**: `selectQualitativeColumns(id, columns, columnObjectives)`
@@ -141,7 +142,7 @@ Single global `src/styles.css`, organized into ~50 commented sections, plus `src
 npm test
 ```
 
-Runs `node --test src/**/*.test.js` — Node's built-in test runner (`node:test` + `node:assert/strict`), no external test framework. Flat `test("description", () => {...})` blocks per file, no `describe`/nested suites. Current coverage: `otp.test.js` (signup OTP input state helpers), `siteUrl.test.js` (password-reset redirect resolution), `analysisOverride.test.js` (the researcher variable-override form's submit/validation logic), and `components/chapter4/resultsTransform.test.js` (the Chapter 4 formatting/synthesis functions, including the researcher-tag-based objective↔theme relevance logic — deliberately kept behaviorally identical to the backend's `generate_chapter()`).
+Runs `node --test src/**/*.test.js` — Node's built-in test runner (`node:test` + `node:assert/strict`), no external test framework. Flat `test("description", () => {...})` blocks per file, no `describe`/nested suites. Current coverage: `otp.test.js` (signup OTP input state helpers), `siteUrl.test.js` (password-reset redirect resolution), `analysisOverride.test.js` (the researcher variable-override form's submit/validation logic), `categoryOrder.test.js` (the manual category-order control's up/down reordering and permutation validation — DatasetReview.jsx's `CategoryOrderControl`), and `components/chapter4/resultsTransform.test.js` (the Chapter 4 formatting/synthesis functions, including the researcher-tag-based objective↔theme relevance logic — deliberately kept behaviorally identical to the backend's `generate_chapter()`).
 
 ## Deployment
 
