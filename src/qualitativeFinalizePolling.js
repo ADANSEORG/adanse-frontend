@@ -52,3 +52,20 @@ export function buildFinalizedOutcome(column, session) {
     result: session?.result ?? null,
   };
 }
+
+export const CHAPTER4_AFFORDABILITY_MESSAGE =
+  "You've explored your themes. Buy credits to download your full Chapter 4.";
+
+// Checked right after a finalize completes (see QualitativeReview.jsx's
+// polling effect) -- the qualitative finalize charge is deducted at
+// START, before the run even begins, so by the time it completes the
+// researcher's balance already reflects it; this only decides whether
+// what's left still covers the chapter4 download, using the same GET
+// /credits response (balance + costs) the rest of the app already reads
+// its credit costs from, never a hardcoded number.
+export function chapter4AffordabilityWarning(balance, costs) {
+  const chapter4Cost = costs?.chapter4;
+  if (!Number.isFinite(balance) || !Number.isFinite(chapter4Cost)) return null;
+  if (balance >= chapter4Cost) return null;
+  return CHAPTER4_AFFORDABILITY_MESSAGE;
+}

@@ -848,6 +848,23 @@ export function useThesisWorkflow({ user, authLoading }) {
         qualitative_results: qualitativeResults,
       };
     });
+
+    /*
+     * Finalizing a qualitative column charges credits on the backend at
+     * the moment it STARTS (see start_qualitative_finalize()), not here
+     * -- this local balance copy has been stale since then. Refresh it
+     * now that the run has completed, so the "Continue to Chapter 4"
+     * action bar's affordability check (see ThesisWorkspace.jsx) reads
+     * the real remaining balance rather than a pre-finalize snapshot.
+     */
+    getCredits()
+      .then((data) => {
+        setCredits(Number(data?.balance || 0));
+        setCosts(data?.costs || {});
+      })
+      .catch((e) => {
+        console.error("Could not refresh credits after finalizing:", e);
+      });
   };
 
   /*

@@ -238,6 +238,13 @@ export default function QualitativeReview({ conversationId, column, onFinalized 
           if (cancelled) return;
           setSession(res.session);
           if (isFinalizeComplete(res.session)) {
+            // This component unmounts almost immediately after this call
+            // (the parent swaps it for a read-only result view once the
+            // qualitative_results entry it holds turns "complete"), so any
+            // chapter4-affordability check belongs in a place that
+            // persists across that swap -- see ThesisWorkspace's
+            // "Continue to Chapter 4" action bar, which already refreshes
+            // credits on every action and can check it there instead.
             onFinalizedRef.current?.(buildFinalizedOutcome(column, res.session));
           } else if (isFinalizeFailed(res.session)) {
             setError(finalizeErrorMessage(res.session));
