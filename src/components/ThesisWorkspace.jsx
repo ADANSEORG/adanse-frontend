@@ -8,6 +8,7 @@ import {
   buildRegressionOverridePayload,
   hasStaleResults,
 } from "../analysisOverride.js";
+import { chapter4AffordabilityWarning } from "../qualitativeFinalizePolling.js";
 
 const TEST_NAMES = {
   distribution: "Descriptive distribution",
@@ -665,11 +666,22 @@ export default function ThesisWorkspace({ project, upload, plan, analysis, onBui
           heading = "Results out of date.";
           message = "Run analysis again to update the variables you changed before generating Chapter 4.";
         }
+
+        // Not a block -- Chapter4.jsx's own CreditActionButton is what
+        // actually gates the download. This is an earlier, plainer heads
+        // up shown right where the researcher just finished finalizing,
+        // rather than only discovered as a confusing error after they've
+        // already clicked through to Chapter 4.
+        const affordabilityNotice = !blocked ? chapter4AffordabilityWarning(credits, costs) : null;
+
         return (
           <div className="analysis-action-bar">
             <div>
               <strong>{heading}</strong>
               <span>{message}</span>
+              {affordabilityNotice && (
+                <span className="credit-action-insufficient">{affordabilityNotice}</span>
+              )}
             </div>
             <button className="btn btn-primary" onClick={onContinueChapter4} disabled={blocked}>
               Continue to Chapter 4 →
