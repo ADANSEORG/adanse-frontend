@@ -10,6 +10,8 @@ import {
   finalizeStepText,
   finalizeErrorMessage,
   buildFinalizedOutcome,
+  CHAPTER4_AFFORDABILITY_MESSAGE,
+  chapter4AffordabilityWarning,
 } from "./qualitativeFinalizePolling.js";
 
 test("isFinalizing is true only while phase is 'finalizing'", () => {
@@ -80,4 +82,22 @@ test("polling constants are sane", () => {
   assert.equal(FINALIZE_POLL_INTERVAL_MS, 4000);
   assert.equal(typeof FINALIZE_HEADLINE, "string");
   assert.ok(FINALIZE_HEADLINE.length > 0);
+});
+
+test("chapter4AffordabilityWarning warns when the balance can't cover chapter4", () => {
+  assert.equal(
+    chapter4AffordabilityWarning(16, { chapter4: 50 }),
+    CHAPTER4_AFFORDABILITY_MESSAGE
+  );
+});
+
+test("chapter4AffordabilityWarning is silent when the balance covers chapter4", () => {
+  assert.equal(chapter4AffordabilityWarning(50, { chapter4: 50 }), null);
+  assert.equal(chapter4AffordabilityWarning(200, { chapter4: 50 }), null);
+});
+
+test("chapter4AffordabilityWarning is silent when balance or cost data isn't available yet", () => {
+  assert.equal(chapter4AffordabilityWarning(undefined, { chapter4: 50 }), null);
+  assert.equal(chapter4AffordabilityWarning(16, {}), null);
+  assert.equal(chapter4AffordabilityWarning(16, null), null);
 });
