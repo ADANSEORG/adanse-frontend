@@ -44,13 +44,51 @@ export function finalizeErrorMessage(session) {
 // Shape onQualitativeFinalized() (useThesisWorkflow.js) expects -- the
 // same {column, status, result} the old synchronous finalize response
 // used to return directly, now assembled from a polled "complete" session
-// instead.
+// instead. chargedCredits comes along too (session.finalize_charged_credits,
+// left set on a completed session -- see finalize_qualitative_column()'s
+// success path) so the caller can confirm what was actually charged
+// instead of leaving the deduction silent.
 export function buildFinalizedOutcome(column, session) {
+  const chargedCredits = session?.finalize_charged_credits;
   return {
     column,
     status: "complete",
     result: session?.result ?? null,
+    chargedCredits: Number.isFinite(chargedCredits) ? chargedCredits : null,
   };
+}
+
+// The label for the Finalize button, including this column's per-column
+// cost once it's known. finalize_cost_estimate is computed server-side
+// by qualitative_finalize_cost() -- the SAME formula the backend actually
+// charges with, see define_qualitative_themes() -- and read straight off
+// the session here rather than recomputed, so the two can't drift apart.
+export function finalizeButtonLabel(session, { retry = false } = {}) {
+  const base = retry ? "Retry finalize" : "Finalize themes";
+  const cost = session?.finalize_cost_estimate;
+  return Number.isFinite(cost) ? `${base} → (${cost} credits)` : `${base} →`;
+}
+
+// Checked BEFORE the researcher clicks Finalize -- same wording pattern
+// as CreditActionButton's own insufficient-balance notice (Chapter4.jsx),
+// so blocked-by-credits reads the same way everywhere in the app: the
+// specific numbers, not a generic "insufficient credits".
+export function finalizeInsufficientBalanceMessage(session, balance) {
+  const cost = session?.finalize_cost_estimate;
+  if (!Number.isFinite(cost) || !Number.isFinite(balance)) return null;
+  if (balance >= cost) return null;
+  return `You don't have enough credits for this — it uses ${cost} credits and you have ${balance}.`;
+}
+
+// A brief, explicit confirmation of what a completed finalize actually
+// charged and what's left -- posted to the conversation log (see
+// useThesisWorkflow.js's onQualitativeFinalized()) rather than left as a
+// silent deduction the researcher could only discover in transaction
+// history.
+export function finalizeConfirmationMessage(column, chargedCredits, newBalance) {
+  if (!Number.isFinite(chargedCredits) || !Number.isFinite(newBalance)) return null;
+  const creditWord = chargedCredits === 1 ? "credit" : "credits";
+  return `Finalized "${column}" — charged ${chargedCredits} ${creditWord}. New balance: ${newBalance}.`;
 }
 
 export const CHAPTER4_AFFORDABILITY_MESSAGE =

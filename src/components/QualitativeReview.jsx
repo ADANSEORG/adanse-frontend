@@ -18,6 +18,8 @@ import {
   finalizeStepText,
   finalizeErrorMessage,
   buildFinalizedOutcome,
+  finalizeButtonLabel,
+  finalizeInsufficientBalanceMessage,
 } from "../qualitativeFinalizePolling.js";
 
 /*
@@ -181,7 +183,7 @@ function VerdictBanner({ theme, activeThemes, onAcceptMerge, onAcceptSplit, onDi
   );
 }
 
-export default function QualitativeReview({ conversationId, column, onFinalized }) {
+export default function QualitativeReview({ conversationId, column, onFinalized, credits, onBuyCredits }) {
   const [session, setSession] = useState(null);
   const [step, setStep] = useState("familiarize");
   const [codeSelections, setCodeSelections] = useState({});
@@ -752,17 +754,36 @@ export default function QualitativeReview({ conversationId, column, onFinalized 
                 Finalizing…
               </button>
             </div>
-          ) : (
-            <div className="analysis-action-bar">
-              <div>
-                <strong>{isFinalizeFailed(session) ? "Finalizing failed. You can try again." : "Ready to produce the report."}</strong>
-                <span>Finalizing recounts these themes across every response and writes the Chapter 4 report.</span>
+          ) : (() => {
+            const insufficientMessage = finalizeInsufficientBalanceMessage(session, credits);
+            const retry = isFinalizeFailed(session);
+            return (
+              <div className="analysis-action-bar">
+                <div>
+                  <strong>{retry ? "Finalizing failed. You can try again." : "Ready to produce the report."}</strong>
+                  <span>Finalizing recounts these themes across every response and writes the Chapter 4 report.</span>
+                  {insufficientMessage && (
+                    <span className="credit-action-insufficient">
+                      {insufficientMessage}
+                      {onBuyCredits && (
+                        <button type="button" className="credit-action-buy-link" onClick={onBuyCredits}>
+                          Buy credits
+                        </button>
+                      )}
+                    </span>
+                  )}
+                </div>
+                <button
+                  className="btn btn-primary"
+                  type="button"
+                  onClick={handleFinalize}
+                  disabled={busy || Boolean(insufficientMessage)}
+                >
+                  {busy ? "Starting…" : finalizeButtonLabel(session, { retry })}
+                </button>
               </div>
-              <button className="btn btn-primary" type="button" onClick={handleFinalize} disabled={busy}>
-                {busy ? "Starting…" : isFinalizeFailed(session) ? "Retry finalize →" : "Finalize themes →"}
-              </button>
-            </div>
-          )}
+            );
+          })()}
         </div>
       )}
     </div>
