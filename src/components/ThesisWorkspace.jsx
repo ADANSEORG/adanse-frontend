@@ -217,7 +217,7 @@ function QualitativeDataSelector({ detectedColumns, selectedColumns, columnObjec
   );
 }
 
-function QualitativeAnalysisSection({ qualitativeResults, conversationId, onQualitativeFinalized }) {
+function QualitativeAnalysisSection({ qualitativeResults, conversationId, onQualitativeFinalized, credits, onBuyCredits }) {
   if (!qualitativeResults || qualitativeResults.length === 0) return null;
 
   return (
@@ -245,6 +245,8 @@ function QualitativeAnalysisSection({ qualitativeResults, conversationId, onQual
                 conversationId={conversationId}
                 column={entry.column}
                 onFinalized={(outcome) => onQualitativeFinalized?.(outcome)}
+                credits={credits}
+                onBuyCredits={onBuyCredits}
               />
             )}
           </article>
@@ -254,7 +256,7 @@ function QualitativeAnalysisSection({ qualitativeResults, conversationId, onQual
   );
 }
 
-function AnalysisCard({ item, objectiveId, numericColumns, categoricalColumns, onOverride, conversationId, onQualitativeFinalized }) {
+function AnalysisCard({ item, objectiveId, numericColumns, categoricalColumns, onOverride, conversationId, onQualitativeFinalized, credits, onBuyCredits }) {
   const result = item?.result;
   const method = result?.test || item?.test;
   const name = TEST_NAMES[method] || item?.method || item?.test_name || "Analysis";
@@ -299,6 +301,8 @@ function AnalysisCard({ item, objectiveId, numericColumns, categoricalColumns, o
           conversationId={conversationId}
           column={columns[0]}
           onFinalized={(updatedItem) => onQualitativeFinalized?.(updatedItem)}
+          credits={credits}
+          onBuyCredits={onBuyCredits}
         />
       )}
       {result?.interpretation && <div className="analysis-result-section"><h5>Interpretation</h5><p>{result.interpretation}</p></div>}
@@ -635,6 +639,8 @@ export default function ThesisWorkspace({ project, upload, plan, analysis, onBui
                 onOverride={onOverrideAnalysis}
                 conversationId={conversationId}
                 onQualitativeFinalized={onQualitativeFinalized}
+                credits={credits}
+                onBuyCredits={onBuyCredits}
               />
             ))}
           </div>
@@ -646,6 +652,8 @@ export default function ThesisWorkspace({ project, upload, plan, analysis, onBui
           qualitativeResults={analysis?.qualitative_results}
           conversationId={conversationId}
           onQualitativeFinalized={onQualitativeFinalized}
+          credits={credits}
+          onBuyCredits={onBuyCredits}
         />
       )}
 
