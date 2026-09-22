@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, { Background, Controls, MarkerType } from "reactflow";
 import "reactflow/dist/style.css";
 import {
@@ -9,6 +9,16 @@ import {
   defineQualitativeThemes,
   finalizeQualitativeThemes,
 } from "../api.js";
+import {
+  FINALIZE_POLL_INTERVAL_MS,
+  FINALIZE_HEADLINE,
+  isFinalizing,
+  isFinalizeFailed,
+  isFinalizeComplete,
+  finalizeStepText,
+  finalizeErrorMessage,
+  buildFinalizedOutcome,
+} from "../qualitativeFinalizePolling.js";
 
 /*
  * QualitativeReview
@@ -34,7 +44,7 @@ import {
  */
 
 function stepForPhase(phase) {
-  if (phase === "defining" || phase === "complete") return "define";
+  if (phase === "defining" || phase === "complete" || phase === "finalizing" || phase === "failed") return "define";
   if (phase === "theming_review") return "group";
   return "familiarize";
 }
@@ -181,6 +191,8 @@ export default function QualitativeReview({ conversationId, column, onFinalized 
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const onFinalizedRef = useRef(onFinalized);
+  onFinalizedRef.current = onFinalized;
 
   useEffect(() => {
     let cancelled = false;
@@ -204,6 +216,45 @@ export default function QualitativeReview({ conversationId, column, onFinalized 
       cancelled = true;
     };
   }, [conversationId, column]);
+
+  /*
+   * Finalize (stage 6) runs as a background task on the backend -- the
+   * POST that starts it returns almost immediately with phase
+   * "finalizing", not the finished result. Poll the session until it
+   * reaches "complete" or "failed". This effect is keyed off the
+   * session's phase (not a one-off "just started finalizing" flag), so
+   * it resumes polling on its own if the component mounts with the
+   * session already "finalizing" -- e.g. after a page reload while a
+   * long finalize run is still in progress.
+   */
+  useEffect(() => {
+    if (!isFinalizing(session)) return;
+
+    let cancelled = false;
+
+    const poll = () => {
+      getQualitativeSession(conversationId, column)
+        .then((res) => {
+          if (cancelled) return;
+          setSession(res.session);
+          if (isFinalizeComplete(res.session)) {
+            onFinalizedRef.current?.(buildFinalizedOutcome(column, res.session));
+          } else if (isFinalizeFailed(res.session)) {
+            setError(finalizeErrorMessage(res.session));
+          }
+        })
+        .catch((err) => {
+          if (!cancelled) setError(err.message || "Could not check the finalize status.");
+        });
+    };
+
+    const intervalId = setInterval(poll, FINALIZE_POLL_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [session?.phase, conversationId, column]);
 
   useEffect(() => {
     if (!session) return;
@@ -418,8 +469,13 @@ export default function QualitativeReview({ conversationId, column, onFinalized 
     setBusy(true);
     setError("");
     try {
+      // Starts the background finalize task and returns almost
+      // immediately with phase "finalizing" -- the polling effect above
+      // picks it up from here via session.phase and reports completion
+      // or failure once it lands.
       const res = await finalizeQualitativeThemes(conversationId, column);
-      onFinalized?.(res.analysis);
+      setSession(res.session);
+      setStep(stepForPhase(res.session.phase));
     } catch (err) {
       setError(err.message || "Could not finalize themes.");
     } finally {
@@ -679,15 +735,27 @@ export default function QualitativeReview({ conversationId, column, onFinalized 
             </article>
           ))}
 
-          <div className="analysis-action-bar">
-            <div>
-              <strong>Ready to produce the report.</strong>
-              <span>Finalizing recounts these themes across every response and writes the Chapter 4 report.</span>
+          {isFinalizing(session) ? (
+            <div className="analysis-action-bar">
+              <div>
+                <strong>{FINALIZE_HEADLINE}</strong>
+                <span>{finalizeStepText(session)}</span>
+              </div>
+              <button className="btn btn-primary" type="button" disabled>
+                Finalizing…
+              </button>
             </div>
-            <button className="btn btn-primary" type="button" onClick={handleFinalize} disabled={busy}>
-              {busy ? "Finalizing…" : "Finalize themes →"}
-            </button>
-          </div>
+          ) : (
+            <div className="analysis-action-bar">
+              <div>
+                <strong>{isFinalizeFailed(session) ? "Finalizing failed. You can try again." : "Ready to produce the report."}</strong>
+                <span>Finalizing recounts these themes across every response and writes the Chapter 4 report.</span>
+              </div>
+              <button className="btn btn-primary" type="button" onClick={handleFinalize} disabled={busy}>
+                {busy ? "Starting…" : isFinalizeFailed(session) ? "Retry finalize →" : "Finalize themes →"}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
