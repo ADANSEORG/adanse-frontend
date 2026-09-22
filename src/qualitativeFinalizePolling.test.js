@@ -10,6 +10,9 @@ import {
   finalizeStepText,
   finalizeErrorMessage,
   buildFinalizedOutcome,
+  finalizeButtonLabel,
+  finalizeInsufficientBalanceMessage,
+  finalizeConfirmationMessage,
   CHAPTER4_AFFORDABILITY_MESSAGE,
   chapter4AffordabilityWarning,
 } from "./qualitativeFinalizePolling.js";
@@ -61,20 +64,26 @@ test("finalizeErrorMessage falls back when no message was recorded", () => {
   assert.equal(finalizeErrorMessage(null), "Could not finalize themes.");
 });
 
-test("buildFinalizedOutcome assembles the {column, status, result} shape onQualitativeFinalized expects", () => {
-  const session = { phase: "complete", result: { test: "thematic_analysis", themes: [{ theme: "Financial Constraints" }] } };
+test("buildFinalizedOutcome assembles the {column, status, result, chargedCredits} shape onQualitativeFinalized expects", () => {
+  const session = {
+    phase: "complete",
+    result: { test: "thematic_analysis", themes: [{ theme: "Financial Constraints" }] },
+    finalize_charged_credits: 36,
+  };
   assert.deepEqual(buildFinalizedOutcome("ChallengesFaced", session), {
     column: "ChallengesFaced",
     status: "complete",
     result: session.result,
+    chargedCredits: 36,
   });
 });
 
-test("buildFinalizedOutcome tolerates a missing result", () => {
+test("buildFinalizedOutcome tolerates a missing result or charged amount", () => {
   assert.deepEqual(buildFinalizedOutcome("ChallengesFaced", { phase: "complete" }), {
     column: "ChallengesFaced",
     status: "complete",
     result: null,
+    chargedCredits: null,
   });
 });
 
@@ -100,4 +109,60 @@ test("chapter4AffordabilityWarning is silent when balance or cost data isn't ava
   assert.equal(chapter4AffordabilityWarning(undefined, { chapter4: 50 }), null);
   assert.equal(chapter4AffordabilityWarning(16, {}), null);
   assert.equal(chapter4AffordabilityWarning(16, null), null);
+});
+
+test("finalizeButtonLabel shows this column's cost once it's known", () => {
+  assert.equal(
+    finalizeButtonLabel({ finalize_cost_estimate: 36 }),
+    "Finalize themes → (36 credits)"
+  );
+});
+
+test("finalizeButtonLabel switches to retry wording without losing the cost", () => {
+  assert.equal(
+    finalizeButtonLabel({ finalize_cost_estimate: 34 }, { retry: true }),
+    "Retry finalize → (34 credits)"
+  );
+});
+
+test("finalizeButtonLabel omits the cost when it isn't known yet", () => {
+  assert.equal(finalizeButtonLabel({}), "Finalize themes →");
+  assert.equal(finalizeButtonLabel(null), "Finalize themes →");
+});
+
+test("finalizeInsufficientBalanceMessage names the specific shortfall, same wording as CreditActionButton", () => {
+  assert.equal(
+    finalizeInsufficientBalanceMessage({ finalize_cost_estimate: 36 }, 21),
+    "You don't have enough credits for this — it uses 36 credits and you have 21."
+  );
+});
+
+test("finalizeInsufficientBalanceMessage is silent when the balance covers the cost", () => {
+  assert.equal(finalizeInsufficientBalanceMessage({ finalize_cost_estimate: 36 }, 36), null);
+  assert.equal(finalizeInsufficientBalanceMessage({ finalize_cost_estimate: 36 }, 100), null);
+});
+
+test("finalizeInsufficientBalanceMessage is silent when cost or balance data isn't available yet", () => {
+  assert.equal(finalizeInsufficientBalanceMessage({}, 21), null);
+  assert.equal(finalizeInsufficientBalanceMessage({ finalize_cost_estimate: 36 }, undefined), null);
+  assert.equal(finalizeInsufficientBalanceMessage(null, 21), null);
+});
+
+test("finalizeConfirmationMessage confirms the exact charge and resulting balance", () => {
+  assert.equal(
+    finalizeConfirmationMessage("ChallengesFaced", 36, 214),
+    'Finalized "ChallengesFaced" — charged 36 credits. New balance: 214.'
+  );
+});
+
+test("finalizeConfirmationMessage uses singular wording for exactly 1 credit", () => {
+  assert.equal(
+    finalizeConfirmationMessage("ChallengesFaced", 1, 99),
+    'Finalized "ChallengesFaced" — charged 1 credit. New balance: 99.'
+  );
+});
+
+test("finalizeConfirmationMessage is silent when the charge or balance isn't known", () => {
+  assert.equal(finalizeConfirmationMessage("ChallengesFaced", null, 214), null);
+  assert.equal(finalizeConfirmationMessage("ChallengesFaced", 36, undefined), null);
 });

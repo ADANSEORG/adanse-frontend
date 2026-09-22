@@ -28,6 +28,7 @@ import {
 } from "../api.js";
 
 import { friendly } from "../errors.js";
+import { finalizeConfirmationMessage } from "../qualitativeFinalizePolling.js";
 
 /*
  * ---------------------------------------------------------
@@ -856,11 +857,26 @@ export function useThesisWorkflow({ user, authLoading }) {
      * now that the run has completed, so the "Continue to Chapter 4"
      * action bar's affordability check (see ThesisWorkspace.jsx) reads
      * the real remaining balance rather than a pre-finalize snapshot.
+     *
+     * Also posts a brief confirmation of what was actually charged into
+     * the conversation log -- QualitativeReview.jsx (where the Finalize
+     * button lives) unmounts almost immediately once this fires, so the
+     * conversation log is the one place that reliably survives long
+     * enough for the researcher to see it, rather than a silent
+     * deduction only discoverable in transaction history.
      */
     getCredits()
       .then((data) => {
-        setCredits(Number(data?.balance || 0));
+        const balance = Number(data?.balance || 0);
+        setCredits(balance);
         setCosts(data?.costs || {});
+
+        const confirmation = finalizeConfirmationMessage(outcome.column, outcome.chargedCredits, balance);
+        if (confirmation && active) {
+          addMessage(active.id, "assistant", confirmation).catch((e) => {
+            console.error("Could not post finalize confirmation message:", e);
+          });
+        }
       })
       .catch((e) => {
         console.error("Could not refresh credits after finalizing:", e);
