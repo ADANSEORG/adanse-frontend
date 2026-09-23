@@ -28,6 +28,9 @@ export function useCredits({
   const [transactions, setTransactions] =
     useState([]);
 
+  const [packages, setPackages] =
+    useState([]);
+
   const [loading, setLoading] =
     useState(true);
 
@@ -65,6 +68,20 @@ export function useCredits({
 
       setTransactions(
         transactionData?.transactions || []
+      );
+
+      /*
+       * Package cards (Credits.jsx) render from this instead
+       * of hardcoding credits/price/name -- an array (possibly
+       * empty, e.g. if the backend has none configured) rather
+       * than undefined, so the screen can distinguish "still
+       * loading" from "loaded, nothing to show" and render
+       * accordingly instead of crashing on a missing .map().
+       */
+      setPackages(
+        Array.isArray(creditData?.packages)
+          ? creditData.packages
+          : []
       );
 
       if (onBalanceChange) {
@@ -206,6 +223,7 @@ export function useCredits({
   return {
     balance,
     transactions,
+    packages,
     loading,
     buying,
     error,

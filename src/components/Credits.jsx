@@ -8,6 +8,7 @@ export default function Credits({
   const {
     balance,
     transactions,
+    packages,
     loading,
     buying,
     error,
@@ -178,152 +179,108 @@ export default function Credits({
           BUY CREDITS
         </div>
 
-        <div
-          className="credits-package-grid"
-          style={styles.packageGrid}
-        >
-          {/* 400 */}
-
-          <div style={styles.packageCard}>
-            <div style={styles.packageTop}>
-              <CoinIcon size={44} />
-
-              <div>
-                <h2 style={styles.packageTitle}>
-                  400 credits
-                </h2>
-
-                <p
-                  style={
-                    styles.packageDescription
-                  }
-                >
-                  Good for getting started.
-                </p>
-              </div>
-            </div>
-
-            <div
-              style={
-                styles.packageDivider
-              }
-            />
-
-            <div
-              style={
-                styles.packageBottom
-              }
-            >
-              <div style={styles.priceWrap}>
-                <span
-                  style={styles.currency}
-                >
-                  GHS
-                </span>
-
-                <strong
-                  style={styles.price}
-                >
-                  20
-                </strong>
-              </div>
-
-              <button
-                type="button"
-                className="btn"
-                style={styles.buyButton}
-                onClick={() =>
-                  buy("starter")
-                }
-                disabled={
-                  Boolean(buying) ||
-                  loading
-                }
-              >
-                {buying ===
-                "starter"
-                  ? "Opening…"
-                  : "Buy credits"}
-              </button>
-            </div>
+        {loading && packages.length === 0 ? (
+          <div style={styles.packagesPlaceholder}>
+            Loading credit packages…
           </div>
-
-          {/* 1,000 */}
-
+        ) : packages.length === 0 ? (
+          <div style={styles.packagesPlaceholder}>
+            Could not load credit packages right now. Please refresh the page or try again shortly.
+          </div>
+        ) : (
           <div
-            style={{
-              ...styles.packageCard,
-              ...styles.featuredPackage,
-            }}
+            className="credits-package-grid"
+            style={styles.packageGrid}
           >
-            <div style={styles.valueBadge}>
-              Best value
-            </div>
-
-            <div style={styles.packageTop}>
-              <CoinIcon size={44} />
-
-              <div>
-                <h2 style={styles.packageTitle}>
-                  1,000 credits
-                </h2>
-
-                <p
-                  style={
-                    styles.packageDescription
-                  }
-                >
-                  More room for larger
-                  research.
-                </p>
-              </div>
-            </div>
-
-            <div
-              style={
-                styles.packageDivider
-              }
-            />
-
-            <div
-              style={
-                styles.packageBottom
-              }
-            >
-              <div style={styles.priceWrap}>
-                <span
-                  style={styles.currency}
-                >
-                  GHS
-                </span>
-
-                <strong
-                  style={styles.price}
-                >
-                  45
-                </strong>
-              </div>
-
-              <button
-                type="button"
-                className="btn"
-                style={styles.buyButton}
-                onClick={() =>
-                  buy("value")
-                }
-                disabled={
-                  Boolean(buying) ||
-                  loading
+            {packages.map((pkg) => (
+              <div
+                key={pkg.id}
+                style={
+                  pkg.best_value
+                    ? {
+                        ...styles.packageCard,
+                        ...styles.featuredPackage,
+                      }
+                    : styles.packageCard
                 }
               >
-                {buying ===
-                "value"
-                  ? "Opening…"
-                  : "Buy credits"}
-              </button>
-            </div>
+                {pkg.best_value && (
+                  <div style={styles.valueBadge}>
+                    Best value
+                  </div>
+                )}
+
+                <div style={styles.packageTop}>
+                  <CoinIcon size={44} />
+
+                  <div>
+                    {pkg.name && (
+                      <span style={styles.packageKicker}>
+                        {pkg.name}
+                      </span>
+                    )}
+
+                    <h2 style={styles.packageTitle}>
+                      {Number(pkg.credits || 0).toLocaleString()} credits
+                    </h2>
+
+                    <p
+                      style={
+                        styles.packageDescription
+                      }
+                    >
+                      {pkg.tagline}
+                    </p>
+                  </div>
+                </div>
+
+                <div
+                  style={
+                    styles.packageDivider
+                  }
+                />
+
+                <div
+                  style={
+                    styles.packageBottom
+                  }
+                >
+                  <div style={styles.priceWrap}>
+                    <span
+                      style={styles.currency}
+                    >
+                      GHS
+                    </span>
+
+                    <strong
+                      style={styles.price}
+                    >
+                      {Number(pkg.amount || 0).toLocaleString()}
+                    </strong>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="btn"
+                    style={styles.buyButton}
+                    onClick={() =>
+                      buy(pkg.id)
+                    }
+                    disabled={
+                      Boolean(buying) ||
+                      loading
+                    }
+                  >
+                    {buying ===
+                    pkg.id
+                      ? "Opening…"
+                      : "Buy credits"}
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
+        )}
 
         <p style={styles.paymentNote}>
           Payments will be securely processed
@@ -683,6 +640,16 @@ const styles = {
     gap: "20px",
   },
 
+  packagesPlaceholder: {
+    padding: "40px 25px",
+    textAlign: "center",
+    color: "var(--muted)",
+    fontSize: "14px",
+    background: "var(--surface)",
+    border: "1px solid var(--line)",
+    borderRadius: "20px",
+  },
+
   packageCard: {
     position: "relative",
     background: "var(--surface)",
@@ -720,6 +687,16 @@ const styles = {
     alignItems: "center",
     gap: "14px",
     minHeight: "44px",
+  },
+
+  packageKicker: {
+    display: "block",
+    fontSize: "11px",
+    fontWeight: 700,
+    letterSpacing: "0.1em",
+    textTransform: "uppercase",
+    color: "var(--muted)",
+    marginBottom: "4px",
   },
 
   packageTitle: {
