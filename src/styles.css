@@ -1984,7 +1984,78 @@ button {
   line-height: 1.35;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+}
+
+/* ---- Sidebar title: static if it fits, soft fade + slide if it doesn't ----
+   The clip is the visible window; the title inside it is what moves. Motion is
+   a plain transform transition -- no JS animation loop -- and only exists on
+   hover-capable devices that haven't asked for reduced motion. */
+
+@property --marquee-fade-left {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --marquee-fade-right {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 24px;
+}
+
+.sidebar-item-title-clip {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.sidebar-item-title {
+  display: inline-block;
+  transform: translateX(0);
+  /* Slide back at the same constant speed, with no delay. */
+  transition: transform var(--marquee-duration, 1.5s) linear 0s;
+}
+
+/* Only titles that overflow get the fade. At rest that's the right edge only
+   (left fade is 0px, i.e. a hard edge). No ellipsis. */
+.sidebar-item-title-clip.overflowing {
+  --marquee-fade-left: 0px;
+  --marquee-fade-right: 24px;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--marquee-fade-left),
+    #000 calc(100% - var(--marquee-fade-right)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--marquee-fade-left),
+    #000 calc(100% - var(--marquee-fade-right)),
+    transparent 100%
+  );
+  transition:
+    --marquee-fade-left 0.25s ease,
+    --marquee-fade-right 0.25s ease;
+}
+
+/* No scrolling on touch or with reduced motion: they keep the static fade
+   above, and the full title is in the tooltip. */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .sidebar-item-title-clip.scrolling .sidebar-item-title {
+    transform: translateX(var(--marquee-x, 0px));
+    /* Short pause so skimming down the list doesn't set everything moving. */
+    transition-delay: 0.3s;
+  }
+
+  /* While scrolled, both edges fade -- the right one narrows so the end of
+     the title, now flush with the edge, stays readable. */
+  .sidebar-item-title-clip.overflowing.scrolling {
+    --marquee-fade-left: 12px;
+    --marquee-fade-right: 10px;
+    transition-delay: 0.3s;
+  }
 }
 
 .sidebar-item-delete {
