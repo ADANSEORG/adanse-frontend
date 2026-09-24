@@ -21,6 +21,7 @@ import {
   finalizeButtonLabel,
   finalizeInsufficientBalanceMessage,
 } from "../qualitativeFinalizePolling.js";
+import { codeCoverageSummary } from "../qualitativeCoverage.js";
 
 /*
  * QualitativeReview
@@ -303,6 +304,11 @@ export default function QualitativeReview({ conversationId, column, onFinalized,
 
   const acceptedCodes = useMemo(
     () => (session?.codes || []).filter((c) => codeSelections[c.id]?.status === "accepted"),
+    [session, codeSelections]
+  );
+
+  const coverage = useMemo(
+    () => codeCoverageSummary(session?.codes, codeSelections, session?.n_responses),
     [session, codeSelections]
   );
 
@@ -593,7 +599,15 @@ export default function QualitativeReview({ conversationId, column, onFinalized,
 
           <div className="analysis-action-bar">
             <div>
-              <strong>{acceptedCodes.length} of {(session.codes || []).length} codes accepted</strong>
+              <strong>
+                You kept {coverage.codesKept} of {coverage.codesProposed} codes
+                {coverage.totalResponses != null && (
+                  <>
+                    ; {coverage.responsesRepresented} of {coverage.totalResponses} responses
+                    are represented
+                  </>
+                )}
+              </strong>
               <span>Accepted codes are grouped into candidate themes next.</span>
             </div>
             <button
