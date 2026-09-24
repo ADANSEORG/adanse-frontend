@@ -5,6 +5,7 @@ import {
   formatVariableName,
   formatNumber,
   getTestName,
+  getFrequencyRows,
   getStatistic,
   getPValue,
   getDecision,
@@ -167,6 +168,35 @@ function ResultTable({ result, item }) {
               {getDecision(result)}
             </td>
           </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function FrequencyTable({ result }) {
+  const rows = getFrequencyRows(result);
+  if (rows.length === 0) return null;
+
+  return (
+    <div className="chapter-result-table-wrap">
+      <table className="chapter-result-table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Frequency</th>
+            <th>Percentage</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.category} className={row.isTotal ? "frequency-total" : undefined}>
+              <td>{row.category}</td>
+              <td>{row.count}</td>
+              <td>{row.percent}</td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>
@@ -1326,12 +1356,10 @@ export default function Chapter4({
                                   item
                                 )}
                               </strong>{" "}
-                              to examine the
-                              relationship,
-                              association or
-                              difference relevant
-                              to this research
-                              objective.
+                              {result.test ===
+                              "frequency"
+                                ? "to describe how responses were distributed across categories."
+                                : "to examine the relationship, association or difference relevant to this research objective."}
                             </p>
 
                             <div className="chapter-analysis-meta">
@@ -1387,10 +1415,16 @@ export default function Chapter4({
                               />
                             ) : (
                               <>
-                                <ResultTable
-                                  result={result}
-                                  item={item}
-                                />
+                                {result.test === "frequency" ? (
+                                  <FrequencyTable
+                                    result={result}
+                                  />
+                                ) : (
+                                  <ResultTable
+                                    result={result}
+                                    item={item}
+                                  />
+                                )}
 
                                 {(result.test ===
                                   "anova" ||
