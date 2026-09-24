@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Coins, LogOut, Settings } from "lucide-react";
 
 function startOfLocalDay(date) {
@@ -198,6 +198,33 @@ export default function ConversationSidebar({
   const [profileOpen, setProfileOpen] =
     useState(false);
 
+  // The conversation whose one-tap "x" was clicked and is now waiting on an
+  // explicit confirm. Deleting removes the project, its analysis and its
+  // conversation history for good, so it never happens on a single click.
+  const [confirmDeleteId, setConfirmDeleteId] =
+    useState(null);
+
+  useEffect(() => {
+    if (!confirmDeleteId) return undefined;
+
+    const cancelOnEscape = (event) => {
+      if (event.key === "Escape") {
+        setConfirmDeleteId(null);
+      }
+    };
+
+    document.addEventListener(
+      "keydown",
+      cancelOnEscape
+    );
+
+    return () =>
+      document.removeEventListener(
+        "keydown",
+        cancelOnEscape
+      );
+  }, [confirmDeleteId]);
+
   const groups =
     groupConversations(
       conversations
@@ -313,7 +340,53 @@ export default function ConversationSidebar({
               </div>
 
               {group.items.map(
-                (conversation) => (
+                (conversation) =>
+                  confirmDeleteId ===
+                  conversation.id ? (
+                    <div
+                      key={conversation.id}
+                      className="sidebar-item-confirm"
+                      role="alertdialog"
+                      aria-label="Confirm delete"
+                    >
+                      <p>
+                        Delete this project? This
+                        removes its data and
+                        analysis and can't be
+                        undone.
+                      </p>
+
+                      <div className="sidebar-item-confirm-actions">
+                        <button
+                          type="button"
+                          className="sidebar-item-confirm-cancel"
+                          autoFocus
+                          onClick={() =>
+                            setConfirmDeleteId(
+                              null
+                            )
+                          }
+                        >
+                          Cancel
+                        </button>
+
+                        <button
+                          type="button"
+                          className="sidebar-item-confirm-delete"
+                          onClick={() => {
+                            setConfirmDeleteId(
+                              null
+                            );
+                            onDelete(
+                              conversation
+                            );
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
                   <div
                     key={conversation.id}
                     className={`sidebar-item ${
@@ -344,15 +417,15 @@ export default function ConversationSidebar({
                         "conversation"
                       }`}
                       onClick={() =>
-                        onDelete(
-                          conversation
+                        setConfirmDeleteId(
+                          conversation.id
                         )
                       }
                     >
                       ×
                     </button>
                   </div>
-                )
+                  )
               )}
             </div>
           ))}
