@@ -3669,6 +3669,40 @@ button {
   font-size: 15px;
 }
 
+.analysis-frequency {
+  margin-top: 18px;
+}
+
+.analysis-frequency-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.analysis-frequency-table th,
+.analysis-frequency-table td {
+  padding: 9px 13px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+
+.analysis-frequency-table th:not(:first-child),
+.analysis-frequency-table td:not(:first-child) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.analysis-frequency-table .frequency-total td {
+  font-weight: 600;
+}
+
+.analysis-frequency small {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted, inherit);
+}
+
 /* =========================================================
    QUALITATIVE DATA SOURCE SELECTION + OBJECTIVE TAGGING
    ========================================================= */

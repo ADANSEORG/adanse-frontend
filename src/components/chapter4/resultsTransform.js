@@ -143,6 +143,7 @@ export function getTestName(result, item) {
     cross_tab: "Chi-square test of association",
     t_test: "Welch independent-samples t-test",
     anova: "One-way ANOVA",
+    frequency: "Frequency table",
   };
 
   // Test types with no entry above (distribution, thematic_analysis) have
@@ -156,6 +157,26 @@ export function getTestName(result, item) {
     result?.test ||
     "Statistical test"
   );
+}
+
+// Rows for a frequency table (counts and percentages of valid responses),
+// in the order the backend already applied (saved order, then numeric, then
+// natural ordinal scale, then by count -- never alphabetical), followed by a
+// Total row. Returns [] for a result that is not a frequency table.
+export function getFrequencyRows(result) {
+  if (result?.test !== "frequency") return [];
+  const categories = Array.isArray(result.categories) ? result.categories : [];
+  if (categories.length === 0) return [];
+
+  return [
+    ...categories.map((row) => ({
+      category: String(row.category),
+      count: row.count,
+      percent: `${formatNumber(row.percent, 1)}%`,
+      isTotal: false,
+    })),
+    { category: "Total", count: result.n, percent: "100.0%", isTotal: true },
+  ];
 }
 
 export function getStatistic(result) {
@@ -1158,7 +1179,7 @@ export function objectiveHasQualitativeRelevance(group, qualitativeFindings, col
 // "does this project have any quantitative result" never disagrees between
 // the downloaded docx and this live preview.
 const QUANTITATIVE_TEST_TYPES = new Set([
-  "correlation", "t_test", "anova", "cross_tab", "regression", "distribution",
+  "correlation", "t_test", "anova", "cross_tab", "regression", "distribution", "frequency",
 ]);
 
 // Whether the project has finalized thematic findings but no completed
@@ -1306,6 +1327,15 @@ export function objectiveInterpretationSentence(group, qualitativeFindings = {},
       );
     }
 
+    if (test === "frequency") {
+      const col = result.column || "the variable";
+      return (
+        `${testName} reported how responses to ${col} were distributed ` +
+        `(n = ${result.n ?? 0}); this describes that single variable only and is ` +
+        "not a test of a relationship, comparison, or association"
+      );
+    }
+
     if (test === "distribution") {
       const col = result.numeric_column || "the variable";
       const mean = result.mean;
@@ -1372,6 +1402,10 @@ export function objectiveRecapSentence(group, qualitativeFindings = {}, columnOb
       // Legacy only -- see objectiveInterpretationSentence().
       const nThemes = Array.isArray(result.themes) ? result.themes.length : 0;
       return `${testName} (open-ended responses) surfaced ${nThemes} theme${nThemes !== 1 ? "s" : ""}`;
+    }
+
+    if (test === "frequency") {
+      return `${testName} (n = ${result.n ?? 0})`;
     }
 
     if (test === "distribution") {

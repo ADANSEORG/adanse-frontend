@@ -32,6 +32,7 @@
 .chapter-result-table th{background:#f2f2f2;border-bottom:1px solid #333;padding:11px 13px;color:#333;font-family:var(--body);font-size:10px;text-transform:uppercase;letter-spacing:.07em}
 .chapter-result-table td{padding:12px 13px;border-bottom:1px solid #ccc;font-family:var(--body);font-size:13px;color:#1a1a1a}
 .chapter-result-table tr:last-child td{border-bottom:0}
+.chapter-result-table .frequency-total td{font-weight:700;border-top:1px solid #333}
 .chapter-effect-size{display:inline-flex;align-items:center;gap:9px;margin:4px 0 18px;padding:8px 11px;border-radius:2px;background:#f2f2f2}
 .chapter-effect-size span{display:inline;margin:0}.chapter-effect-size strong{font-size:12px;color:#1a1a1a}
 .chapter-finding{margin-top:20px}.chapter-subheading{margin-bottom:7px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#595959}

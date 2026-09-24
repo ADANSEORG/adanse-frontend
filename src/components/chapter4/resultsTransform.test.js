@@ -22,6 +22,7 @@ import {
   objectiveRecapSentence,
   objectiveHasQualitativeRelevance,
   isQualitativeOnlyProject,
+  getFrequencyRows,
 } from "./resultsTransform.js";
 
 /*
@@ -450,4 +451,53 @@ test("objectiveHasQualitativeRelevance is false for an untagged, non-qualitative
   const group = { id: 2, objective: "Compare CGPA between genders" };
   const qualitativeFindings = { responses: { themes: [{ theme: "Cost" }] } };
   assert.equal(objectiveHasQualitativeRelevance(group, qualitativeFindings, {}), false);
+});
+
+/*
+ * =========================================================
+ * FREQUENCY TABLES
+ * =========================================================
+ */
+
+const FREQUENCY_RESULT = {
+  test: "frequency",
+  column: "How often do you use AI tools for your studies?",
+  n: 150,
+  categories: [
+    { category: "Never", count: 6, percent: 4 },
+    { category: "Rarely", count: 14, percent: 9.333333 },
+    { category: "Sometimes", count: 60, percent: 40 },
+    { category: "Often", count: 59, percent: 39.333333 },
+    { category: "Daily", count: 11, percent: 7.333333 },
+  ],
+};
+
+test("getFrequencyRows keeps the backend's category order and appends a Total row", () => {
+  const rows = getFrequencyRows(FREQUENCY_RESULT);
+  assert.deepEqual(
+    rows.map((row) => row.category),
+    ["Never", "Rarely", "Sometimes", "Often", "Daily", "Total"]
+  );
+  assert.deepEqual(rows[1], { category: "Rarely", count: 14, percent: "9.3%", isTotal: false });
+  assert.deepEqual(rows.at(-1), { category: "Total", count: 150, percent: "100.0%", isTotal: true });
+});
+
+test("getFrequencyRows is empty for a non-frequency or empty result", () => {
+  assert.deepEqual(getFrequencyRows({ test: "distribution", n: 3 }), []);
+  assert.deepEqual(getFrequencyRows({ test: "frequency", categories: [] }), []);
+  assert.deepEqual(getFrequencyRows(null), []);
+});
+
+test("a frequency result is named, counts as quantitative, and reads as descriptive only", () => {
+  assert.equal(getTestName(FREQUENCY_RESULT, { test_name: "Frequency table" }), "Frequency table");
+  assert.equal(isQualitativeOnlyProject([{ result: FREQUENCY_RESULT }], { r: { themes: [{ theme: "x" }] } }), false);
+
+  const sentence = objectiveInterpretationSentence(
+    { id: 1, objective: "Describe use", results: [{ test_name: "Frequency table", result: FREQUENCY_RESULT }] },
+    {},
+    {}
+  );
+  assert.match(sentence, /distributed/);
+  assert.match(sentence, /n = 150/);
+  assert.match(sentence, /not a test of a relationship/);
 });

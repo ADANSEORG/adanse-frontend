@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { toFixedHalfEven } from "./chapter4/resultsTransform.js";
+import { getFrequencyRows, toFixedHalfEven } from "./chapter4/resultsTransform.js";
 import CreditActionButton from "./CreditActionButton.jsx";
 import QualitativeReview from "./QualitativeReview.jsx";
 import {
@@ -12,6 +12,7 @@ import { chapter4AffordabilityWarning } from "../qualitativeFinalizePolling.js";
 
 const TEST_NAMES = {
   distribution: "Descriptive distribution",
+  frequency: "Frequency table",
   correlation: "Pearson correlation",
   cross_tab: "Chi-square test of association",
   t_test: "Welch independent-samples t-test",
@@ -36,6 +37,28 @@ function PValue({ value, formatted }) {
 
 function QuantitativeResult({ result }) {
   const test = result?.test;
+  if (test === "frequency") {
+    const rows = getFrequencyRows(result);
+    return (
+      <div className="analysis-frequency">
+        <table className="analysis-frequency-table">
+          <thead>
+            <tr><th>Category</th><th>Frequency</th><th>Percentage</th></tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.category} className={row.isTotal ? "frequency-total" : undefined}>
+                <td>{row.category}</td><td>{row.count}</td><td>{row.percent}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {result.n_missing > 0 && (
+          <small>{result.n_missing} missing response{result.n_missing === 1 ? "" : "s"} excluded.</small>
+        )}
+      </div>
+    );
+  }
   if (test === "distribution") {
     return (
       <div className="analysis-detail-grid">
