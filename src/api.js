@@ -207,6 +207,16 @@ export const deleteConversation = (id) =>
     method: "DELETE",
   });
 
+export const pinConversation = (id) =>
+  request(`/conversations/${id}/pin`, {
+    method: "PUT",
+  });
+
+export const unpinConversation = (id) =>
+  request(`/conversations/${id}/pin`, {
+    method: "DELETE",
+  });
+
 export const updateConversation = (
   id,
   title
