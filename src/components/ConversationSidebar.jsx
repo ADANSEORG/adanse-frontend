@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Coins,
-  Ellipsis,
   LogOut,
   Pin,
   PinOff,
@@ -298,34 +297,12 @@ export default function ConversationSidebar({
       );
   }, [confirmDeleteId]);
 
-  // Which conversation's "..." menu is open (one at a time), and the
-  // sidebar-local notice used to show a failed pin -- notably the backend's
-  // "You can pin up to 3 projects. Unpin one to pin this." rejection.
-  const [menuId, setMenuId] = useState(null);
+  // The sidebar-local notice used to show a failed pin -- notably the
+  // backend's "You can pin up to 3 projects. Unpin one to pin this."
+  // rejection -- and which row's pin request is in flight (so a double click
+  // can't send it twice).
   const [notice, setNotice] = useState("");
-
-  useEffect(() => {
-    if (!menuId) return undefined;
-
-    const closeOnOutside = (event) => {
-      if (!event.target.closest?.("[data-pin-menu]")) {
-        setMenuId(null);
-      }
-    };
-    const closeOnEscape = (event) => {
-      if (event.key === "Escape") setMenuId(null);
-    };
-
-    document.addEventListener("mousedown", closeOnOutside);
-    document.addEventListener("touchstart", closeOnOutside);
-    document.addEventListener("keydown", closeOnEscape);
-
-    return () => {
-      document.removeEventListener("mousedown", closeOnOutside);
-      document.removeEventListener("touchstart", closeOnOutside);
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [menuId]);
+  const [pinBusyId, setPinBusyId] = useState(null);
 
   useEffect(() => {
     if (!notice) return undefined;
@@ -333,11 +310,14 @@ export default function ConversationSidebar({
     return () => clearTimeout(timer);
   }, [notice]);
 
-  // Unpin is immediate and has no confirmation: it only clears the pin, it
-  // never deletes anything.
+  // One click pins; when pinned, the same button unpins. Unpin is immediate
+  // and has no confirmation: it only clears the pin, it never deletes
+  // anything.
   const handleTogglePin = async (conversation) => {
-    setMenuId(null);
+    if (pinBusyId) return;
+
     setNotice("");
+    setPinBusyId(conversation.id);
 
     try {
       if (isPinned(conversation)) {
@@ -347,6 +327,8 @@ export default function ConversationSidebar({
       }
     } catch (error) {
       setNotice(pinErrorMessage(error));
+    } finally {
+      setPinBusyId(null);
     }
   };
 
@@ -590,84 +572,56 @@ export default function ConversationSidebar({
                           "New Analysis"
                         }
                         active={
-                          (hoverId ===
+                          hoverId ===
                             conversation.id ||
-                            focusId ===
-                              conversation.id) &&
-                          menuId !==
+                          focusId ===
                             conversation.id
                         }
                       />
                     </button>
 
-                    <div
-                      className="sidebar-item-menu"
-                      data-pin-menu
+                    <button
+                      type="button"
+                      className={`sidebar-item-pin ${
+                        isPinned(conversation)
+                          ? "pinned"
+                          : ""
+                      }`}
+                      aria-label={`${
+                        isPinned(conversation)
+                          ? "Unpin"
+                          : "Pin"
+                      } ${
+                        conversation.title ||
+                        "conversation"
+                      }`}
+                      title={
+                        isPinned(conversation)
+                          ? "Unpin"
+                          : "Pin to top"
+                      }
+                      disabled={
+                        pinBusyId ===
+                        conversation.id
+                      }
+                      onClick={() =>
+                        handleTogglePin(
+                          conversation
+                        )
+                      }
                     >
-                      <button
-                        type="button"
-                        className="sidebar-item-more"
-                        aria-label={`Options for ${
-                          conversation.title ||
-                          "conversation"
-                        }`}
-                        aria-haspopup="menu"
-                        aria-expanded={
-                          menuId ===
-                          conversation.id
-                        }
-                        onClick={() =>
-                          setMenuId((id) =>
-                            id ===
-                            conversation.id
-                              ? null
-                              : conversation.id
-                          )
-                        }
-                      >
-                        <Ellipsis
-                          size={16}
+                      {isPinned(conversation) ? (
+                        <PinOff
+                          size={15}
                           aria-hidden="true"
                         />
-                      </button>
-
-                      {menuId ===
-                        conversation.id && (
-                        <div
-                          className="sidebar-item-popover"
-                          role="menu"
-                        >
-                          <button
-                            type="button"
-                            role="menuitem"
-                            className="sidebar-item-popover-option"
-                            onClick={() =>
-                              handleTogglePin(
-                                conversation
-                              )
-                            }
-                          >
-                            {isPinned(
-                              conversation
-                            ) ? (
-                              <PinOff
-                                size={14}
-                                aria-hidden="true"
-                              />
-                            ) : (
-                              <Pin
-                                size={14}
-                                aria-hidden="true"
-                              />
-                            )}
-
-                            {isPinned(conversation)
-                              ? "Unpin"
-                              : "Pin to top"}
-                          </button>
-                        </div>
+                      ) : (
+                        <Pin
+                          size={15}
+                          aria-hidden="true"
+                        />
                       )}
-                    </div>
+                    </button>
 
                     <button
                       type="button"
