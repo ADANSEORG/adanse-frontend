@@ -1984,7 +1984,78 @@ button {
   line-height: 1.35;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+}
+
+/* ---- Sidebar title: static if it fits, soft fade + slide if it doesn't ----
+   The clip is the visible window; the title inside it is what moves. Motion is
+   a plain transform transition -- no JS animation loop -- and only exists on
+   hover-capable devices that haven't asked for reduced motion. */
+
+@property --marquee-fade-left {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --marquee-fade-right {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 24px;
+}
+
+.sidebar-item-title-clip {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.sidebar-item-title {
+  display: inline-block;
+  transform: translateX(0);
+  /* Slide back at the same constant speed, with no delay. */
+  transition: transform var(--marquee-duration, 1.5s) linear 0s;
+}
+
+/* Only titles that overflow get the fade. At rest that's the right edge only
+   (left fade is 0px, i.e. a hard edge). No ellipsis. */
+.sidebar-item-title-clip.overflowing {
+  --marquee-fade-left: 0px;
+  --marquee-fade-right: 24px;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--marquee-fade-left),
+    #000 calc(100% - var(--marquee-fade-right)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--marquee-fade-left),
+    #000 calc(100% - var(--marquee-fade-right)),
+    transparent 100%
+  );
+  transition:
+    --marquee-fade-left 0.25s ease,
+    --marquee-fade-right 0.25s ease;
+}
+
+/* No scrolling on touch or with reduced motion: they keep the static fade
+   above, and the full title is in the tooltip. */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .sidebar-item-title-clip.scrolling .sidebar-item-title {
+    transform: translateX(var(--marquee-x, 0px));
+    /* Short pause so skimming down the list doesn't set everything moving. */
+    transition-delay: 0.3s;
+  }
+
+  /* While scrolled, both edges fade -- the right one narrows so the end of
+     the title, now flush with the edge, stays readable. */
+  .sidebar-item-title-clip.overflowing.scrolling {
+    --marquee-fade-left: 12px;
+    --marquee-fade-right: 10px;
+    transition-delay: 0.3s;
+  }
 }
 
 .sidebar-item-delete {
@@ -2012,6 +2083,99 @@ button {
 
 .sidebar-item-delete:hover {
   background: rgba(0, 0, 0, 0.05);
+  color: var(--ink);
+}
+
+/* ---- Pinned group + per-item "..." menu ---- */
+
+.sidebar-group-label.pinned {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sidebar-group-label.pinned svg {
+  color: var(--gold);
+}
+
+.sidebar-item-pin {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  /* Clear gap before the delete "x" next to it. */
+  margin-right: 6px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #a99c8b;
+  opacity: 0;
+  cursor: pointer;
+  transition:
+    opacity 0.16s ease,
+    background 0.16s ease,
+    color 0.16s ease;
+}
+
+.sidebar-item:hover .sidebar-item-pin,
+.sidebar-item.active .sidebar-item-pin,
+.sidebar-item:focus-within .sidebar-item-pin {
+  opacity: 1;
+}
+
+.sidebar-item-pin:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--ink);
+}
+
+/* Pinned rows: the unpin icon is gold so it reads as "this is pinned". */
+.sidebar-item-pin.pinned {
+  color: #9a7413;
+}
+
+.sidebar-item-pin:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Touch devices have no hover, so the pin button is always visible there. */
+@media (hover: none) {
+  .sidebar-item-pin {
+    opacity: 1;
+  }
+}
+
+.sidebar-notice {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  background: var(--gold-soft);
+  border: 1px solid rgba(221, 166, 34, 0.5);
+  border-radius: 12px;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.sidebar-notice-close {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #8f8476;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sidebar-notice-close:hover {
+  background: rgba(0, 0, 0, 0.06);
   color: var(--ink);
 }
 
@@ -3505,6 +3669,40 @@ button {
   font-size: 15px;
 }
 
+.analysis-frequency {
+  margin-top: 18px;
+}
+
+.analysis-frequency-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.analysis-frequency-table th,
+.analysis-frequency-table td {
+  padding: 9px 13px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+
+.analysis-frequency-table th:not(:first-child),
+.analysis-frequency-table td:not(:first-child) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.analysis-frequency-table .frequency-total td {
+  font-weight: 600;
+}
+
+.analysis-frequency small {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted, inherit);
+}
+
 /* =========================================================
    QUALITATIVE DATA SOURCE SELECTION + OBJECTIVE TAGGING
    ========================================================= */
@@ -4943,4 +5141,52 @@ button {
     max-width: 100%;
     text-align: left;
   }
+}
+
+/* ---- Delete confirmation (inline, replaces the item until answered) ---- */
+
+.sidebar-item-confirm {
+  margin-bottom: 4px;
+  padding: 12px;
+  border: 1px solid rgba(166, 61, 50, 0.35);
+  border-radius: 12px;
+  background: rgba(255, 253, 248, 0.9);
+}
+
+.sidebar-item-confirm p {
+  margin: 0 0 10px;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.sidebar-item-confirm-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.sidebar-item-confirm-actions button {
+  flex: 1;
+  min-height: 38px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Cancel is the safe default: visually primary and auto-focused. */
+.sidebar-item-confirm-cancel {
+  border: 1px solid var(--gold);
+  background: var(--gold);
+  color: var(--ink);
+}
+
+.sidebar-item-confirm-delete {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: #a63d32;
+}
+
+.sidebar-item-confirm-delete:hover {
+  background: rgba(166, 61, 50, 0.08);
 }

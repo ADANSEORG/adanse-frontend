@@ -143,6 +143,7 @@ export function getTestName(result, item) {
     cross_tab: "Chi-square test of association",
     t_test: "Welch independent-samples t-test",
     anova: "One-way ANOVA",
+    frequency: "Frequency table",
   };
 
   // Test types with no entry above (distribution, thematic_analysis) have
@@ -156,6 +157,26 @@ export function getTestName(result, item) {
     result?.test ||
     "Statistical test"
   );
+}
+
+// Rows for a frequency table (counts and percentages of valid responses),
+// in the order the backend already applied (saved order, then numeric, then
+// natural ordinal scale, then by count -- never alphabetical), followed by a
+// Total row. Returns [] for a result that is not a frequency table.
+export function getFrequencyRows(result) {
+  if (result?.test !== "frequency") return [];
+  const categories = Array.isArray(result.categories) ? result.categories : [];
+  if (categories.length === 0) return [];
+
+  return [
+    ...categories.map((row) => ({
+      category: String(row.category),
+      count: row.count,
+      percent: `${formatNumber(row.percent, 1)}%`,
+      isTotal: false,
+    })),
+    { category: "Total", count: result.n, percent: "100.0%", isTotal: true },
+  ];
 }
 
 export function getStatistic(result) {
@@ -1153,6 +1174,27 @@ export function objectiveHasQualitativeRelevance(group, qualitativeFindings, col
   return expressesQualitativeIntent(group?.objective);
 }
 
+// The quantitative test types that carry a real statistical procedure --
+// mirrors generate_chapter()'s own _QUANTITATIVE_TESTS on the backend, so
+// "does this project have any quantitative result" never disagrees between
+// the downloaded docx and this live preview.
+const QUANTITATIVE_TEST_TYPES = new Set([
+  "correlation", "t_test", "anova", "cross_tab", "regression", "distribution", "frequency",
+]);
+
+// Whether the project has finalized thematic findings but no completed
+// quantitative result anywhere -- used to keep 4.1/4.7/4.8's copy from
+// talking about statistical procedures, effect sizes or hypothesis
+// decisions that were never run.
+export function isQualitativeOnlyProject(completedResults, qualitativeFindings) {
+  const hasQualitativeFindings = Object.keys(qualitativeFindings || {}).length > 0;
+  if (!hasQualitativeFindings) return false;
+  const hasQuantitativeResults = (completedResults || []).some((item) =>
+    QUANTITATIVE_TEST_TYPES.has(item?.result?.test)
+  );
+  return !hasQuantitativeResults;
+}
+
 // Every respondent id backing a theme, drawn from its subthemes'
 // supporting quotes -- an objective fact already in the coded data.
 function themeRespondentIds(theme) {
@@ -1285,6 +1327,15 @@ export function objectiveInterpretationSentence(group, qualitativeFindings = {},
       );
     }
 
+    if (test === "frequency") {
+      const col = result.column || "the variable";
+      return (
+        `${testName} reported how responses to ${col} were distributed ` +
+        `(n = ${result.n ?? 0}); this describes that single variable only and is ` +
+        "not a test of a relationship, comparison, or association"
+      );
+    }
+
     if (test === "distribution") {
       const col = result.numeric_column || "the variable";
       const mean = result.mean;
@@ -1351,6 +1402,10 @@ export function objectiveRecapSentence(group, qualitativeFindings = {}, columnOb
       // Legacy only -- see objectiveInterpretationSentence().
       const nThemes = Array.isArray(result.themes) ? result.themes.length : 0;
       return `${testName} (open-ended responses) surfaced ${nThemes} theme${nThemes !== 1 ? "s" : ""}`;
+    }
+
+    if (test === "frequency") {
+      return `${testName} (n = ${result.n ?? 0})`;
     }
 
     if (test === "distribution") {

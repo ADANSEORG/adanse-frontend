@@ -5,6 +5,7 @@ import {
   formatVariableName,
   formatNumber,
   getTestName,
+  getFrequencyRows,
   getStatistic,
   getPValue,
   getDecision,
@@ -27,6 +28,8 @@ import {
   evidenceGroundedThemeRelationships,
   guardPrevalenceLanguage,
   joinAnd,
+  objectiveHasQualitativeRelevance,
+  isQualitativeOnlyProject,
 } from "./chapter4/resultsTransform.js";
 
 /*
@@ -80,7 +83,7 @@ function QualitativeResult({ result, item }) {
         <p>
           Thematic analysis was conducted on{" "}
           <strong>{result.response_count}</strong> usable responses from{" "}
-          <strong>{formatVariableName(column)}</strong>.
+          <strong>&ldquo;{column}&rdquo;</strong>.
         </p>
       )}
 
@@ -165,6 +168,35 @@ function ResultTable({ result, item }) {
               {getDecision(result)}
             </td>
           </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function FrequencyTable({ result }) {
+  const rows = getFrequencyRows(result);
+  if (rows.length === 0) return null;
+
+  return (
+    <div className="chapter-result-table-wrap">
+      <table className="chapter-result-table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Frequency</th>
+            <th>Percentage</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.category} className={row.isTotal ? "frequency-total" : undefined}>
+              <td>{row.category}</td>
+              <td>{row.count}</td>
+              <td>{row.percent}</td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>
@@ -461,17 +493,27 @@ export default function Chapter4({
    *
    * 16 analyses across 4 objectives =
    * 4 objectives analysed.
+   *
+   * An objective also counts as addressed when it has no quantitative
+   * results but IS covered by the study's thematic analysis (tagged, or
+   * a qualitative-only project) -- otherwise a purely qualitative project
+   * always showed "0 research objectives analysed" here even though every
+   * objective was genuinely addressed. See isQualitativeOnly below for the
+   * matching change to this card's and 4.8's copy.
    * -------------------------------------------------------
    */
 
   const completedObjectiveCount =
     objectiveGroups.filter(
       (group) =>
-        group.results.length > 0
+        group.results.length > 0 ||
+        objectiveHasQualitativeRelevance(group, qualitativeFindings, columnObjectives)
     ).length;
 
   const completedAnalysisCount =
     completedResults.length;
+
+  const isQualitativeOnly = isQualitativeOnlyProject(completedResults, qualitativeFindings);
 
   // A researcher can change an objective's variables after analysis has
   // already run (see ThesisWorkspace.jsx's "Change variables"), which
@@ -714,6 +756,23 @@ export default function Chapter4({
               <strong>Some variables changed since analysis last ran.</strong>
               <p>Go back and run analysis again — the download is disabled until every result is up to date.</p>
             </>
+          ) : isQualitativeOnly ? (
+            <>
+              <strong>
+                {completedObjectiveCount} research
+                objective
+                {completedObjectiveCount === 1
+                  ? ""
+                  : "s"}{" "}
+                addressed through thematic analysis
+              </strong>
+
+              <p>
+                The themes identified from the
+                open-ended data will be included in
+                the editable Chapter 4 document.
+              </p>
+            </>
           ) : (
             <>
               <strong>
@@ -951,19 +1010,34 @@ export default function Chapter4({
               obtained from the analysis of the
               research data. The findings are
               organised according to the research
-              objectives and the statistical
-              procedures applied to the dataset.
+              objectives and the{" "}
+              {isQualitativeOnly
+                ? "thematic analysis"
+                : "statistical procedures"}{" "}
+              applied to the dataset.
             </p>
 
-            <p>
-              The analyses reported in this chapter
-              are calculated directly from the
-              uploaded dataset. Where applicable,
-              descriptive statistics, inferential
-              tests, effect sizes and assumption
-              checks are presented to support
-              interpretation of the findings.
-            </p>
+            {isQualitativeOnly ? (
+              <p>
+                The findings reported in this chapter
+                are drawn directly from the study's
+                open-ended responses using reflexive
+                thematic analysis. Themes, their
+                definitions and supporting verbatim
+                quotations are presented to support
+                interpretation of the findings.
+              </p>
+            ) : (
+              <p>
+                The analyses reported in this chapter
+                are calculated directly from the
+                uploaded dataset. Where applicable,
+                descriptive statistics, inferential
+                tests, effect sizes and assumption
+                checks are presented to support
+                interpretation of the findings.
+              </p>
+            )}
           </section>
 
           {/* =================================================
@@ -1282,12 +1356,10 @@ export default function Chapter4({
                                   item
                                 )}
                               </strong>{" "}
-                              to examine the
-                              relationship,
-                              association or
-                              difference relevant
-                              to this research
-                              objective.
+                              {result.test ===
+                              "frequency"
+                                ? "to describe how responses were distributed across categories."
+                                : "to examine the relationship, association or difference relevant to this research objective."}
                             </p>
 
                             <div className="chapter-analysis-meta">
@@ -1343,10 +1415,16 @@ export default function Chapter4({
                               />
                             ) : (
                               <>
-                                <ResultTable
-                                  result={result}
-                                  item={item}
-                                />
+                                {result.test === "frequency" ? (
+                                  <FrequencyTable
+                                    result={result}
+                                  />
+                                ) : (
+                                  <ResultTable
+                                    result={result}
+                                    item={item}
+                                  />
+                                )}
 
                                 {(result.test ===
                                   "anova" ||
@@ -1620,7 +1698,7 @@ export default function Chapter4({
                 const taggedObjectives = objectivesTaggedToColumn(columnObjectives, column, objectiveGroups);
                 return (
                   <div key={column} className="chapter-qualitative-column">
-                    <h5>Themes from {formatVariableName(column)}</h5>
+                    <h5>Themes from &ldquo;{column}&rdquo;</h5>
 
                     {result.warning && (
                       <div className="chapter-warning">
@@ -1632,7 +1710,7 @@ export default function Chapter4({
                     <p className="chapter-theme-interpretation">
                       {taggedObjectives.length > 0 ? (
                         <>
-                          Interpretation: the researcher designated {formatVariableName(column)} as informing{" "}
+                          Interpretation: the researcher designated &ldquo;{column}&rdquo; as informing{" "}
                           {joinAnd(taggedObjectives.map((o) => `Objective ${o.objectiveId} ("${o.objectiveText}")`))}.
                           The themes below, drawn from this column, may support it.
                         </>
@@ -1783,6 +1861,20 @@ export default function Chapter4({
               4.7 Hypothesis Testing
             </h4>
 
+            {isQualitativeOnly ? (
+              <p>
+                Hypothesis testing does not apply to
+                this qualitative study design. This
+                project used reflexive thematic
+                analysis rather than inferential
+                statistics, so no null hypotheses
+                were tested. The corresponding
+                findings are reported in the
+                Thematic Analysis Findings sections
+                above and summarised in section 4.8.
+              </p>
+            ) : (
+              <>
             <p>
               The inferential analyses were
               evaluated at the conventional 5%
@@ -1897,6 +1989,8 @@ export default function Chapter4({
                 decisions.
               </p>
             )}
+              </>
+            )}
           </section>
 
           {/* =================================================
@@ -1911,24 +2005,43 @@ export default function Chapter4({
               4.8 Summary of Findings
             </h4>
 
-            <p>
-              The analysis produced{" "}
-              <strong>
-                {completedObjectiveCount}
-              </strong>{" "}
-              research objective
-              {completedObjectiveCount === 1
-                ? ""
-                : "s"}{" "}
-              with{" "}
-              <strong>
-                {completedAnalysisCount}
-              </strong>{" "}
-              completed statistical{" "}
-              {completedAnalysisCount === 1
-                ? "analysis"
-                : "analyses"}.
-            </p>
+            {isQualitativeOnly ? (
+              <p>
+                <strong>
+                  {completedObjectiveCount}
+                </strong>{" "}
+                research objective
+                {completedObjectiveCount === 1
+                  ? ""
+                  : "s"}{" "}
+                were addressed through reflexive
+                thematic analysis of the study's
+                open-ended data. The themes identified
+                for each objective are reported in
+                full, with supporting verbatim
+                quotations, in the Thematic Analysis
+                Findings sections above.
+              </p>
+            ) : (
+              <p>
+                The analysis produced{" "}
+                <strong>
+                  {completedObjectiveCount}
+                </strong>{" "}
+                research objective
+                {completedObjectiveCount === 1
+                  ? ""
+                  : "s"}{" "}
+                with{" "}
+                <strong>
+                  {completedAnalysisCount}
+                </strong>{" "}
+                completed statistical{" "}
+                {completedAnalysisCount === 1
+                  ? "analysis"
+                  : "analyses"}.
+              </p>
+            )}
 
             {objectiveGroups
               .filter(

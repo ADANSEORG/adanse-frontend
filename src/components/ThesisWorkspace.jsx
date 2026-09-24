@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { toFixedHalfEven } from "./chapter4/resultsTransform.js";
+import { getFrequencyRows, toFixedHalfEven } from "./chapter4/resultsTransform.js";
 import CreditActionButton from "./CreditActionButton.jsx";
 import QualitativeReview from "./QualitativeReview.jsx";
 import {
@@ -9,9 +9,17 @@ import {
   hasStaleResults,
 } from "../analysisOverride.js";
 import { chapter4AffordabilityWarning } from "../qualitativeFinalizePolling.js";
+import {
+  analysisStatus,
+  columnLabel,
+  columnPairLabel,
+  hypothesisDecision,
+  hypothesisEntries,
+} from "../planPresentation.js";
 
 const TEST_NAMES = {
   distribution: "Descriptive distribution",
+  frequency: "Frequency table",
   correlation: "Pearson correlation",
   cross_tab: "Chi-square test of association",
   t_test: "Welch independent-samples t-test",
@@ -36,6 +44,28 @@ function PValue({ value, formatted }) {
 
 function QuantitativeResult({ result }) {
   const test = result?.test;
+  if (test === "frequency") {
+    const rows = getFrequencyRows(result);
+    return (
+      <div className="analysis-frequency">
+        <table className="analysis-frequency-table">
+          <thead>
+            <tr><th>Category</th><th>Frequency</th><th>Percentage</th></tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.category} className={row.isTotal ? "frequency-total" : undefined}>
+                <td>{row.category}</td><td>{row.count}</td><td>{row.percent}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {result.n_missing > 0 && (
+          <small>{result.n_missing} missing response{result.n_missing === 1 ? "" : "s"} excluded.</small>
+        )}
+      </div>
+    );
+  }
   if (test === "distribution") {
     return (
       <div className="analysis-detail-grid">
@@ -168,7 +198,7 @@ function QualitativeDataSelector({ detectedColumns, selectedColumns, columnObjec
                 onChange={() => toggleColumn(column)}
                 disabled={loading}
               />
-              {pretty(column)}
+              {columnLabel(column)}
             </label>
             {checked.has(column) && objectives.length > 0 && (
               <div className="qualitative-column-objective-tags">
@@ -232,7 +262,7 @@ function QualitativeAnalysisSection({ qualitativeResults, conversationId, onQual
             <div className="analysis-result-top">
               <div>
                 <div className="analysis-result-kicker">{entry.status === "complete" ? "ANALYSIS RESULT" : "PLANNED ANALYSIS"}</div>
-                <h4>Thematic analysis — {pretty(entry.column)}</h4>
+                <h4>Thematic analysis — {columnLabel(entry.column)}</h4>
               </div>
               <span className={`analysis-status ${entry.status === "complete" ? "complete" : "review"}`}>
                 {entry.status === "complete" ? "Complete" : "Needs review"}
@@ -256,6 +286,56 @@ function QualitativeAnalysisSection({ qualitativeResults, conversationId, onQual
   );
 }
 
+function HypothesisPlan({ plan, analysis }) {
+  const entries = hypothesisEntries(plan, analysis);
+  if (entries.length === 0) return null;
+
+  return (
+    <section className="objective-analysis-section hypothesis-plan">
+      <div className="objective-heading">
+        <span>HYPOTHESES</span>
+        <h2>How each hypothesis will be tested</h2>
+      </div>
+      <div className="analysis-list">
+        {entries.map((entry) => {
+          const decision = hypothesisDecision(entry.result);
+          return (
+            <article className="analysis-result-card hypothesis-card" key={entry.id}>
+              <div className="analysis-result-top">
+                <div>
+                  <div className="analysis-result-kicker">{entry.id}</div>
+                  <h4>{entry.text}</h4>
+                </div>
+                <span className={`analysis-status ${entry.status.tone}`}>{entry.status.label}</span>
+              </div>
+              {entry.testName ? (
+                <p className="analysis-reasoning">
+                  <strong>{entry.testName}</strong>
+                  {entry.columns.length > 0 && <> — {columnPairLabel(entry.columns)}</>}
+                  {entry.sharedWith && <> · same analysis as {entry.sharedWith}</>}
+                </p>
+              ) : (
+                <p className="analysis-reasoning">No test could be planned for this hypothesis yet.</p>
+              )}
+              {entry.reviewReason && (
+                <div className="analysis-warning">
+                  <strong>Review</strong>
+                  <span>{entry.reviewReason}</span>
+                </div>
+              )}
+              {entry.result && decision && (
+                <p className="analysis-reasoning hypothesis-decision">
+                  p {entry.result.p_value_formatted || `= ${number(entry.result.p_value, 4)}`} — {decision}
+                </p>
+              )}
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function AnalysisCard({ item, objectiveId, numericColumns, categoricalColumns, onOverride, conversationId, onQualitativeFinalized, credits, onBuyCredits }) {
   const result = item?.result;
   const method = result?.test || item?.test;
@@ -265,6 +345,7 @@ function AnalysisCard({ item, objectiveId, numericColumns, categoricalColumns, o
   const needsQualitativeReview = item?.status === "needs_review" && !result && columns.length > 0;
   const lowConfidence = item?.confidence === "low";
   const stale = item?.stale === true;
+  const status = analysisStatus(item);
   // Overriding variables is a quantitative-pair/regression concept --
   // there's nothing to swap for open-ended thematic analysis, which the
   // separate qualitative data-source selector already governs.
@@ -277,9 +358,9 @@ function AnalysisCard({ item, objectiveId, numericColumns, categoricalColumns, o
           <div className="analysis-result-kicker">{complete ? "ANALYSIS RESULT" : "PLANNED ANALYSIS"}</div>
           <h4>{name}</h4>
         </div>
-        <span className={`analysis-status ${complete ? "complete" : "review"}`}>{complete ? "Complete" : "Needs review"}</span>
+        <span className={`analysis-status ${status.tone}`}>{status.label}</span>
       </div>
-      {columns.length > 0 && <div className="analysis-variable-pair">{columns.map(pretty).join(" × ")}</div>}
+      {columns.length > 0 && <div className="analysis-variable-pair">{columnPairLabel(columns)}</div>}
       {!needsQualitativeReview && (
         <p className="analysis-reasoning">{item?.reasoning || item?.error || "Selected from the structure of the uploaded dataset."}</p>
       )}
@@ -407,7 +488,7 @@ function AnalysisOverrideForm({ objectiveId, numericColumns, categoricalColumns,
           <select value={columnA} onChange={(e) => setColumnA(e.target.value)} disabled={loading}>
             <option value="">Select a variable…</option>
             {allColumns.map((c) => (
-              <option key={c} value={c}>{pretty(c)}</option>
+              <option key={c} value={c}>{columnLabel(c)}</option>
             ))}
           </select>
         </label>
@@ -416,7 +497,7 @@ function AnalysisOverrideForm({ objectiveId, numericColumns, categoricalColumns,
           <select value={columnB} onChange={(e) => setColumnB(e.target.value)} disabled={loading}>
             <option value="">Select a variable…</option>
             {allColumns.map((c) => (
-              <option key={c} value={c}>{pretty(c)}</option>
+              <option key={c} value={c}>{columnLabel(c)}</option>
             ))}
           </select>
         </label>
@@ -469,7 +550,7 @@ function RegressionOverrideForm({ objectiveId, numericColumns, onOverride, loadi
           <select value={dependentColumn} onChange={(e) => setDependentColumn(e.target.value)} disabled={loading}>
             <option value="">Select a variable…</option>
             {numericColumns.map((c) => (
-              <option key={c} value={c} disabled={predictors.has(c)}>{pretty(c)}</option>
+              <option key={c} value={c} disabled={predictors.has(c)}>{columnLabel(c)}</option>
             ))}
           </select>
         </label>
@@ -485,7 +566,7 @@ function RegressionOverrideForm({ objectiveId, numericColumns, onOverride, loadi
                 disabled={loading || c === dependentColumn}
                 onChange={() => togglePredictor(c)}
               />
-              {pretty(c)}
+              {columnLabel(c)}
             </label>
           ))}
         </div>
@@ -580,6 +661,8 @@ export default function ThesisWorkspace({ project, upload, plan, analysis, onBui
         );
       })}
 
+      {plan && !hasResults && <HypothesisPlan plan={plan} analysis={null} />}
+
       {plan && !hasResults && detectedQualitativeColumns.length > 0 && (
         <QualitativeDataSelector
           detectedColumns={detectedQualitativeColumns}
@@ -646,6 +729,8 @@ export default function ThesisWorkspace({ project, upload, plan, analysis, onBui
           </div>
         </section>
       ))}
+
+      {hasResults && <HypothesisPlan plan={plan} analysis={analysis} />}
 
       {hasResults && (
         <QualitativeAnalysisSection

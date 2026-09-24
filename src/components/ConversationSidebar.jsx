@@ -1,54 +1,118 @@
-import { useState } from "react";
-import { Coins, LogOut, Settings } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  Coins,
+  LogOut,
+  Pin,
+  PinOff,
+  Settings,
+} from "lucide-react";
 
-function startOfLocalDay(date) {
-  return new Date(
-    date.getFullYear(),
-    date.getMonth(),
-    date.getDate()
-  ).getTime();
-}
+import {
+  groupConversations,
+  isPinned,
+  pinErrorMessage,
+} from "../sidebarGroups.js";
+import { marqueeShift } from "../sidebarMarquee.js";
 
-function groupConversations(conversations) {
-  const today = startOfLocalDay(new Date());
+/*
+ * A sidebar title that only moves when it has to. A title that fits is plain
+ * static text. One that doesn't is cut off with a soft right-edge fade at
+ * rest, and while `active` (row hovered, or its button keyboard-focused) it
+ * slides left by exactly its overflow so the end is readable, then slides
+ * back. All the motion is a CSS transform transition (see styles.css, where
+ * it's also switched off for touch devices and prefers-reduced-motion); this
+ * only measures.
+ */
+function MarqueeTitle({ text, active }) {
+  const clipRef = useRef(null);
+  const titleRef = useRef(null);
+  const [overflowing, setOverflowing] = useState(false);
+  // distance/duration persist after the pointer leaves so the slide back
+  // runs at the same constant speed; `on` is what actually triggers motion.
+  const [shift, setShift] = useState({
+    on: false,
+    distance: 0,
+    duration: 1.5,
+  });
 
-  const yesterday =
-    today - 24 * 60 * 60 * 1000;
+  // Whether the title overflows at rest (drives the fade). Re-measured when
+  // the container is resized, e.g. the sidebar changes width or the "..."/
+  // delete buttons take space. offsetWidth is the layout width, so it isn't
+  // thrown off by the transform while the title is mid-slide.
+  useEffect(() => {
+    const clip = clipRef.current;
+    const title = titleRef.current;
+    if (!clip || !title) return undefined;
 
-  const groups = [
-    {
-      label: "Today",
-      items: [],
-    },
-    {
-      label: "Yesterday",
-      items: [],
-    },
-    {
-      label: "Older",
-      items: [],
-    },
-  ];
+    const measure = () =>
+      setOverflowing(
+        marqueeShift(
+          title.offsetWidth,
+          clip.clientWidth
+        ) !== null
+      );
 
-  for (const conversation of conversations) {
-    const stamp = startOfLocalDay(
-      new Date(
-        conversation.updated_at ||
-          conversation.created_at
-      )
+    measure();
+
+    if (typeof ResizeObserver === "undefined") {
+      return undefined;
+    }
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(clip);
+    return () => observer.disconnect();
+  }, [text]);
+
+  // The distance to slide is measured when the title becomes active (on
+  // hover/focus), not cached, so it's right for the current width.
+  useEffect(() => {
+    if (!active) {
+      setShift((current) =>
+        current.on
+          ? { ...current, on: false }
+          : current
+      );
+      return;
+    }
+
+    const clip = clipRef.current;
+    const title = titleRef.current;
+    if (!clip || !title) return;
+
+    const next = marqueeShift(
+      title.offsetWidth,
+      clip.clientWidth
     );
 
-    if (stamp === today) {
-      groups[0].items.push(conversation);
-    } else if (stamp === yesterday) {
-      groups[1].items.push(conversation);
-    } else {
-      groups[2].items.push(conversation);
-    }
-  }
+    setShift(
+      next
+        ? { on: true, ...next }
+        : (current) =>
+            current.on
+              ? { ...current, on: false }
+              : current
+    );
+  }, [active, text]);
 
-  return groups.filter(
-    (group) => group.items.length > 0
+  return (
+    <span
+      ref={clipRef}
+      className={`sidebar-item-title-clip${
+        overflowing ? " overflowing" : ""
+      }${shift.on ? " scrolling" : ""}`}
+      title={overflowing ? text : undefined}
+    >
+      <span
+        ref={titleRef}
+        className="sidebar-item-title"
+        style={{
+          "--marquee-x": `-${shift.distance}px`,
+          "--marquee-duration": `${shift.duration}s`,
+        }}
+      >
+        {text}
+      </span>
+    </span>
   );
 }
 
@@ -187,6 +251,8 @@ export default function ConversationSidebar({
   onNewChat,
   onSelect,
   onDelete,
+  onPin,
+  onUnpin,
   onSignOut,
   user,
   onAccount,
@@ -197,6 +263,74 @@ export default function ConversationSidebar({
 }) {
   const [profileOpen, setProfileOpen] =
     useState(false);
+
+  // The conversation whose one-tap "x" was clicked and is now waiting on an
+  // explicit confirm. Deleting removes the project, its analysis and its
+  // conversation history for good, so it never happens on a single click.
+  const [confirmDeleteId, setConfirmDeleteId] =
+    useState(null);
+
+  // Which row is hovered / keyboard-focused, so its title can slide. Only
+  // one row at a time. Kept here (not per row) because rows are rendered in
+  // a map.
+  const [hoverId, setHoverId] = useState(null);
+  const [focusId, setFocusId] = useState(null);
+
+  useEffect(() => {
+    if (!confirmDeleteId) return undefined;
+
+    const cancelOnEscape = (event) => {
+      if (event.key === "Escape") {
+        setConfirmDeleteId(null);
+      }
+    };
+
+    document.addEventListener(
+      "keydown",
+      cancelOnEscape
+    );
+
+    return () =>
+      document.removeEventListener(
+        "keydown",
+        cancelOnEscape
+      );
+  }, [confirmDeleteId]);
+
+  // The sidebar-local notice used to show a failed pin -- notably the
+  // backend's "You can pin up to 3 projects. Unpin one to pin this."
+  // rejection -- and which row's pin request is in flight (so a double click
+  // can't send it twice).
+  const [notice, setNotice] = useState("");
+  const [pinBusyId, setPinBusyId] = useState(null);
+
+  useEffect(() => {
+    if (!notice) return undefined;
+    const timer = setTimeout(() => setNotice(""), 7000);
+    return () => clearTimeout(timer);
+  }, [notice]);
+
+  // One click pins; when pinned, the same button unpins. Unpin is immediate
+  // and has no confirmation: it only clears the pin, it never deletes
+  // anything.
+  const handleTogglePin = async (conversation) => {
+    if (pinBusyId) return;
+
+    setNotice("");
+    setPinBusyId(conversation.id);
+
+    try {
+      if (isPinned(conversation)) {
+        await onUnpin?.(conversation);
+      } else {
+        await onPin?.(conversation);
+      }
+    } catch (error) {
+      setNotice(pinErrorMessage(error));
+    } finally {
+      setPinBusyId(null);
+    }
+  };
 
   const groups =
     groupConversations(
@@ -281,6 +415,21 @@ export default function ConversationSidebar({
         </div>
 
         <div className="sidebar-scroll">
+          {notice && (
+            <div className="sidebar-notice" role="alert">
+              <span>{notice}</span>
+
+              <button
+                type="button"
+                className="sidebar-notice-close"
+                aria-label="Dismiss"
+                onClick={() => setNotice("")}
+              >
+                ×
+              </button>
+            </div>
+          )}
+
           {loading && (
             <p className="sidebar-status">
               Loading conversations…
@@ -308,12 +457,72 @@ export default function ConversationSidebar({
               key={group.label}
               className="sidebar-group"
             >
-              <div className="sidebar-group-label">
+              <div
+                className={`sidebar-group-label ${
+                  group.key === "pinned"
+                    ? "pinned"
+                    : ""
+                }`}
+              >
+                {group.key === "pinned" && (
+                  <Pin
+                    size={12}
+                    strokeWidth={2.4}
+                    aria-hidden="true"
+                  />
+                )}
+
                 {group.label}
               </div>
 
               {group.items.map(
-                (conversation) => (
+                (conversation) =>
+                  confirmDeleteId ===
+                  conversation.id ? (
+                    <div
+                      key={conversation.id}
+                      className="sidebar-item-confirm"
+                      role="alertdialog"
+                      aria-label="Confirm delete"
+                    >
+                      <p>
+                        Delete this project? This
+                        removes its data and
+                        analysis and can't be
+                        undone.
+                      </p>
+
+                      <div className="sidebar-item-confirm-actions">
+                        <button
+                          type="button"
+                          className="sidebar-item-confirm-cancel"
+                          autoFocus
+                          onClick={() =>
+                            setConfirmDeleteId(
+                              null
+                            )
+                          }
+                        >
+                          Cancel
+                        </button>
+
+                        <button
+                          type="button"
+                          className="sidebar-item-confirm-delete"
+                          onClick={() => {
+                            setConfirmDeleteId(
+                              null
+                            );
+                            onDelete(
+                              conversation
+                            );
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
                   <div
                     key={conversation.id}
                     className={`sidebar-item ${
@@ -322,6 +531,14 @@ export default function ConversationSidebar({
                         ? "active"
                         : ""
                     }`}
+                    onMouseEnter={() =>
+                      setHoverId(
+                        conversation.id
+                      )
+                    }
+                    onMouseLeave={() =>
+                      setHoverId(null)
+                    }
                   >
                     <button
                       type="button"
@@ -331,9 +548,79 @@ export default function ConversationSidebar({
                           conversation
                         )
                       }
+                      onFocus={(event) => {
+                        // Keyboard focus only -- a mouse click also
+                        // focuses the button, and that shouldn't set the
+                        // title moving.
+                        if (
+                          event.target.matches?.(
+                            ":focus-visible"
+                          )
+                        ) {
+                          setFocusId(
+                            conversation.id
+                          );
+                        }
+                      }}
+                      onBlur={() =>
+                        setFocusId(null)
+                      }
                     >
-                      {conversation.title ||
-                        "New Analysis"}
+                      <MarqueeTitle
+                        text={
+                          conversation.title ||
+                          "New Analysis"
+                        }
+                        active={
+                          hoverId ===
+                            conversation.id ||
+                          focusId ===
+                            conversation.id
+                        }
+                      />
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`sidebar-item-pin ${
+                        isPinned(conversation)
+                          ? "pinned"
+                          : ""
+                      }`}
+                      aria-label={`${
+                        isPinned(conversation)
+                          ? "Unpin"
+                          : "Pin"
+                      } ${
+                        conversation.title ||
+                        "conversation"
+                      }`}
+                      title={
+                        isPinned(conversation)
+                          ? "Unpin"
+                          : "Pin to top"
+                      }
+                      disabled={
+                        pinBusyId ===
+                        conversation.id
+                      }
+                      onClick={() =>
+                        handleTogglePin(
+                          conversation
+                        )
+                      }
+                    >
+                      {isPinned(conversation) ? (
+                        <PinOff
+                          size={15}
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <Pin
+                          size={15}
+                          aria-hidden="true"
+                        />
+                      )}
                     </button>
 
                     <button
@@ -343,16 +630,21 @@ export default function ConversationSidebar({
                         conversation.title ||
                         "conversation"
                       }`}
-                      onClick={() =>
-                        onDelete(
-                          conversation
-                        )
-                      }
+                      onClick={() => {
+                        // The row is about to be replaced by the confirm, so
+                        // its mouse-leave will never fire: clear the title's
+                        // hover/focus state here or it could linger.
+                        setHoverId(null);
+                        setFocusId(null);
+                        setConfirmDeleteId(
+                          conversation.id
+                        );
+                      }}
                     >
                       ×
                     </button>
                   </div>
-                )
+                  )
               )}
             </div>
           ))}

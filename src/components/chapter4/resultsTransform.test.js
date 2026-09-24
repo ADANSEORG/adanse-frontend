@@ -20,6 +20,9 @@ import {
   guardPrevalenceLanguage,
   objectiveInterpretationSentence,
   objectiveRecapSentence,
+  objectiveHasQualitativeRelevance,
+  isQualitativeOnlyProject,
+  getFrequencyRows,
 } from "./resultsTransform.js";
 
 /*
@@ -402,4 +405,99 @@ test("getStatistic still reports the other test types unchanged", () => {
   assert.equal(getStatistic({ test: "cross_tab", chi2: 6.44 }), "χ² = 6.440");
   assert.equal(getStatistic({ test: "anova", f_statistic: 5.047 }), "F = 5.047");
   assert.equal(getStatistic(null), "—");
+});
+
+/*
+ * =========================================================
+ * QUALITATIVE-ONLY PROJECT DETECTION
+ *
+ * Mirrors generate_chapter()'s is_qualitative_only flag on the backend --
+ * used to keep 4.1/4.7/4.8's copy in the live preview from talking about
+ * statistical procedures, effect sizes or hypothesis decisions that were
+ * never run for a purely qualitative study.
+ * =========================================================
+ */
+
+test("isQualitativeOnlyProject is true when there are qualitative findings and no quantitative results", () => {
+  const qualitativeFindings = { responses: { themes: [{ theme: "Cost" }] } };
+  assert.equal(isQualitativeOnlyProject([], qualitativeFindings), true);
+});
+
+test("isQualitativeOnlyProject is false when a quantitative result exists alongside qualitative findings", () => {
+  const qualitativeFindings = { responses: { themes: [{ theme: "Cost" }] } };
+  const completedResults = [{ result: { test: "correlation", r: 0.4 } }];
+  assert.equal(isQualitativeOnlyProject(completedResults, qualitativeFindings), false);
+});
+
+test("isQualitativeOnlyProject is false when there are no qualitative findings at all", () => {
+  assert.equal(isQualitativeOnlyProject([], {}), false);
+  assert.equal(isQualitativeOnlyProject([{ result: { test: "t_test" } }], {}), false);
+});
+
+test("isQualitativeOnlyProject ignores a thematic_analysis entry inside completedResults (it never carries a quantitative test type)", () => {
+  const qualitativeFindings = { responses: { themes: [{ theme: "Cost" }] } };
+  const completedResults = [{ result: { test: "thematic_analysis" } }];
+  assert.equal(isQualitativeOnlyProject(completedResults, qualitativeFindings), true);
+});
+
+test("objectiveHasQualitativeRelevance counts an objective as addressed via a tagged qualitative column", () => {
+  const group = { id: 1, objective: "Understand student attitudes" };
+  const qualitativeFindings = { responses: { themes: [{ theme: "Cost" }] } };
+  const columnObjectives = { responses: [1] };
+  assert.equal(objectiveHasQualitativeRelevance(group, qualitativeFindings, columnObjectives), true);
+});
+
+test("objectiveHasQualitativeRelevance is false for an untagged, non-qualitative-worded objective", () => {
+  const group = { id: 2, objective: "Compare CGPA between genders" };
+  const qualitativeFindings = { responses: { themes: [{ theme: "Cost" }] } };
+  assert.equal(objectiveHasQualitativeRelevance(group, qualitativeFindings, {}), false);
+});
+
+/*
+ * =========================================================
+ * FREQUENCY TABLES
+ * =========================================================
+ */
+
+const FREQUENCY_RESULT = {
+  test: "frequency",
+  column: "How often do you use AI tools for your studies?",
+  n: 150,
+  categories: [
+    { category: "Never", count: 6, percent: 4 },
+    { category: "Rarely", count: 14, percent: 9.333333 },
+    { category: "Sometimes", count: 60, percent: 40 },
+    { category: "Often", count: 59, percent: 39.333333 },
+    { category: "Daily", count: 11, percent: 7.333333 },
+  ],
+};
+
+test("getFrequencyRows keeps the backend's category order and appends a Total row", () => {
+  const rows = getFrequencyRows(FREQUENCY_RESULT);
+  assert.deepEqual(
+    rows.map((row) => row.category),
+    ["Never", "Rarely", "Sometimes", "Often", "Daily", "Total"]
+  );
+  assert.deepEqual(rows[1], { category: "Rarely", count: 14, percent: "9.3%", isTotal: false });
+  assert.deepEqual(rows.at(-1), { category: "Total", count: 150, percent: "100.0%", isTotal: true });
+});
+
+test("getFrequencyRows is empty for a non-frequency or empty result", () => {
+  assert.deepEqual(getFrequencyRows({ test: "distribution", n: 3 }), []);
+  assert.deepEqual(getFrequencyRows({ test: "frequency", categories: [] }), []);
+  assert.deepEqual(getFrequencyRows(null), []);
+});
+
+test("a frequency result is named, counts as quantitative, and reads as descriptive only", () => {
+  assert.equal(getTestName(FREQUENCY_RESULT, { test_name: "Frequency table" }), "Frequency table");
+  assert.equal(isQualitativeOnlyProject([{ result: FREQUENCY_RESULT }], { r: { themes: [{ theme: "x" }] } }), false);
+
+  const sentence = objectiveInterpretationSentence(
+    { id: 1, objective: "Describe use", results: [{ test_name: "Frequency table", result: FREQUENCY_RESULT }] },
+    {},
+    {}
+  );
+  assert.match(sentence, /distributed/);
+  assert.match(sentence, /n = 150/);
+  assert.match(sentence, /not a test of a relationship/);
 });
