@@ -1,56 +1,18 @@
-import { useState } from "react";
-import { Coins, LogOut, Settings } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  Coins,
+  Ellipsis,
+  LogOut,
+  Pin,
+  PinOff,
+  Settings,
+} from "lucide-react";
 
-function startOfLocalDay(date) {
-  return new Date(
-    date.getFullYear(),
-    date.getMonth(),
-    date.getDate()
-  ).getTime();
-}
-
-function groupConversations(conversations) {
-  const today = startOfLocalDay(new Date());
-
-  const yesterday =
-    today - 24 * 60 * 60 * 1000;
-
-  const groups = [
-    {
-      label: "Today",
-      items: [],
-    },
-    {
-      label: "Yesterday",
-      items: [],
-    },
-    {
-      label: "Older",
-      items: [],
-    },
-  ];
-
-  for (const conversation of conversations) {
-    const stamp = startOfLocalDay(
-      new Date(
-        conversation.updated_at ||
-          conversation.created_at
-      )
-    );
-
-    if (stamp === today) {
-      groups[0].items.push(conversation);
-    } else if (stamp === yesterday) {
-      groups[1].items.push(conversation);
-    } else {
-      groups[2].items.push(conversation);
-    }
-  }
-
-  return groups.filter(
-    (group) => group.items.length > 0
-  );
-}
+import {
+  groupConversations,
+  isPinned,
+  pinErrorMessage,
+} from "../sidebarGroups.js";
 
 function getDisplayName(user) {
   const fullName =
@@ -187,6 +149,8 @@ export default function ConversationSidebar({
   onNewChat,
   onSelect,
   onDelete,
+  onPin,
+  onUnpin,
   onSignOut,
   user,
   onAccount,
@@ -197,6 +161,58 @@ export default function ConversationSidebar({
 }) {
   const [profileOpen, setProfileOpen] =
     useState(false);
+
+  // Which conversation's "..." menu is open (one at a time), and the
+  // sidebar-local notice used to show a failed pin -- notably the backend's
+  // "You can pin up to 3 projects. Unpin one to pin this." rejection.
+  const [menuId, setMenuId] = useState(null);
+  const [notice, setNotice] = useState("");
+
+  useEffect(() => {
+    if (!menuId) return undefined;
+
+    const closeOnOutside = (event) => {
+      if (!event.target.closest?.("[data-pin-menu]")) {
+        setMenuId(null);
+      }
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setMenuId(null);
+    };
+
+    document.addEventListener("mousedown", closeOnOutside);
+    document.addEventListener("touchstart", closeOnOutside);
+    document.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutside);
+      document.removeEventListener("touchstart", closeOnOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [menuId]);
+
+  useEffect(() => {
+    if (!notice) return undefined;
+    const timer = setTimeout(() => setNotice(""), 7000);
+    return () => clearTimeout(timer);
+  }, [notice]);
+
+  // Unpin is immediate and has no confirmation: it only clears the pin, it
+  // never deletes anything.
+  const handleTogglePin = async (conversation) => {
+    setMenuId(null);
+    setNotice("");
+
+    try {
+      if (isPinned(conversation)) {
+        await onUnpin?.(conversation);
+      } else {
+        await onPin?.(conversation);
+      }
+    } catch (error) {
+      setNotice(pinErrorMessage(error));
+    }
+  };
 
   const groups =
     groupConversations(
@@ -281,6 +297,21 @@ export default function ConversationSidebar({
         </div>
 
         <div className="sidebar-scroll">
+          {notice && (
+            <div className="sidebar-notice" role="alert">
+              <span>{notice}</span>
+
+              <button
+                type="button"
+                className="sidebar-notice-close"
+                aria-label="Dismiss"
+                onClick={() => setNotice("")}
+              >
+                ×
+              </button>
+            </div>
+          )}
+
           {loading && (
             <p className="sidebar-status">
               Loading conversations…
@@ -308,7 +339,21 @@ export default function ConversationSidebar({
               key={group.label}
               className="sidebar-group"
             >
-              <div className="sidebar-group-label">
+              <div
+                className={`sidebar-group-label ${
+                  group.key === "pinned"
+                    ? "pinned"
+                    : ""
+                }`}
+              >
+                {group.key === "pinned" && (
+                  <Pin
+                    size={12}
+                    strokeWidth={2.4}
+                    aria-hidden="true"
+                  />
+                )}
+
                 {group.label}
               </div>
 
@@ -335,6 +380,75 @@ export default function ConversationSidebar({
                       {conversation.title ||
                         "New Analysis"}
                     </button>
+
+                    <div
+                      className="sidebar-item-menu"
+                      data-pin-menu
+                    >
+                      <button
+                        type="button"
+                        className="sidebar-item-more"
+                        aria-label={`Options for ${
+                          conversation.title ||
+                          "conversation"
+                        }`}
+                        aria-haspopup="menu"
+                        aria-expanded={
+                          menuId ===
+                          conversation.id
+                        }
+                        onClick={() =>
+                          setMenuId((id) =>
+                            id ===
+                            conversation.id
+                              ? null
+                              : conversation.id
+                          )
+                        }
+                      >
+                        <Ellipsis
+                          size={16}
+                          aria-hidden="true"
+                        />
+                      </button>
+
+                      {menuId ===
+                        conversation.id && (
+                        <div
+                          className="sidebar-item-popover"
+                          role="menu"
+                        >
+                          <button
+                            type="button"
+                            role="menuitem"
+                            className="sidebar-item-popover-option"
+                            onClick={() =>
+                              handleTogglePin(
+                                conversation
+                              )
+                            }
+                          >
+                            {isPinned(
+                              conversation
+                            ) ? (
+                              <PinOff
+                                size={14}
+                                aria-hidden="true"
+                              />
+                            ) : (
+                              <Pin
+                                size={14}
+                                aria-hidden="true"
+                              />
+                            )}
+
+                            {isPinned(conversation)
+                              ? "Unpin"
+                              : "Pin to top"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
 
                     <button
                       type="button"
