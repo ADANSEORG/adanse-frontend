@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Coins,
   Ellipsis,
@@ -13,6 +13,109 @@ import {
   isPinned,
   pinErrorMessage,
 } from "../sidebarGroups.js";
+import { marqueeShift } from "../sidebarMarquee.js";
+
+/*
+ * A sidebar title that only moves when it has to. A title that fits is plain
+ * static text. One that doesn't is cut off with a soft right-edge fade at
+ * rest, and while `active` (row hovered, or its button keyboard-focused) it
+ * slides left by exactly its overflow so the end is readable, then slides
+ * back. All the motion is a CSS transform transition (see styles.css, where
+ * it's also switched off for touch devices and prefers-reduced-motion); this
+ * only measures.
+ */
+function MarqueeTitle({ text, active }) {
+  const clipRef = useRef(null);
+  const titleRef = useRef(null);
+  const [overflowing, setOverflowing] = useState(false);
+  // distance/duration persist after the pointer leaves so the slide back
+  // runs at the same constant speed; `on` is what actually triggers motion.
+  const [shift, setShift] = useState({
+    on: false,
+    distance: 0,
+    duration: 1.5,
+  });
+
+  // Whether the title overflows at rest (drives the fade). Re-measured when
+  // the container is resized, e.g. the sidebar changes width or the "..."/
+  // delete buttons take space. offsetWidth is the layout width, so it isn't
+  // thrown off by the transform while the title is mid-slide.
+  useEffect(() => {
+    const clip = clipRef.current;
+    const title = titleRef.current;
+    if (!clip || !title) return undefined;
+
+    const measure = () =>
+      setOverflowing(
+        marqueeShift(
+          title.offsetWidth,
+          clip.clientWidth
+        ) !== null
+      );
+
+    measure();
+
+    if (typeof ResizeObserver === "undefined") {
+      return undefined;
+    }
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(clip);
+    return () => observer.disconnect();
+  }, [text]);
+
+  // The distance to slide is measured when the title becomes active (on
+  // hover/focus), not cached, so it's right for the current width.
+  useEffect(() => {
+    if (!active) {
+      setShift((current) =>
+        current.on
+          ? { ...current, on: false }
+          : current
+      );
+      return;
+    }
+
+    const clip = clipRef.current;
+    const title = titleRef.current;
+    if (!clip || !title) return;
+
+    const next = marqueeShift(
+      title.offsetWidth,
+      clip.clientWidth
+    );
+
+    setShift(
+      next
+        ? { on: true, ...next }
+        : (current) =>
+            current.on
+              ? { ...current, on: false }
+              : current
+    );
+  }, [active, text]);
+
+  return (
+    <span
+      ref={clipRef}
+      className={`sidebar-item-title-clip${
+        overflowing ? " overflowing" : ""
+      }${shift.on ? " scrolling" : ""}`}
+      title={overflowing ? text : undefined}
+    >
+      <span
+        ref={titleRef}
+        className="sidebar-item-title"
+        style={{
+          "--marquee-x": `-${shift.distance}px`,
+          "--marquee-duration": `${shift.duration}s`,
+        }}
+      >
+        {text}
+      </span>
+    </span>
+  );
+}
 
 function getDisplayName(user) {
   const fullName =
@@ -167,6 +270,12 @@ export default function ConversationSidebar({
   // conversation history for good, so it never happens on a single click.
   const [confirmDeleteId, setConfirmDeleteId] =
     useState(null);
+
+  // Which row is hovered / keyboard-focused, so its title can slide. Only
+  // one row at a time. Kept here (not per row) because rows are rendered in
+  // a map.
+  const [hoverId, setHoverId] = useState(null);
+  const [focusId, setFocusId] = useState(null);
 
   useEffect(() => {
     if (!confirmDeleteId) return undefined;
@@ -440,6 +549,14 @@ export default function ConversationSidebar({
                         ? "active"
                         : ""
                     }`}
+                    onMouseEnter={() =>
+                      setHoverId(
+                        conversation.id
+                      )
+                    }
+                    onMouseLeave={() =>
+                      setHoverId(null)
+                    }
                   >
                     <button
                       type="button"
@@ -449,9 +566,38 @@ export default function ConversationSidebar({
                           conversation
                         )
                       }
+                      onFocus={(event) => {
+                        // Keyboard focus only -- a mouse click also
+                        // focuses the button, and that shouldn't set the
+                        // title moving.
+                        if (
+                          event.target.matches?.(
+                            ":focus-visible"
+                          )
+                        ) {
+                          setFocusId(
+                            conversation.id
+                          );
+                        }
+                      }}
+                      onBlur={() =>
+                        setFocusId(null)
+                      }
                     >
-                      {conversation.title ||
-                        "New Analysis"}
+                      <MarqueeTitle
+                        text={
+                          conversation.title ||
+                          "New Analysis"
+                        }
+                        active={
+                          (hoverId ===
+                            conversation.id ||
+                            focusId ===
+                              conversation.id) &&
+                          menuId !==
+                            conversation.id
+                        }
+                      />
                     </button>
 
                     <div
@@ -530,11 +676,16 @@ export default function ConversationSidebar({
                         conversation.title ||
                         "conversation"
                       }`}
-                      onClick={() =>
+                      onClick={() => {
+                        // The row is about to be replaced by the confirm, so
+                        // its mouse-leave will never fire: clear the title's
+                        // hover/focus state here or it could linger.
+                        setHoverId(null);
+                        setFocusId(null);
                         setConfirmDeleteId(
                           conversation.id
-                        )
-                      }
+                        );
+                      }}
                     >
                       ×
                     </button>
