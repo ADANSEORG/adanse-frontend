@@ -2015,6 +2015,134 @@ button {
   color: var(--ink);
 }
 
+/* ---- Pinned group + per-item "..." menu ---- */
+
+.sidebar-group-label.pinned {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sidebar-group-label.pinned svg {
+  color: var(--gold);
+}
+
+.sidebar-item-menu {
+  position: relative;
+  flex-shrink: 0;
+  /* Keeps a clear gap between "..." and the delete "x" next to it. */
+  margin-right: 6px;
+}
+
+.sidebar-item-more {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #a99c8b;
+  opacity: 0;
+  transition:
+    opacity 0.16s ease,
+    background 0.16s ease;
+}
+
+.sidebar-item:hover .sidebar-item-more,
+.sidebar-item.active .sidebar-item-more,
+.sidebar-item:focus-within .sidebar-item-more,
+.sidebar-item-more[aria-expanded="true"] {
+  opacity: 1;
+}
+
+.sidebar-item-more:hover,
+.sidebar-item-more[aria-expanded="true"] {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--ink);
+}
+
+/* Touch devices have no hover, so the menu button is always visible there
+   (no long-press). */
+@media (hover: none) {
+  .sidebar-item-more {
+    opacity: 1;
+  }
+}
+
+.sidebar-item-popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 30;
+  min-width: 152px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.sidebar-item-popover-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 40px;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sidebar-item-popover-option:hover,
+.sidebar-item-popover-option:focus-visible {
+  background: var(--gold-soft);
+  outline: none;
+}
+
+.sidebar-item-popover-option svg {
+  color: #9a7413;
+  flex-shrink: 0;
+}
+
+.sidebar-notice {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  background: var(--gold-soft);
+  border: 1px solid rgba(221, 166, 34, 0.5);
+  border-radius: 12px;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.sidebar-notice-close {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #8f8476;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sidebar-notice-close:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--ink);
+}
+
 /* =========================================================
    SIDEBAR ACCOUNT / PROFILE
    ========================================================= */

@@ -73,6 +73,8 @@ export default function App() {
     newChat,
     select,
     deleteChat,
+    pinChat,
+    unpinChat,
     saveSetup,
     file,
     validateDataset,
@@ -164,6 +166,8 @@ export default function App() {
         onNewChat={newChat}
         onSelect={select}
         onDelete={deleteChat}
+        onPin={pinChat}
+        onUnpin={unpinChat}
         user={user}
         onAccount={
           openAccount

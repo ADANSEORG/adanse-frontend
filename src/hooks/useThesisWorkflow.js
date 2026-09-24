@@ -4,6 +4,8 @@ import {
   listConversations,
   createConversation,
   deleteConversation,
+  pinConversation,
+  unpinConversation,
   getConversation,
   listMessages,
   addMessage,
@@ -29,6 +31,7 @@ import {
 
 import { friendly } from "../errors.js";
 import { finalizeConfirmationMessage } from "../qualitativeFinalizePolling.js";
+import { withPinnedAt } from "../sidebarGroups.js";
 
 /*
  * ---------------------------------------------------------
@@ -1024,6 +1027,29 @@ export function useThesisWorkflow({ user, authLoading }) {
 
   /*
    * ---------------------------------------------------------
+   * PIN / UNPIN CONVERSATION
+   * ---------------------------------------------------------
+   *
+   * These deliberately do NOT go through runAction/setError: the sidebar
+   * shows a failed pin (notably the backend's "You can pin up to 3
+   * projects..." rejection) right where the user acted, so they REJECT and
+   * let the sidebar display the message. On success only pinned_at changes
+   * locally -- never updated_at -- so an unpinned project falls back into
+   * its normal date group.
+   */
+
+  const pinChat = async (c) => {
+    const updated = await pinConversation(c.id);
+    setConversations((list) => withPinnedAt(list, c.id, updated?.pinned_at));
+  };
+
+  const unpinChat = async (c) => {
+    await unpinConversation(c.id);
+    setConversations((list) => withPinnedAt(list, c.id, null));
+  };
+
+  /*
+   * ---------------------------------------------------------
    * DOWNLOAD CHAPTER 4
    * ---------------------------------------------------------
    */
@@ -1089,6 +1115,8 @@ export function useThesisWorkflow({ user, authLoading }) {
     newChat,
     select,
     deleteChat,
+    pinChat,
+    unpinChat,
     saveSetup,
     file,
     validateDataset,
