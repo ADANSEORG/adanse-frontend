@@ -5072,3 +5072,51 @@ button {
     text-align: left;
   }
 }
+
+/* ---- Delete confirmation (inline, replaces the item until answered) ---- */
+
+.sidebar-item-confirm {
+  margin-bottom: 4px;
+  padding: 12px;
+  border: 1px solid rgba(166, 61, 50, 0.35);
+  border-radius: 12px;
+  background: rgba(255, 253, 248, 0.9);
+}
+
+.sidebar-item-confirm p {
+  margin: 0 0 10px;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.sidebar-item-confirm-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.sidebar-item-confirm-actions button {
+  flex: 1;
+  min-height: 38px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Cancel is the safe default: visually primary and auto-focused. */
+.sidebar-item-confirm-cancel {
+  border: 1px solid var(--gold);
+  background: var(--gold);
+  color: var(--ink);
+}
+
+.sidebar-item-confirm-delete {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: #a63d32;
+}
+
+.sidebar-item-confirm-delete:hover {
+  background: rgba(166, 61, 50, 0.08);
+}
