@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import {
   listConversations,
@@ -34,6 +35,11 @@ import { friendly } from "../errors.js";
 import { finalizeConfirmationMessage } from "../qualitativeFinalizePolling.js";
 import { withPinnedAt } from "../sidebarGroups.js";
 import { chapter4Gate } from "../chapter4Gate.js";
+import {
+  pathForSettingsView,
+  settingsBackTarget,
+  settingsViewForPath,
+} from "../viewRoutes.js";
 
 /*
  * ---------------------------------------------------------
@@ -80,6 +86,25 @@ async function runAction({ setBusy, setError, action, onError }) {
  * this returns.
  */
 export function useThesisWorkflow({ user, authLoading }) {
+  /*
+   * Account and Credits are routes (/account, /credits): the URL, not `step`,
+   * says whether one is showing, so a reload or a new tab stays on it and the
+   * browser's Back button leaves it. The project `step` below is untouched
+   * while one is open, so Back returns to exactly the screen that was up.
+   */
+  const navigate = useNavigate();
+  const location = useLocation();
+  const settingsView = settingsViewForPath(location.pathname);
+
+  // Leave a settings page for the project view (choosing or creating a
+  // project). Replaces the entry so Back doesn't return to the settings page
+  // the user just left.
+  const leaveSettings = () => {
+    if (settingsView) {
+      navigate("/", { replace: true });
+    }
+  };
+
   const [
     conversations,
     setConversations,
@@ -157,22 +182,12 @@ export function useThesisWorkflow({ user, authLoading }) {
    * review    = Dataset review (validate + activate)
    * workspace = Analysis
    * chapter4  = Chapter 4
-   * account   = Account
-   * credits   = Credits
+   *
+   * (Account and Credits are not steps: see settingsView above.)
    */
   const [
     step,
     setStep,
-  ] = useState("setup");
-
-  /*
-   * Used by Account and Credits so the Back button
-   * returns to whatever screen the user was on before
-   * opening the settings menu.
-   */
-  const [
-    returnStep,
-    setReturnStep,
   ] = useState("setup");
 
   const [
@@ -282,6 +297,7 @@ export function useThesisWorkflow({ user, authLoading }) {
 
         setStep("setup");
         setSidebarOpen(false);
+        leaveSettings();
       },
     });
   };
@@ -373,6 +389,7 @@ export function useThesisWorkflow({ user, authLoading }) {
         }
 
         setSidebarOpen(false);
+        leaveSettings();
       },
     });
   };
@@ -951,42 +968,53 @@ export function useThesisWorkflow({ user, authLoading }) {
    * ---------------------------------------------------------
    * ACCOUNT / CREDITS
    * ---------------------------------------------------------
+   *
+   * These are routes (/account, /credits), not steps. Opening one pushes a
+   * history entry, so the browser's Back button and the page's own Back button
+   * both return to the previous entry. The selected project and its `step`
+   * are not touched, so what comes back is exactly what was up before.
    */
+
+  const openSettings =
+    (view) => {
+      const path = pathForSettingsView(view);
+
+      setSidebarOpen(false);
+      setError("");
+
+      // Already there (e.g. Credits clicked while on Credits): don't stack a
+      // duplicate entry.
+      if (path && location.pathname !== path) {
+        navigate(path);
+      }
+    };
+
+  // The page's Back button. After a reload or a link opened in a new tab there
+  // is no earlier entry of ours to go back to, so it goes to the main page
+  // instead of leaving the app.
+  const backFromSettings =
+    () => {
+      setError("");
+
+      const target = settingsBackTarget(location.key);
+
+      if (target === -1) {
+        navigate(-1);
+      } else {
+        navigate(target, { replace: true });
+      }
+    };
 
   const openAccount =
     () => {
-      /*
-       * Remember exactly where
-       * the user was.
-       */
-      setReturnStep(step);
-
-      /*
-       * Open Account without
-       * changing the active
-       * research project.
-       */
-      setStep("account");
-      setSidebarOpen(false);
-      setError("");
+      openSettings("account");
     };
 
   const backFromAccount =
-    () => {
-      setError("");
-      setStep(
-        returnStep || "setup"
-      );
-    };
+    backFromSettings;
 
   const openCredits =
     async () => {
-      /*
-       * Remember exactly where
-       * the user was.
-       */
-      setReturnStep(step);
-
       /*
        * Refresh the balance before
        * opening Credits so the page
@@ -1014,23 +1042,11 @@ export function useThesisWorkflow({ user, authLoading }) {
         );
       }
 
-      /*
-       * Open Credits without
-       * changing the active
-       * research project.
-       */
-      setStep("credits");
-      setSidebarOpen(false);
-      setError("");
+      openSettings("credits");
     };
 
   const backFromCredits =
-    () => {
-      setError("");
-      setStep(
-        returnStep || "setup"
-      );
-    };
+    backFromSettings;
 
   /*
    * ---------------------------------------------------------
@@ -1167,6 +1183,8 @@ export function useThesisWorkflow({ user, authLoading }) {
     onQualitativeFinalized,
     goToChapter4,
     backToAnalysis,
+    settingsView,
+    leaveSettings,
     openAccount,
     backFromAccount,
     openCredits,
