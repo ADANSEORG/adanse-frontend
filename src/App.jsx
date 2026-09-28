@@ -621,6 +621,7 @@ export default function App() {
                       project.active_dataset_version_id ===
                         datasetVersion.id
                   )}
+                  costs={costs}
                   onValidate={validateDataset}
                   onActivate={activateDataset}
                   onApplyGroupings={applyGroupings}

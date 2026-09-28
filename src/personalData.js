@@ -90,15 +90,28 @@ export function canInclude(flag, version, loading = false) {
   );
 }
 
+// Said by both confirmations when the current version is active: replacing it
+// discards the researcher's analysis, and running it again is charged. The cost
+// is the backend's configured one (GET /credits' costs.analysis, passed in);
+// if it has not loaded, the sentence just leaves the cost out rather than
+// guess a number.
+export function resetSentence(rerunCost) {
+  const reset = "Your current analysis plan and results will be reset";
+  if (!Number.isFinite(rerunCost) || rerunCost < 0) return `${reset}.`;
+  if (rerunCost === 0) return `${reset}, and running the analysis again is free.`;
+  const credits = rerunCost === 1 ? "1 credit" : `${rerunCost} credits`;
+  return `${reset}, and running the analysis again costs ${credits}.`;
+}
+
 // What the confirmation says before personal data is let into reports.
-export function includeConfirmation(flag, versionIsActive = false) {
+export function includeConfirmation(flag, versionIsActive = false, rerunCost = null) {
   const lines = [
     `Include “${flag.column}” in your analysis and reports? It looks like ${flag.label}, ` +
       "and it may then appear in Chapter 4 tables. Only do this if it is not personal data.",
     "This creates a new dataset version that you will need to validate and activate.",
   ];
   if (versionIsActive) {
-    lines.push("Your current analysis plan and results will be reset.");
+    lines.push(resetSentence(rerunCost));
   }
   return lines.join(" ");
 }
@@ -122,14 +135,14 @@ export function canLeaveOut(flag, version, loading = false) {
   );
 }
 
-export function leaveOutConfirmation(flag, versionIsActive = false) {
+export function leaveOutConfirmation(flag, versionIsActive = false, rerunCost = null) {
   const lines = [
     `Leave \u201c${flag.column}\u201d out of your analysis and reports again? ` +
       "It will be excluded like other personal data.",
     "This creates a new dataset version that you will need to validate and activate.",
   ];
   if (versionIsActive) {
-    lines.push("Your current analysis plan and results will be reset.");
+    lines.push(resetSentence(rerunCost));
   }
   return lines.join(" ");
 }
@@ -145,10 +158,10 @@ export function actionRequest(flag) {
   return flagAction(flag) === "include" ? includeRequest(flag) : leaveOutRequest(flag);
 }
 
-export function actionConfirmation(flag, versionIsActive = false) {
+export function actionConfirmation(flag, versionIsActive = false, rerunCost = null) {
   return flagAction(flag) === "include"
-    ? includeConfirmation(flag, versionIsActive)
-    : leaveOutConfirmation(flag, versionIsActive);
+    ? includeConfirmation(flag, versionIsActive, rerunCost)
+    : leaveOutConfirmation(flag, versionIsActive, rerunCost);
 }
 
 export function actionAvailable(flag, version, loading = false) {
