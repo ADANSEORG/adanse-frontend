@@ -5197,9 +5197,18 @@ button {
   overflow-wrap: anywhere;
 }
 
+/* One shape for every row: the column name, and the reason on a second line
+   underneath it -- never beside it. (The base .dataset-variable-main lays its
+   children out in a wrapping row, which put a short reason beside the name and
+   a long one below it.) */
+.personal-data-main {
+  flex-direction: column;
+  align-items: flex-start;
+  flex-wrap: nowrap;
+  gap: 3px;
+}
+
 .personal-data-reason {
-  display: block;
-  margin-top: 3px;
   font-size: 13px;
   color: var(--muted, inherit);
 }

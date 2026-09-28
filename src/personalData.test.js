@@ -2,6 +2,13 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  actionAvailable,
+  actionConfirmation,
+  actionRequest,
+  canLeaveOut,
+  flagAction,
+  leaveOutConfirmation,
+  leaveOutRequest,
   canInclude,
   declaredTypeForInclude,
   excludedFlags,
@@ -108,4 +115,80 @@ test("the confirmation names the column and says what will happen", () => {
   assert.match(text, /validate and activate/);
   assert.doesNotMatch(text, /reset/);
   assert.match(includeConfirmation(flag, true), /plan and results will be reset/);
+});
+
+// ---------------------------------------------------------------------------
+// Leave out again
+// ---------------------------------------------------------------------------
+
+test("leaving out declares the column an identifier", () => {
+  const [, , included] = personalDataFlags(PROFILE);
+  assert.deepEqual(leaveOutRequest(included), { Age: "identifier" });
+});
+
+test("only an included column of a changeable version can be left out again", () => {
+  const [email, , included] = personalDataFlags(PROFILE);
+  assert.equal(canLeaveOut(included, { status: "cleaned" }), true);
+  assert.equal(canLeaveOut(included, { status: "validated" }), true);
+  assert.equal(canLeaveOut(included, { status: "failed" }), false);
+  assert.equal(canLeaveOut(included, { status: "superseded" }), false);
+  assert.equal(canLeaveOut(included, { kind: "original", status: "profiled" }), false);
+  assert.equal(canLeaveOut(included, { status: "cleaned" }, true), false); // busy
+  assert.equal(canLeaveOut(included, null), false);
+  assert.equal(canLeaveOut(email, { status: "cleaned" }), false); // already left out
+});
+
+test("the leave-out confirmation names the column, the new version, and the reset on an active version", () => {
+  const [, , included] = personalDataFlags(PROFILE);
+  const text = leaveOutConfirmation(included, false);
+  assert.match(text, /“Age”/);
+  assert.match(text, /out of your analysis and reports again/);
+  assert.match(text, /validate and activate/);
+  assert.doesNotMatch(text, /reset/);
+  assert.match(leaveOutConfirmation(included, true), /plan and results will be reset/);
+});
+
+test("each row offers exactly one action, and its request and wording follow from it", () => {
+  const [email, , included] = personalDataFlags(PROFILE);
+  assert.equal(flagAction(email), "include");
+  assert.equal(flagAction(included), "leave");
+
+  assert.deepEqual(actionRequest(email), { "Email address": "categorical" });
+  assert.deepEqual(actionRequest(included), { Age: "identifier" });
+
+  assert.match(actionConfirmation(email), /^Include /);
+  assert.match(actionConfirmation(included), /^Leave /);
+
+  const cleaned = { status: "cleaned" };
+  assert.equal(actionAvailable(email, cleaned), true);
+  assert.equal(actionAvailable(included, cleaned), true);
+  assert.equal(actionAvailable(email, { status: "failed" }), false);
+  assert.equal(actionAvailable(included, { status: "failed" }), false);
+});
+
+test("a column the researcher left out again is listed as left out, and can be included again", () => {
+  const profile = [
+    {
+      name: "Full name",
+      semantic_type: "categorical",
+      is_identifier: true,
+      personal_data: {
+        kind: "person_name",
+        label: "people's names",
+        by_researcher: true,
+        reason: "You chose to leave this column out. The column heading suggests people's names.",
+      },
+    },
+  ];
+  const [flag] = personalDataFlags(profile);
+  assert.equal(flag.excluded, true);
+  assert.equal(flag.byResearcher, true);
+  assert.match(flag.reason, /^You chose to leave this column out\./);
+  assert.equal(flagAction(flag), "include");
+  assert.deepEqual(actionRequest(flag), { "Full name": "categorical" });
+});
+
+test("an automatically excluded column is not marked as the researcher's choice", () => {
+  const [email] = personalDataFlags(PROFILE);
+  assert.equal(email.byResearcher, false);
 });

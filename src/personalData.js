@@ -30,6 +30,7 @@ export function personalDataFlags(profile) {
         label: entry.personal_data.label || entry.personal_data.kind,
         reason: entry.personal_data.reason || "",
         excluded: true,
+        byResearcher: Boolean(entry.personal_data.by_researcher),
         semanticType: entry.semantic_type,
       });
     } else if (entry?.personal_data_overridden) {
@@ -39,6 +40,7 @@ export function personalDataFlags(profile) {
         label: entry.personal_data_overridden,
         reason: "Flagged as possible personal data; you chose to include it.",
         excluded: false,
+        byResearcher: true,
         semanticType: entry.semantic_type,
       });
     }
@@ -99,4 +101,58 @@ export function includeConfirmation(flag, versionIsActive = false) {
     lines.push("Your current analysis plan and results will be reset.");
   }
   return lines.join(" ");
+}
+
+// "Leave out again": the reverse of including. Declares the column an
+// identifier, which the backend treats as excluded from analysis and reports
+// (and keeps listing as personal data, so it can be included again).
+export function leaveOutRequest(flag) {
+  return { [flag.column]: "identifier" };
+}
+
+// Only a column the researcher has included can be left out again.
+export function canLeaveOut(flag, version, loading = false) {
+  return Boolean(
+    flag &&
+      flag.excluded === false &&
+      !loading &&
+      version &&
+      version.kind !== "original" &&
+      CHANGEABLE_STATUSES.has(version.status || "cleaned")
+  );
+}
+
+export function leaveOutConfirmation(flag, versionIsActive = false) {
+  const lines = [
+    `Leave \u201c${flag.column}\u201d out of your analysis and reports again? ` +
+      "It will be excluded like other personal data.",
+    "This creates a new dataset version that you will need to validate and activate.",
+  ];
+  if (versionIsActive) {
+    lines.push("Your current analysis plan and results will be reset.");
+  }
+  return lines.join(" ");
+}
+
+// One action per flag, so the row and its confirmation always agree on what a
+// click will do: "include" for a column that is left out, "leave" for one that
+// was included.
+export function flagAction(flag) {
+  return flag?.excluded ? "include" : "leave";
+}
+
+export function actionRequest(flag) {
+  return flagAction(flag) === "include" ? includeRequest(flag) : leaveOutRequest(flag);
+}
+
+export function actionConfirmation(flag, versionIsActive = false) {
+  return flagAction(flag) === "include"
+    ? includeConfirmation(flag, versionIsActive)
+    : leaveOutConfirmation(flag, versionIsActive);
+}
+
+export function actionAvailable(flag, version, loading = false) {
+  return flagAction(flag) === "include"
+    ? canInclude(flag, version, loading)
+    : canLeaveOut(flag, version, loading);
 }
