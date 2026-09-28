@@ -1953,6 +1953,12 @@ button {
 }
 
 .sidebar-item {
+  /* The pin and delete buttons are overlaid on the right edge of the row
+     (absolutely positioned), so at rest they take no space and the title runs
+     the full width. --item-icons-w is the strip they cover: the two 34px
+     buttons, their offsets from the edge, and a small gap before the text. */
+  --item-icons-w: 89px;
+  position: relative;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -1978,7 +1984,9 @@ button {
   border: 0;
   background: transparent;
   color: var(--ink);
-  padding: 12px;
+  /* No right padding: the title window runs to the row's right edge, where its
+     fade is. */
+  padding: 12px 0 12px 12px;
   text-align: left;
   font-size: 14px;
   line-height: 1.35;
@@ -2000,13 +2008,30 @@ button {
 @property --marquee-fade-right {
   syntax: "<length>";
   inherits: false;
-  initial-value: 24px;
+  initial-value: 28px;
 }
 
 .sidebar-item-title-clip {
   display: block;
   overflow: hidden;
   white-space: nowrap;
+}
+
+/* While the icons are showing (row hovered, selected, or focused) the window
+   ends where they begin, so no title text runs underneath them. It is the
+   window's real width -- the same one the component measures for the fade, the
+   slide and the full-title tooltip -- so those stay correct. At rest nothing is
+   reserved. Touch devices show the pin all the time, so they always reserve. */
+.sidebar-item:hover .sidebar-item-title-clip,
+.sidebar-item.active .sidebar-item-title-clip,
+.sidebar-item:focus-within .sidebar-item-title-clip {
+  margin-right: var(--item-icons-w);
+}
+
+@media (hover: none) {
+  .sidebar-item-title-clip {
+    margin-right: var(--item-icons-w);
+  }
 }
 
 .sidebar-item-title {
@@ -2016,11 +2041,11 @@ button {
   transition: transform var(--marquee-duration, 1.5s) linear 0s;
 }
 
-/* Only titles that overflow get the fade. At rest that's the right edge only
-   (left fade is 0px, i.e. a hard edge). No ellipsis. */
+/* Only titles that overflow get the fade. At rest that's a short fade on the
+   right edge only (left fade is 0px, i.e. a hard edge). No ellipsis. */
 .sidebar-item-title-clip.overflowing {
   --marquee-fade-left: 0px;
-  --marquee-fade-right: 24px;
+  --marquee-fade-right: 28px;
   -webkit-mask-image: linear-gradient(
     to right,
     transparent 0,
@@ -2058,27 +2083,35 @@ button {
   }
 }
 
+/* The delete "x" and the pin are overlaid on the row's right edge, out of the
+   layout: nothing is reserved for them at rest. They are invisible AND inert
+   until the row is hovered, selected or focused -- otherwise they would sit,
+   clickable, over the end of the title. */
 .sidebar-item-delete {
-  flex-shrink: 0;
+  position: absolute;
+  top: 0;
+  right: 5px;
+  bottom: 0;
   width: 34px;
   height: 34px;
-  margin-right: 5px;
+  margin: auto 0;
   border: 0;
   border-radius: 9px;
   background: transparent;
   color: #a99c8b;
   font-size: 16px;
   opacity: 0;
+  pointer-events: none;
   transition:
     opacity 0.16s ease,
     background 0.16s ease;
 }
 
-.sidebar-item:hover
-.sidebar-item-delete,
-.sidebar-item.active
-.sidebar-item-delete {
+.sidebar-item:hover .sidebar-item-delete,
+.sidebar-item.active .sidebar-item-delete,
+.sidebar-item:focus-within .sidebar-item-delete {
   opacity: 1;
+  pointer-events: auto;
 }
 
 .sidebar-item-delete:hover {
@@ -2101,16 +2134,20 @@ button {
 .sidebar-item-pin {
   display: grid;
   place-items: center;
-  flex-shrink: 0;
+  /* Overlaid just left of the delete "x" (5px + 34px + a 10px gap). */
+  position: absolute;
+  top: 0;
+  right: 49px;
+  bottom: 0;
   width: 34px;
   height: 34px;
-  /* Clear gap before the delete "x" next to it. */
-  margin-right: 6px;
+  margin: auto 0;
   border: 0;
   border-radius: 9px;
   background: transparent;
   color: #a99c8b;
   opacity: 0;
+  pointer-events: none;
   cursor: pointer;
   transition:
     opacity 0.16s ease,
@@ -2122,6 +2159,7 @@ button {
 .sidebar-item.active .sidebar-item-pin,
 .sidebar-item:focus-within .sidebar-item-pin {
   opacity: 1;
+  pointer-events: auto;
 }
 
 .sidebar-item-pin:hover {
@@ -2139,10 +2177,12 @@ button {
   cursor: default;
 }
 
-/* Touch devices have no hover, so the pin button is always visible there. */
+/* Touch devices have no hover, so the pin button is always visible there (and
+   the title window always leaves room for it, see above). */
 @media (hover: none) {
   .sidebar-item-pin {
     opacity: 1;
+    pointer-events: auto;
   }
 }
 
