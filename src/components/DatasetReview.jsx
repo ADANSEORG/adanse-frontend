@@ -1,9 +1,10 @@
 import { useState } from "react";
 
 import {
-  canInclude,
-  includeConfirmation,
-  includeRequest,
+  actionAvailable,
+  actionConfirmation,
+  actionRequest,
+  flagAction,
   personalDataFlags,
   personalDataHeadline,
 } from "../personalData.js";
@@ -317,12 +318,14 @@ export default function DatasetReview({
 
   const personalFlags = personalDataFlags(version.profile);
 
-  async function handleInclude(flag) {
+  // Include a left-out column, or leave an included one out again: both declare
+  // a type as a new dataset version (see personalData.js).
+  async function handleChange(flag) {
     if (!onDeclareColumnTypes || includingColumn) return;
 
     setIncludingColumn(flag.column);
     try {
-      await onDeclareColumnTypes(includeRequest(flag));
+      await onDeclareColumnTypes(actionRequest(flag));
       setConfirmingColumn(null);
     } finally {
       setIncludingColumn(null);
@@ -597,14 +600,12 @@ export default function DatasetReview({
                   className="dataset-variable-row personal-data-row"
                   key={flag.column}
                 >
-                  <div className="dataset-variable-main">
+                  <div className="dataset-variable-main personal-data-main">
                     <strong className="personal-data-column">
                       {flag.column}
                     </strong>
                     <span className="personal-data-reason">
-                      {flag.excluded
-                        ? `Left out — ${flag.reason}`
-                        : flag.reason}
+                      {flag.reason}
                     </span>
                   </div>
 
@@ -617,7 +618,7 @@ export default function DatasetReview({
                       {flag.excluded ? "Left out" : "Included"}
                     </span>
 
-                    {canInclude(flag, version, loading || Boolean(includingColumn)) &&
+                    {actionAvailable(flag, version, loading || Boolean(includingColumn)) &&
                       onDeclareColumnTypes &&
                       !confirming && (
                         <button
@@ -625,14 +626,16 @@ export default function DatasetReview({
                           type="button"
                           onClick={() => setConfirmingColumn(flag.column)}
                         >
-                          Include anyway
+                          {flagAction(flag) === "include"
+                            ? "Include anyway"
+                            : "Leave out again"}
                         </button>
                       )}
                   </div>
 
                   {confirming && (
                     <div className="personal-data-confirm" role="alert">
-                      <p>{includeConfirmation(flag, active)}</p>
+                      <p>{actionConfirmation(flag, active)}</p>
                       <div className="personal-data-confirm-actions">
                         <button
                           className="btn btn-tertiary"
@@ -645,10 +648,14 @@ export default function DatasetReview({
                         <button
                           className="btn btn-primary"
                           type="button"
-                          onClick={() => handleInclude(flag)}
+                          onClick={() => handleChange(flag)}
                           disabled={busy}
                         >
-                          {busy ? "Including…" : "Yes, include this column"}
+                          {busy
+                            ? "Working…"
+                            : flagAction(flag) === "include"
+                              ? "Yes, include this column"
+                              : "Yes, leave it out"}
                         </button>
                       </div>
                     </div>
