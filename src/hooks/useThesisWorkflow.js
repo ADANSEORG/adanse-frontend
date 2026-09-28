@@ -19,6 +19,7 @@ import {
   validateDatasetVersion,
   activateDatasetVersion,
   applyDatasetGroupings,
+  declareColumnTypes,
   saveCategoryOrder,
   clearCategoryOrder,
   buildAnalysisPlan,
@@ -536,6 +537,35 @@ export function useThesisWorkflow({ user, authLoading }) {
           active.id,
           datasetVersion.id,
           groupings
+        );
+
+        setDatasetVersion(result.version);
+      },
+    });
+  };
+
+  /*
+   * ---------------------------------------------------------
+   * DECLARE COLUMN TYPES (e.g. include a column that was left
+   * out as personal data)
+   *
+   * Like applyGroupings, this creates a new cleaned dataset
+   * version -- it never mutates datasetVersion in place -- and the
+   * new version needs its own validate + activate.
+   * ---------------------------------------------------------
+   */
+
+  const declareTypes = async (columns) => {
+    if (!active || !datasetVersion) return;
+
+    await runAction({
+      setBusy: () => {},
+      setError,
+      action: async () => {
+        const result = await declareColumnTypes(
+          active.id,
+          datasetVersion.id,
+          columns
         );
 
         setDatasetVersion(result.version);
@@ -1121,6 +1151,7 @@ export function useThesisWorkflow({ user, authLoading }) {
     file,
     validateDataset,
     applyGroupings,
+    declareTypes,
     saveColumnCategoryOrder,
     clearColumnCategoryOrder,
     activateDataset,
