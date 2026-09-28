@@ -16,6 +16,7 @@ import {
   orderHasChanged,
   orderStatusLabel,
 } from "../categoryOrder.js";
+import { stepLabel, stepReason } from "../cleaningSteps.js";
 
 function formatVariableName(name) {
   if (!name) return "";
@@ -489,30 +490,42 @@ export default function DatasetReview({
           </div>
 
           <div className="dataset-variable-list">
-            {actionsApplied.map((action, index) => (
-              <div
-                className="dataset-variable-row clean"
-                key={`${action.rule || "action"}-${index}`}
-              >
-                <div className="dataset-variable-main">
-                  <strong>
-                    {formatRuleLabel(action.rule)}
-                  </strong>
-                  {action.column && (
-                    <span className="dataset-type-badge">
-                      {formatVariableName(action.column)}
-                    </span>
-                  )}
-                </div>
+            {actionsApplied.map((action, index) => {
+              const reason = stepReason(action);
+              return (
+                <div
+                  className="dataset-variable-row clean"
+                  key={`${action.rule || "action"}-${index}`}
+                >
+                  <div
+                    className={
+                      reason
+                        ? "dataset-variable-main personal-data-main"
+                        : "dataset-variable-main"
+                    }
+                  >
+                    <strong>
+                      {stepLabel(action.rule) || formatRuleLabel(action.rule)}
+                    </strong>
+                    {action.column && (
+                      <span className="dataset-type-badge">
+                        {formatVariableName(action.column)}
+                      </span>
+                    )}
+                    {reason && (
+                      <span className="personal-data-reason">{reason}</span>
+                    )}
+                  </div>
 
-                <div className="dataset-variable-status">
-                  <span className="dataset-status clean">
-                    {action.affected_rows ?? 0} rows ·{" "}
-                    {action.affected_values ?? 0} values
-                  </span>
+                  <div className="dataset-variable-status">
+                    <span className="dataset-status clean">
+                      {action.affected_rows ?? 0} rows ·{" "}
+                      {action.affected_values ?? 0} values
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
