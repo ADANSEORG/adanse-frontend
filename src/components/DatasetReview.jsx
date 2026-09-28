@@ -211,6 +211,7 @@ const STATUS_COPY = {
 export default function DatasetReview({
   version,
   active,
+  costs,
   onValidate,
   onActivate,
   onReplace,
@@ -648,7 +649,7 @@ export default function DatasetReview({
 
                   {confirming && (
                     <div className="personal-data-confirm" role="alert">
-                      <p>{actionConfirmation(flag, active)}</p>
+                      <p>{actionConfirmation(flag, active, costs?.analysis)}</p>
                       <div className="personal-data-confirm-actions">
                         <button
                           className="btn btn-tertiary"

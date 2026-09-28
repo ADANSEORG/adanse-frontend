@@ -16,6 +16,7 @@ import {
   includeRequest,
   personalDataFlags,
   personalDataHeadline,
+  resetSentence,
 } from "./personalData.js";
 
 const PROFILE = [
@@ -115,6 +116,45 @@ test("the confirmation names the column and says what will happen", () => {
   assert.match(text, /validate and activate/);
   assert.doesNotMatch(text, /reset/);
   assert.match(includeConfirmation(flag, true), /plan and results will be reset/);
+});
+
+// ---------------------------------------------------------------------------
+// The reset sentence (active version only)
+// ---------------------------------------------------------------------------
+
+test("the reset sentence says the plan and results are reset and what re-running costs", () => {
+  assert.equal(
+    resetSentence(25),
+    "Your current analysis plan and results will be reset, and running the analysis again costs 25 credits."
+  );
+  assert.match(resetSentence(1), /costs 1 credit\./);
+  assert.match(resetSentence(0), /again is free\./);
+});
+
+test("the cost comes from the value passed in, never a fixed number", () => {
+  assert.match(resetSentence(40), /costs 40 credits/);
+  assert.doesNotMatch(resetSentence(40), /25/);
+});
+
+test("without a loaded cost the sentence still says what is reset, and names no number", () => {
+  for (const missing of [null, undefined, NaN, -1, "25"]) {
+    assert.equal(resetSentence(missing), "Your current analysis plan and results will be reset.");
+  }
+});
+
+test("both confirmations carry the cost on an active version and mention neither when inactive", () => {
+  const [email, , included] = personalDataFlags(PROFILE);
+  for (const [flag, confirm] of [
+    [email, includeConfirmation],
+    [included, leaveOutConfirmation],
+  ]) {
+    assert.match(confirm(flag, true, 25), /plan and results will be reset, and running the analysis again costs 25 credits\.$/);
+    assert.doesNotMatch(confirm(flag, false, 25), /reset|credit/);
+    assert.match(confirm(flag, true), /plan and results will be reset\.$/); // cost not loaded
+  }
+  // actionConfirmation passes the cost through to whichever one applies.
+  assert.match(actionConfirmation(email, true, 25), /costs 25 credits/);
+  assert.match(actionConfirmation(included, true, 25), /costs 25 credits/);
 });
 
 // ---------------------------------------------------------------------------
