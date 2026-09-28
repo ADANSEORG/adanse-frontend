@@ -79,6 +79,7 @@ export default function App() {
     file,
     validateDataset,
     applyGroupings,
+    declareTypes,
     saveColumnCategoryOrder,
     clearColumnCategoryOrder,
     activateDataset,
@@ -623,6 +624,7 @@ export default function App() {
                   onValidate={validateDataset}
                   onActivate={activateDataset}
                   onApplyGroupings={applyGroupings}
+                  onDeclareColumnTypes={declareTypes}
                   onSaveCategoryOrder={saveColumnCategoryOrder}
                   onClearCategoryOrder={clearColumnCategoryOrder}
                   onReplace={() =>

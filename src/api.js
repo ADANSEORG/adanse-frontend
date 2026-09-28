@@ -375,6 +375,26 @@ export const applyDatasetGroupings = (
   );
 
 /*
+ * Declare what some columns are (dataset review step). Used to include a
+ * column that was left out as personal data. Creates a NEW dataset version --
+ * like apply-groupings -- that still has to be validated and activated.
+ */
+export const declareColumnTypes = (
+  id,
+  versionId,
+  columns
+) =>
+  request(
+    `/thesis/projects/${id}/datasets/${versionId}/column-types`,
+    {
+      method: "POST",
+      body: {
+        columns,
+      },
+    }
+  );
+
+/*
  * Manual category display order (dataset review step). Display only --
  * never changes analysis results, only how Chapter 4 orders that
  * column's categories the next time it's generated.

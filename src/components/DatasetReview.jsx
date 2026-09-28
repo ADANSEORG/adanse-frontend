@@ -1,6 +1,13 @@
 import { useState } from "react";
 
 import {
+  canInclude,
+  includeConfirmation,
+  includeRequest,
+  personalDataFlags,
+  personalDataHeadline,
+} from "../personalData.js";
+import {
   orderableColumns,
   moveUp,
   moveDown,
@@ -206,6 +213,7 @@ export default function DatasetReview({
   onActivate,
   onReplace,
   onApplyGroupings,
+  onDeclareColumnTypes,
   onSaveCategoryOrder,
   onClearCategoryOrder,
   loading,
@@ -213,6 +221,8 @@ export default function DatasetReview({
 }) {
   const [groupSelections, setGroupSelections] = useState({});
   const [applyingGroupings, setApplyingGroupings] = useState(false);
+  const [confirmingColumn, setConfirmingColumn] = useState(null);
+  const [includingColumn, setIncludingColumn] = useState(null);
 
   if (!version) {
     return null;
@@ -304,6 +314,20 @@ export default function DatasetReview({
 
   const categoryOrderColumns = orderableColumns(version.profile);
   const categoryOrders = version.category_orders || {};
+
+  const personalFlags = personalDataFlags(version.profile);
+
+  async function handleInclude(flag) {
+    if (!onDeclareColumnTypes || includingColumn) return;
+
+    setIncludingColumn(flag.column);
+    try {
+      await onDeclareColumnTypes(includeRequest(flag));
+      setConfirmingColumn(null);
+    } finally {
+      setIncludingColumn(null);
+    }
+  }
 
   async function handleApplyGroupings() {
     if (!onApplyGroupings) return;
@@ -532,6 +556,106 @@ export default function DatasetReview({
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================
+          PERSONAL DATA. Columns that look like personal data (email,
+          name, phone, ID...) are left out of analysis and Chapter 4 by
+          default. Listed here with the reason, and the researcher can
+          include one that was flagged by mistake (a new dataset
+          version). Renders nothing when no column was flagged.
+          ===================================================== */}
+
+      {personalFlags.length > 0 && (
+        <div className="dataset-variables personal-data-section">
+          <div className="dataset-variables-heading">
+            <div>
+              <div className="dataset-profile-kicker">
+                PERSONAL DATA
+              </div>
+              <h3>{personalDataHeadline(personalFlags)}</h3>
+            </div>
+            <span>{personalFlags.length} flagged</span>
+          </div>
+
+          <p className="dataset-grouping-note">
+            Adanse leaves columns that look like personal data (emails,
+            names, phone numbers, ID numbers) out of your analysis and out
+            of Chapter 4, so respondents cannot be identified from your
+            report. If a column was flagged by mistake, you can include it.
+          </p>
+
+          <div className="dataset-variable-list">
+            {personalFlags.map((flag) => {
+              const confirming = confirmingColumn === flag.column;
+              const busy = includingColumn === flag.column;
+
+              return (
+                <div
+                  className="dataset-variable-row personal-data-row"
+                  key={flag.column}
+                >
+                  <div className="dataset-variable-main">
+                    <strong className="personal-data-column">
+                      {flag.column}
+                    </strong>
+                    <span className="personal-data-reason">
+                      {flag.excluded
+                        ? `Left out — ${flag.reason}`
+                        : flag.reason}
+                    </span>
+                  </div>
+
+                  <div className="dataset-variable-status">
+                    <span
+                      className={`dataset-status ${
+                        flag.excluded ? "warning" : "clean"
+                      }`}
+                    >
+                      {flag.excluded ? "Left out" : "Included"}
+                    </span>
+
+                    {canInclude(flag, version, loading || Boolean(includingColumn)) &&
+                      onDeclareColumnTypes &&
+                      !confirming && (
+                        <button
+                          className="btn btn-tertiary"
+                          type="button"
+                          onClick={() => setConfirmingColumn(flag.column)}
+                        >
+                          Include anyway
+                        </button>
+                      )}
+                  </div>
+
+                  {confirming && (
+                    <div className="personal-data-confirm" role="alert">
+                      <p>{includeConfirmation(flag, active)}</p>
+                      <div className="personal-data-confirm-actions">
+                        <button
+                          className="btn btn-tertiary"
+                          type="button"
+                          onClick={() => setConfirmingColumn(null)}
+                          disabled={busy}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          className="btn btn-primary"
+                          type="button"
+                          onClick={() => handleInclude(flag)}
+                          disabled={busy}
+                        >
+                          {busy ? "Including…" : "Yes, include this column"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
