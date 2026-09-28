@@ -5213,6 +5213,13 @@ button {
   color: var(--muted, inherit);
 }
 
+/* The columns one cleaning step touched (a rating scale can cover many). */
+.dataset-step-columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .personal-data-confirm {
   grid-column: 1 / -1;
   margin-top: 10px;

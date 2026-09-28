@@ -21,3 +21,73 @@ export function stepReason(action) {
   if (!action || !EXPLAINED_STEPS[action.rule]) return "";
   return typeof action.reason === "string" ? action.reason.trim() : "";
 }
+
+// The backend records one score_rating_grid action per column, each repeating
+// the same scale. Their reasons also name that column's own hidden copy of the
+// original words, so a merged row cannot reuse one of them: it is worded here
+// from the shared fields, and only for a real group.
+function groupedRatingReason(members) {
+  const first = members[0];
+  const scale = Array.isArray(first.scale) ? first.scale : [];
+  if (scale.length < 2 || !first.scale_name) return stepReason(first);
+  return (
+    `${members.length} questions were answered on the same ${scale.length}-point ` +
+    `${first.scale_name} scale (${scale[0]} to ${scale[scale.length - 1]}), so the ` +
+    `answers were converted to scores 1 to ${scale.length} (by position on the scale). ` +
+    "The original words are kept in the file but left out of analysis. " +
+    "A negatively worded statement is scored the same way and must be reversed by you."
+  );
+}
+
+function ratingGridKey(action) {
+  return JSON.stringify([action.scale_name, action.grid_columns ?? action.scale ?? null]);
+}
+
+// What "What Adanse already fixed" lists, from the backend's applied actions:
+//  - a step that changed 0 rows is left out (nothing happened, so nothing to
+//    report), and
+//  - the rating-scale steps of one grid become a single entry listing its
+//    columns, in the position of the grid's first column.
+// Each entry: { key, rule, columns, reason, rows, values }. A grouped entry has
+// rows: null, because the columns' row counts overlap and cannot be added.
+export function appliedSteps(actions) {
+  const list = Array.isArray(actions) ? actions : [];
+  const steps = [];
+  const grids = new Map();
+
+  list.forEach((action, index) => {
+    if (!action || !((action.affected_rows ?? 0) > 0)) return;
+
+    const single = {
+      key: `${action.rule || "action"}-${index}`,
+      rule: action.rule,
+      columns: action.column ? [action.column] : [],
+      reason: stepReason(action),
+      rows: action.affected_rows,
+      values: action.affected_values ?? 0,
+    };
+
+    if (action.rule !== "score_rating_grid") {
+      steps.push(single);
+      return;
+    }
+
+    const gridKey = ratingGridKey(action);
+    const group = grids.get(gridKey);
+    if (!group) {
+      grids.set(gridKey, { step: single, members: [action] });
+      steps.push(single);
+      return;
+    }
+    group.members.push(action);
+    group.step.columns.push(...single.columns);
+    group.step.values += single.values;
+  });
+
+  for (const { step, members } of grids.values()) {
+    if (members.length === 1) continue;
+    step.reason = groupedRatingReason(members);
+    step.rows = null;
+  }
+  return steps;
+}
