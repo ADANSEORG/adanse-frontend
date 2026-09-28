@@ -9,6 +9,7 @@ import {
   hasStaleResults,
 } from "../analysisOverride.js";
 import { chapter4AffordabilityWarning } from "../qualitativeFinalizePolling.js";
+import { QUALITATIVE_AI_NOTICE } from "../aiNotice.js";
 import {
   analysisStatus,
   columnLabel,
@@ -225,6 +226,12 @@ function QualitativeDataSelector({ detectedColumns, selectedColumns, columnObjec
         are still analysed in full; their themes appear as general qualitative findings without objective
         attribution.
       </p>
+      <div className="analysis-warning ai-provider-notice" role="note">
+        <strong>{QUALITATIVE_AI_NOTICE.heading}</strong>
+        {QUALITATIVE_AI_NOTICE.paragraphs.map((paragraph) => (
+          <span key={paragraph}>{paragraph}</span>
+        ))}
+      </div>
       <div className="analysis-action-bar">
         <div>
           <strong>{checked.size} of {detectedColumns.length} columns selected</strong>

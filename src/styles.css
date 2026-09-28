@@ -3402,6 +3402,19 @@ button {
   font-size: 12px;
 }
 
+/* Informational (not an error): stacked paragraphs on a neutral background. */
+.analysis-warning.ai-provider-notice {
+  flex-direction: column;
+  gap: 6px;
+  border-color: var(--line);
+  background: var(--surface);
+  color: inherit;
+}
+
+.analysis-warning.ai-provider-notice strong {
+  font-size: 13px;
+}
+
 /* =========================================================
    ANALYSIS OVERRIDE
    ========================================================= */
