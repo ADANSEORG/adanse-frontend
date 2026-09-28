@@ -9,6 +9,7 @@ import {
   hasStaleResults,
 } from "../analysisOverride.js";
 import { chapter4AffordabilityWarning } from "../qualitativeFinalizePolling.js";
+import { chapter4Gate } from "../chapter4Gate.js";
 import {
   analysisStatus,
   columnLabel,
@@ -743,22 +744,8 @@ export default function ThesisWorkspace({ project, upload, plan, analysis, onBui
       )}
 
       {hasResults && (() => {
-        const pendingReview =
-          (analysis?.objective_results || []).some((objective) =>
-            (objective.analyses || []).some((item) => item.status === "needs_review")
-          ) ||
-          (analysis?.qualitative_results || []).some((entry) => entry.status === "needs_review");
-        const stale = hasStaleResults(analysis);
-        const blocked = pendingReview || stale;
-        let message = "Review the findings above, then generate Chapter 4.";
-        let heading = "Analysis complete.";
-        if (pendingReview) {
-          heading = "Finish reviewing themes above.";
-          message = "Chapter 4 can't be generated until every qualitative data source's themes are finalized.";
-        } else if (stale) {
-          heading = "Results out of date.";
-          message = "Run analysis again to update the variables you changed before generating Chapter 4.";
-        }
+        // The same rule the header's "Continue to Chapter 4" link uses.
+        const { blocked, heading, message } = chapter4Gate(analysis);
 
         // Not a block -- Chapter4.jsx's own CreditActionButton is what
         // actually gates the download. This is an earlier, plainer heads

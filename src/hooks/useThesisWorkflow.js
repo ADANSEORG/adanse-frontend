@@ -33,6 +33,7 @@ import {
 import { friendly } from "../errors.js";
 import { finalizeConfirmationMessage } from "../qualitativeFinalizePolling.js";
 import { withPinnedAt } from "../sidebarGroups.js";
+import { chapter4Gate } from "../chapter4Gate.js";
 
 /*
  * ---------------------------------------------------------
@@ -924,7 +925,11 @@ export function useThesisWorkflow({ user, authLoading }) {
 
   const goToChapter4 =
     () => {
-      if (!analysis) return;
+      // Every way in -- the header link and the action bar -- passes through
+      // here, so the shared rule is enforced once more at the door: not while
+      // a qualitative finalize is running or a source is unfinalized, and not
+      // while results are out of date (the server refuses the chapter then too).
+      if (chapter4Gate(analysis).blocked) return;
 
       setError("");
       setStep("chapter4");

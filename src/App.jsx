@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 
 import { useAuth } from "./AuthContext.jsx";
 import { useThesisWorkflow } from "./hooks/useThesisWorkflow.js";
+import { chapter4Gate } from "./chapter4Gate.js";
 
 import AuthScreen from "./components/AuthScreen.jsx";
 import WelcomeModal from "./components/WelcomeModal.jsx";
@@ -138,6 +139,12 @@ export default function App() {
 
   const isChapter4 =
     step === "chapter4";
+
+  // One rule for every way into Chapter 4 (this header link and the action bar
+  // under the findings): not while a qualitative finalize is running or a
+  // source is unfinalized, and not while results are out of date.
+  const chapter4Access =
+    chapter4Gate(analysis);
 
   const isAccount =
     step === "account";
@@ -277,6 +284,14 @@ export default function App() {
                   className="flow-continue"
                   onClick={
                     goToChapter4
+                  }
+                  disabled={
+                    chapter4Access.blocked
+                  }
+                  title={
+                    chapter4Access.blocked
+                      ? chapter4Access.message
+                      : undefined
                   }
                 >
                   <span>

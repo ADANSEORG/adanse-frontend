@@ -200,8 +200,15 @@ button {
   font-weight: 700;
 }
 
-.flow-continue:hover {
+.flow-continue:hover:not(:disabled) {
   color: var(--green);
+}
+
+/* Blocked (a qualitative finalize is running, or results are out of date): still
+   visible, so the researcher can see it and read why in its tooltip. */
+.flow-continue:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .flow-current {
