@@ -5190,3 +5190,52 @@ button {
 .sidebar-item-confirm-delete:hover {
   background: rgba(166, 61, 50, 0.08);
 }
+
+/* Dataset review: personal-data section */
+.personal-data-column {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* One shape for every row: the column name, and the reason on a second line
+   underneath it -- never beside it. (The base .dataset-variable-main lays its
+   children out in a wrapping row, which put a short reason beside the name and
+   a long one below it.) */
+.personal-data-main {
+  flex-direction: column;
+  align-items: flex-start;
+  flex-wrap: nowrap;
+  gap: 3px;
+}
+
+.personal-data-reason {
+  font-size: 13px;
+  color: var(--muted, inherit);
+}
+
+/* The columns one cleaning step touched (a rating scale can cover many). */
+.dataset-step-columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.personal-data-confirm {
+  grid-column: 1 / -1;
+  margin-top: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.personal-data-confirm p {
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+
+.personal-data-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}

@@ -1,6 +1,14 @@
 import { useState } from "react";
 
 import {
+  actionAvailable,
+  actionConfirmation,
+  actionRequest,
+  flagAction,
+  personalDataFlags,
+  personalDataHeadline,
+} from "../personalData.js";
+import {
   orderableColumns,
   moveUp,
   moveDown,
@@ -8,6 +16,7 @@ import {
   orderHasChanged,
   orderStatusLabel,
 } from "../categoryOrder.js";
+import { appliedSteps, stepLabel } from "../cleaningSteps.js";
 
 function formatVariableName(name) {
   if (!name) return "";
@@ -202,10 +211,12 @@ const STATUS_COPY = {
 export default function DatasetReview({
   version,
   active,
+  costs,
   onValidate,
   onActivate,
   onReplace,
   onApplyGroupings,
+  onDeclareColumnTypes,
   onSaveCategoryOrder,
   onClearCategoryOrder,
   loading,
@@ -213,6 +224,8 @@ export default function DatasetReview({
 }) {
   const [groupSelections, setGroupSelections] = useState({});
   const [applyingGroupings, setApplyingGroupings] = useState(false);
+  const [confirmingColumn, setConfirmingColumn] = useState(null);
+  const [includingColumn, setIncludingColumn] = useState(null);
 
   if (!version) {
     return null;
@@ -228,11 +241,11 @@ export default function DatasetReview({
   const validationReport =
     version.validation_report || {};
 
-  const actionsApplied = Array.isArray(
+  // What was actually fixed: steps that changed nothing are left out, and the
+  // rating-scale steps of one grid are shown as a single entry.
+  const actionsApplied = appliedSteps(
     cleaningReport.actions_applied
-  )
-    ? cleaningReport.actions_applied
-    : [];
+  );
 
   const unresolvedIssues = Array.isArray(
     cleaningReport.unresolved_issues
@@ -304,6 +317,22 @@ export default function DatasetReview({
 
   const categoryOrderColumns = orderableColumns(version.profile);
   const categoryOrders = version.category_orders || {};
+
+  const personalFlags = personalDataFlags(version.profile);
+
+  // Include a left-out column, or leave an included one out again: both declare
+  // a type as a new dataset version (see personalData.js).
+  async function handleChange(flag) {
+    if (!onDeclareColumnTypes || includingColumn) return;
+
+    setIncludingColumn(flag.column);
+    try {
+      await onDeclareColumnTypes(actionRequest(flag));
+      setConfirmingColumn(null);
+    } finally {
+      setIncludingColumn(null);
+    }
+  }
 
   async function handleApplyGroupings() {
     if (!onApplyGroupings) return;
@@ -462,26 +491,39 @@ export default function DatasetReview({
           </div>
 
           <div className="dataset-variable-list">
-            {actionsApplied.map((action, index) => (
+            {actionsApplied.map((step) => (
               <div
                 className="dataset-variable-row clean"
-                key={`${action.rule || "action"}-${index}`}
+                key={step.key}
               >
-                <div className="dataset-variable-main">
+                <div
+                  className={
+                    step.reason
+                      ? "dataset-variable-main personal-data-main"
+                      : "dataset-variable-main"
+                  }
+                >
                   <strong>
-                    {formatRuleLabel(action.rule)}
+                    {stepLabel(step.rule) || formatRuleLabel(step.rule)}
                   </strong>
-                  {action.column && (
-                    <span className="dataset-type-badge">
-                      {formatVariableName(action.column)}
+                  {step.columns.length > 0 && (
+                    <span className="dataset-step-columns">
+                      {step.columns.map((column) => (
+                        <span className="dataset-type-badge" key={column}>
+                          {formatVariableName(column)}
+                        </span>
+                      ))}
                     </span>
+                  )}
+                  {step.reason && (
+                    <span className="personal-data-reason">{step.reason}</span>
                   )}
                 </div>
 
                 <div className="dataset-variable-status">
                   <span className="dataset-status clean">
-                    {action.affected_rows ?? 0} rows ·{" "}
-                    {action.affected_values ?? 0} values
+                    {step.rows === null ? "" : `${step.rows} rows · `}
+                    {step.values} values
                   </span>
                 </div>
               </div>
@@ -532,6 +574,110 @@ export default function DatasetReview({
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================
+          PERSONAL DATA. Columns that look like personal data (email,
+          name, phone, ID...) are left out of analysis and Chapter 4 by
+          default. Listed here with the reason, and the researcher can
+          include one that was flagged by mistake (a new dataset
+          version). Renders nothing when no column was flagged.
+          ===================================================== */}
+
+      {personalFlags.length > 0 && (
+        <div className="dataset-variables personal-data-section">
+          <div className="dataset-variables-heading">
+            <div>
+              <div className="dataset-profile-kicker">
+                PERSONAL DATA
+              </div>
+              <h3>{personalDataHeadline(personalFlags)}</h3>
+            </div>
+            <span>{personalFlags.length} flagged</span>
+          </div>
+
+          <p className="dataset-grouping-note">
+            Adanse leaves columns that look like personal data (emails,
+            names, phone numbers, ID numbers) out of your analysis and out
+            of Chapter 4, so respondents cannot be identified from your
+            report. If a column was flagged by mistake, you can include it.
+          </p>
+
+          <div className="dataset-variable-list">
+            {personalFlags.map((flag) => {
+              const confirming = confirmingColumn === flag.column;
+              const busy = includingColumn === flag.column;
+
+              return (
+                <div
+                  className="dataset-variable-row personal-data-row"
+                  key={flag.column}
+                >
+                  <div className="dataset-variable-main personal-data-main">
+                    <strong className="personal-data-column">
+                      {flag.column}
+                    </strong>
+                    <span className="personal-data-reason">
+                      {flag.reason}
+                    </span>
+                  </div>
+
+                  <div className="dataset-variable-status">
+                    <span
+                      className={`dataset-status ${
+                        flag.excluded ? "warning" : "clean"
+                      }`}
+                    >
+                      {flag.excluded ? "Left out" : "Included"}
+                    </span>
+
+                    {actionAvailable(flag, version, loading || Boolean(includingColumn)) &&
+                      onDeclareColumnTypes &&
+                      !confirming && (
+                        <button
+                          className="btn btn-tertiary"
+                          type="button"
+                          onClick={() => setConfirmingColumn(flag.column)}
+                        >
+                          {flagAction(flag) === "include"
+                            ? "Include anyway"
+                            : "Leave out again"}
+                        </button>
+                      )}
+                  </div>
+
+                  {confirming && (
+                    <div className="personal-data-confirm" role="alert">
+                      <p>{actionConfirmation(flag, active, costs?.analysis)}</p>
+                      <div className="personal-data-confirm-actions">
+                        <button
+                          className="btn btn-tertiary"
+                          type="button"
+                          onClick={() => setConfirmingColumn(null)}
+                          disabled={busy}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          className="btn btn-primary"
+                          type="button"
+                          onClick={() => handleChange(flag)}
+                          disabled={busy}
+                        >
+                          {busy
+                            ? "Working…"
+                            : flagAction(flag) === "include"
+                              ? "Yes, include this column"
+                              : "Yes, leave it out"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
