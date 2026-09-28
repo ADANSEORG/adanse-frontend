@@ -16,7 +16,7 @@ import {
   orderHasChanged,
   orderStatusLabel,
 } from "../categoryOrder.js";
-import { stepLabel, stepReason } from "../cleaningSteps.js";
+import { appliedSteps, stepLabel } from "../cleaningSteps.js";
 
 function formatVariableName(name) {
   if (!name) return "";
@@ -240,11 +240,11 @@ export default function DatasetReview({
   const validationReport =
     version.validation_report || {};
 
-  const actionsApplied = Array.isArray(
+  // What was actually fixed: steps that changed nothing are left out, and the
+  // rating-scale steps of one grid are shown as a single entry.
+  const actionsApplied = appliedSteps(
     cleaningReport.actions_applied
-  )
-    ? cleaningReport.actions_applied
-    : [];
+  );
 
   const unresolvedIssues = Array.isArray(
     cleaningReport.unresolved_issues
@@ -490,42 +490,43 @@ export default function DatasetReview({
           </div>
 
           <div className="dataset-variable-list">
-            {actionsApplied.map((action, index) => {
-              const reason = stepReason(action);
-              return (
+            {actionsApplied.map((step) => (
+              <div
+                className="dataset-variable-row clean"
+                key={step.key}
+              >
                 <div
-                  className="dataset-variable-row clean"
-                  key={`${action.rule || "action"}-${index}`}
+                  className={
+                    step.reason
+                      ? "dataset-variable-main personal-data-main"
+                      : "dataset-variable-main"
+                  }
                 >
-                  <div
-                    className={
-                      reason
-                        ? "dataset-variable-main personal-data-main"
-                        : "dataset-variable-main"
-                    }
-                  >
-                    <strong>
-                      {stepLabel(action.rule) || formatRuleLabel(action.rule)}
-                    </strong>
-                    {action.column && (
-                      <span className="dataset-type-badge">
-                        {formatVariableName(action.column)}
-                      </span>
-                    )}
-                    {reason && (
-                      <span className="personal-data-reason">{reason}</span>
-                    )}
-                  </div>
-
-                  <div className="dataset-variable-status">
-                    <span className="dataset-status clean">
-                      {action.affected_rows ?? 0} rows ·{" "}
-                      {action.affected_values ?? 0} values
+                  <strong>
+                    {stepLabel(step.rule) || formatRuleLabel(step.rule)}
+                  </strong>
+                  {step.columns.length > 0 && (
+                    <span className="dataset-step-columns">
+                      {step.columns.map((column) => (
+                        <span className="dataset-type-badge" key={column}>
+                          {formatVariableName(column)}
+                        </span>
+                      ))}
                     </span>
-                  </div>
+                  )}
+                  {step.reason && (
+                    <span className="personal-data-reason">{step.reason}</span>
+                  )}
                 </div>
-              );
-            })}
+
+                <div className="dataset-variable-status">
+                  <span className="dataset-status clean">
+                    {step.rows === null ? "" : `${step.rows} rows · `}
+                    {step.values} values
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
