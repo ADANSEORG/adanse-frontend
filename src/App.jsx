@@ -91,6 +91,8 @@ export default function App() {
     onQualitativeFinalized,
     goToChapter4,
     backToAnalysis,
+    settingsView,
+    leaveSettings,
     openAccount,
     backFromAccount,
     openCredits,
@@ -100,6 +102,13 @@ export default function App() {
 
   const replaceInputRef =
     useRef(null);
+
+  // Signing out from Account (or the sidebar menu) must not leave /account in
+  // the address bar, or the next person to sign in would land on it.
+  async function handleSignOut() {
+    await signOut();
+    leaveSettings();
+  }
 
   /*
    * ---------------------------------------------------------
@@ -146,11 +155,13 @@ export default function App() {
   const chapter4Access =
     chapter4Gate(analysis);
 
+  // Account and Credits are decided by the URL (/account, /credits), not by
+  // `step`; see useThesisWorkflow.
   const isAccount =
-    step === "account";
+    settingsView === "account";
 
   const isCredits =
-    step === "credits";
+    settingsView === "credits";
 
   const isSettingsPage =
     isAccount || isCredits;
@@ -185,7 +196,7 @@ export default function App() {
         }
         credits={credits}
         onSignOut={
-          signOut
+          handleSignOut
         }
         open={
           sidebarOpen
@@ -399,7 +410,7 @@ export default function App() {
                 backFromAccount
               }
               onSignOut={
-                signOut
+                handleSignOut
               }
             />
           )}
