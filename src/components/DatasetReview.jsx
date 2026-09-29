@@ -965,7 +965,7 @@ export default function DatasetReview({
           ACTIONS
           ===================================================== */}
 
-      <div className="analysis-action-bar">
+      <div className="analysis-action-bar dataset-review-actions">
         <div>
           <strong>
             {active
