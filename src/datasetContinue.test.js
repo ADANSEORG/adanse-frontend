@@ -47,3 +47,14 @@ test("the Chapter 1 panel is not hidden while a dataset uploads", () => {
   const app = readFileSync(new URL("./App.jsx", import.meta.url), "utf8");
   assert.doesNotMatch(app, /!loading && \(\s*<Chapter1Compare/);
 });
+
+test("Continue's server check never shows the dataset upload spinner", () => {
+  const app = readFileSync(new URL("./App.jsx", import.meta.url), "utf8");
+  assert.match(app, /Boolean\(busyActions\.continue\)/);
+  const workflow = readFileSync(new URL("./hooks/useThesisWorkflow.js", import.meta.url), "utf8");
+  const start = workflow.indexOf("const continueFromDataset = async");
+  const end = workflow.slice(start).search(/\r?\n  };\r?\n/);
+  const body = workflow.slice(start, start + end);
+  assert.match(body, /setBusy: busyFor\("continue"\)/);
+  assert.doesNotMatch(body, /setLoading/);
+});

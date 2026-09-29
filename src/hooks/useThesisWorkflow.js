@@ -815,7 +815,7 @@ export function useThesisWorkflow({ user, authLoading }) {
     if (target === "analysis") return goAnalysis();
 
     await runAction({
-      setBusy: setLoading,
+      setBusy: busyFor("continue"),
       setError,
       action: async () => {
         const { versions } = await listDatasetVersions(id);

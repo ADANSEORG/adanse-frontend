@@ -579,7 +579,8 @@ export default function App() {
                           continueFromDataset
                         }
                         disabled={
-                          loading
+                          loading ||
+                          Boolean(busyActions.continue)
                         }
                       >
                         Continue →
