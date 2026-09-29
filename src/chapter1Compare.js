@@ -30,9 +30,21 @@ function cleanList(values) {
 }
 
 /*
+ * For each item of `list`, whether the exact same text (after trimming
+ * surrounding whitespace) appears anywhere in `other`. Pure string
+ * equality: no case folding, no fuzzy matching.
+ */
+export function exactMatches(list, other) {
+  const others = new Set(cleanList(other));
+  return cleanList(list).map((item) => others.has(item));
+}
+
+/*
  * What the panel shows for a project:
  *   { state: "none" }                       -- no document uploaded
- *   { state: "found", heading, fromDocument, entered }
+ *   { state: "found", heading, fromDocument, entered,
+ *     documentMatches, enteredMatches }  -- per-line exact-match flags
+ *                                           (see exactMatches)
  *   { state: "not_found", message, entered } -- nothing from the document
  * Anything malformed is treated as "not_found" with no objectives, never
  * as a partial list.
@@ -53,6 +65,8 @@ export function comparisonView(project) {
       heading: String(saved.heading || "").trim(),
       fromDocument,
       entered,
+      documentMatches: exactMatches(fromDocument, entered),
+      enteredMatches: exactMatches(entered, fromDocument),
     };
   }
 

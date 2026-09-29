@@ -13,6 +13,20 @@ import {
  * objectives saved in Research Context. Informational only -- nothing here
  * changes Research Context or Chapter 4. See chapter1Compare.js.
  */
+// One objective, marked by whether the identical text (trimmed) is in the
+// other list -- pure string equality (exactMatches). A text label goes with
+// the colour so the cue doesn't rely on colour alone.
+function MatchLine({ matched, children }) {
+  return (
+    <li className={matched ? "chapter1-line-matched" : "chapter1-line-unmatched"}>
+      {children}
+      <span className="chapter1-line-tag">
+        {matched ? "Same wording in both lists" : "No exact match found"}
+      </span>
+    </li>
+  );
+}
+
 export default function Chapter1Compare({ project, onUpload, onRemove, disabled = false }) {
   const inputRef = useRef(null);
   const [busy, setBusy] = useState(false);
@@ -84,13 +98,15 @@ export default function Chapter1Compare({ project, onUpload, onRemove, disabled 
             )}
             <ol>
               {view.fromDocument.map((objective, i) => (
-                <li key={i}>
+                <MatchLine key={i} matched={view.documentMatches[i]}>
                   <q>{objective}</q>
-                </li>
+                </MatchLine>
               ))}
             </ol>
             <div className="chapter1-compare-note">
               Quoted word for word from your document, in the order they appear.
+              Each line is marked by whether the exact same wording appears in
+              the other list.
             </div>
           </div>
 
@@ -99,7 +115,9 @@ export default function Chapter1Compare({ project, onUpload, onRemove, disabled 
             {view.entered.length > 0 ? (
               <ol>
                 {view.entered.map((objective, i) => (
-                  <li key={i}>{objective}</li>
+                  <MatchLine key={i} matched={view.enteredMatches[i]}>
+                    {objective}
+                  </MatchLine>
                 ))}
               </ol>
             ) : (

@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import {
   CONSENT_NOTICE,
   comparisonView,
+  exactMatches,
   isDocxFile,
 } from "./chapter1Compare.js";
 
@@ -63,4 +64,38 @@ test("the panel never passes judgement on the student's work", () => {
     + readFileSync(new URL("./chapter1Compare.js", import.meta.url), "utf8");
   const text = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
   assert.doesNotMatch(text, /inconsisten|mismatch|\bwrong\b|incorrect|doesn't match|do not match/i);
+});
+
+test("exact match is pure string equality after trimming, nothing fuzzier", () => {
+  const other = ["  To assess impact.  ", "To identify factors."];
+  assert.deepEqual(
+    exactMatches(
+      [
+        "To assess impact.",        // same after trimming
+        "to assess impact.",        // case differs
+        "To assess  impact.",       // inner spacing differs
+        "To assess impact",         // punctuation differs
+        "To identify factors.",
+      ],
+      other
+    ),
+    [true, false, false, false, true]
+  );
+});
+
+test("each side is flagged independently, text and order untouched", () => {
+  const view = comparisonView({
+    objectives: ["To assess impact.", "Something only typed."],
+    chapter1_objectives: { ...found, objectives: ["To identify factors.", "To assess impact."] },
+  });
+  assert.deepEqual(view.fromDocument, ["To identify factors.", "To assess impact."]);
+  assert.deepEqual(view.documentMatches, [false, true]);
+  assert.deepEqual(view.entered, ["To assess impact.", "Something only typed."]);
+  assert.deepEqual(view.enteredMatches, [true, false]);
+});
+
+test("nothing entered yet: every document line is unmatched", () => {
+  const view = comparisonView({ objectives: [], chapter1_objectives: found });
+  assert.deepEqual(view.documentMatches, [false, false]);
+  assert.deepEqual(view.enteredMatches, []);
 });
