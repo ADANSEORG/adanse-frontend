@@ -43,6 +43,7 @@ import {
 import {
   defaultProjectStep,
   historyBackTarget,
+  isProjectStep,
   isValidProjectId,
   parseProjectPath,
   projectPath,
@@ -78,12 +79,6 @@ const INTERNAL_STEP_OF = {
   chapter4: "chapter4",
 };
 
-// Review and analysis join setup/dataset here in PR "3/4" of the
-// project-routes work; chapter4 lands on the bare /project/:id -- itself
-// already reload-safe, since defaultProjectStep resolves it the same way
-// regardless -- until its own stage (with the gate) gives it a dedicated
-// sub-path.
-const ROUTED_STEPS = new Set(["setup", "dataset", "review", "analysis"]);
 
 /*
  * ---------------------------------------------------------
@@ -363,11 +358,11 @@ export function useThesisWorkflow({ user, authLoading }) {
    * named an explicit step, `requestedStep` so a bookmark is honoured
    * rather than silently overridden by the project's current default.
    *
-   * `requestedStep` is only ever acted on for ROUTED_STEPS (setup, dataset,
-   * review, analysis as of this stage). Any other value (chapter4, or none)
-   * falls through to the same defaultProjectStep() this function has
-   * always used, unchanged from before this file knew about routing at
-   * all.
+   * `requestedStep` is only ever acted on when it is one of the five
+   * PROJECT_STEPS names (isProjectStep). Anything else (an unrecognised
+   * name, or none) falls through to the same defaultProjectStep() this
+   * function has always used, unchanged from before this file knew about
+   * routing at all.
    */
 
   const select = async (c, { push = true, requestedStep = null } = {}) => {
@@ -446,26 +441,41 @@ export function useThesisWorkflow({ user, authLoading }) {
         }
 
         /*
-         * A bookmark or reload naming one of this stage's routed steps
+         * A bookmark or reload naming one of the five routed steps
          * explicitly is honoured (resolveProjectStep) rather than
          * overridden by the default: setup/dataset are unconditionally
          * allowed (mostly future-proofing, see resolveProjectStep's own
-         * comment), while review/analysis are corrected back to dataset
-         * when the project's current data doesn't support them (a stale
-         * bookmark to /review once the pending version has been resolved,
-         * say). Anything else (chapter4, or none) uses the same default
-         * this function has always used.
+         * comment); review/analysis are corrected back to dataset when the
+         * project's current data doesn't support them (a stale bookmark to
+         * /review once the pending version has been resolved, say);
+         * chapter4 is corrected the same way goToChapter4() has always
+         * gated it -- chapter4Gate(p.analysis_results), the FRESHLY loaded
+         * results, not whatever the `analysis` state variable currently
+         * holds, so a reload re-checks against the server's current state
+         * rather than trusting a stale local copy. Its own message (which
+         * source is unfinalized, or that results are stale) is shown
+         * instead of redirectNotice's generic copy for that reason.
+         * Anything else (an unrecognised step, or none) uses the same
+         * default this function has always used.
          */
         let routeStep;
         let notice = null;
 
-        if (ROUTED_STEPS.has(requestedStep)) {
-          const resolved = resolveProjectStep(requestedStep, p, { hasPendingReviewVersion });
+        if (isProjectStep(requestedStep)) {
+          const facts = { hasPendingReviewVersion };
+          let gate = null;
+
+          if (requestedStep === "chapter4") {
+            gate = chapter4Gate(p.analysis_results || null);
+            facts.chapter4Blocked = gate.blocked;
+          }
+
+          const resolved = resolveProjectStep(requestedStep, p, facts);
 
           routeStep = resolved.step;
 
           if (resolved.redirected) {
-            notice = redirectNotice(resolved.reason);
+            notice = resolved.reason === "chapter4-blocked" ? gate.message : redirectNotice(resolved.reason);
           }
         } else {
           routeStep = defaultProjectStep(p, { hasPendingReviewVersion });
@@ -486,15 +496,11 @@ export function useThesisWorkflow({ user, authLoading }) {
         setSidebarOpen(false);
         leaveSettings();
 
-        /*
-         * Only ROUTED_STEPS get their own persisted sub-path; chapter4
-         * lands on the bare project id -- itself already reload-safe,
-         * since the next load resolves the same way, just without a
-         * step-specific URL until its own stage.
-         */
-        const targetPath = ROUTED_STEPS.has(routeStep)
-          ? projectPath(fresh.id, routeStep)
-          : projectPath(fresh.id);
+        // routeStep is always one of the five PROJECT_STEPS names (from
+        // resolveProjectStep or defaultProjectStep above), so it always
+        // gets its own persisted sub-path -- the last of the five, chapter4,
+        // joined the other four in this PR.
+        const targetPath = projectPath(fresh.id, routeStep);
 
         if (location.pathname !== targetPath) {
           navigate(targetPath, { replace: !push });
@@ -1167,26 +1173,48 @@ export function useThesisWorkflow({ user, authLoading }) {
 
   const goToChapter4 =
     () => {
+      if (!active) return;
+
       // Every way in -- the header link and the action bar -- passes through
       // here, so the shared rule is enforced once more at the door: not while
       // a qualitative finalize is running or a source is unfinalized, and not
       // while results are out of date (the server refuses the chapter then too).
+      // select()'s URL-restore path applies the SAME rule (chapter4Gate) against
+      // the freshly-loaded project on every reload/deep-link, so this local
+      // check being based on the possibly-stale `analysis` state is fine: it
+      // only has to be right for the click that just happened, not forever.
       if (chapter4Gate(analysis).blocked) return;
 
       setError("");
       setStep("chapter4");
+      setLastVisited(user.id, active.id, "chapter4");
+
+      // "Continue and step buttons | push".
+      navigate(projectPath(active.id, "chapter4"));
     };
 
   /*
    * ---------------------------------------------------------
    * BACK TO ANALYSIS
    * ---------------------------------------------------------
+   *
+   * History-aware, same shape as backFromReview/backFromAnalysis above.
    */
 
   const backToAnalysis =
     () => {
+      if (!active) return;
+
       setError("");
-      setStep("workspace");
+
+      const target = historyBackTarget(location.key, projectPath(active.id, "analysis"));
+
+      if (target === -1) {
+        navigate(-1);
+      } else {
+        setStep("workspace");
+        navigate(target);
+      }
     };
 
   /*
