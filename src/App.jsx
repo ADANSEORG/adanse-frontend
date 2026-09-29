@@ -15,6 +15,7 @@ import ColumnPreview from "./components/ColumnPreview.jsx";
 import DatasetReview from "./components/DatasetReview.jsx";
 import Account from "./components/Account.jsx";
 import Credits from "./components/Credits.jsx";
+import Chapter1Compare from "./components/Chapter1Compare.jsx";
 
 export default function App() {
   const {
@@ -63,7 +64,6 @@ export default function App() {
     setCredits,
     costs,
     step,
-    setStep,
     loading,
     busyActions,
     error,
@@ -79,12 +79,16 @@ export default function App() {
     unpinChat,
     saveSetup,
     file,
+    continueFromDataset,
     validateDataset,
     applyGroupings,
     declareTypes,
     reverseScores,
     saveColumnCategoryOrder,
     clearColumnCategoryOrder,
+    uploadChapter1,
+    removeChapter1,
+    adoptChapter1Wording,
     activateDataset,
     build,
     confirmQualitativeColumns,
@@ -571,17 +575,12 @@ export default function App() {
                       <button
                         className="btn btn-primary"
                         type="button"
-                        onClick={() => {
-                          setError(
-                            ""
-                          );
-
-                          setStep(
-                            "workspace"
-                          );
-                        }}
+                        onClick={
+                          continueFromDataset
+                        }
                         disabled={
-                          loading
+                          loading ||
+                          Boolean(busyActions.continue)
                         }
                       >
                         Continue →
@@ -589,6 +588,17 @@ export default function App() {
                     </div>
                   </div>
                 )}
+
+                {/* Independent of the dataset upload: either,
+                    both, or one then the other. Stays visible (but
+                    locked) while a dataset uploads. */}
+                <Chapter1Compare
+                  project={project}
+                  onUpload={uploadChapter1}
+                  onRemove={removeChapter1}
+                  onUseWording={adoptChapter1Wording}
+                  disabled={loading}
+                />
 
                 {upload && !loading && (
                   <ColumnPreview

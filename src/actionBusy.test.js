@@ -76,6 +76,7 @@ test("each Analysis-step action sets only its own busy flag", () => {
     ["confirmQualitativeColumns", "qualitative"],
     ["overrideAnalysis", "override"],
     ["run", "run"],
+    ["continueFromDataset", "continue"],
   ]) {
     const start = workflow.indexOf(`const ${fn} = async`);
     const end = workflow.slice(start).search(/\r?\n  };\r?\n/);

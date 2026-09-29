@@ -5394,3 +5394,208 @@ button {
   gap: 10px;
   justify-content: flex-end;
 }
+
+/* =========================================================
+   CHAPTER 1 OBJECTIVES — OPTIONAL SIDE-BY-SIDE COMPARISON
+   ========================================================= */
+
+.chapter1-compare {
+  width: 100%;
+  margin-top: 24px;
+  padding: 20px 22px;
+  border: 1px dashed var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.chapter1-compare-lead {
+  margin: 0 0 6px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.chapter1-compare-consent,
+.chapter1-compare-note,
+.chapter1-compare-source {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.chapter1-compare-empty {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--gold-soft);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.chapter1-compare-error {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--red-soft);
+  color: var(--red);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.chapter1-compare-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+@media (max-width: 650px) {
+  .chapter1-compare-actions .btn {
+    width: 100%;
+  }
+}
+
+.chapter1-line-tag {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.chapter1-line-matched .chapter1-line-tag {
+  color: var(--green);
+}
+
+.chapter1-line-unmatched .chapter1-line-tag {
+  color: #7a5a06;
+}
+
+.chapter1-use-wording {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.chapter1-use-wording:hover:not(:disabled) {
+  background: var(--gold-soft);
+}
+
+.chapter1-use-wording:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* Aligned comparison: one row per document objective, a matched entered
+   objective in the same row (see comparisonRows). */
+.chapter1-compare-table {
+  width: calc(100% + 20px);
+  margin: 10px -10px 0;
+  border-collapse: separate;
+  border-spacing: 10px 8px;
+  table-layout: fixed;
+}
+
+.chapter1-compare-table caption {
+  padding: 0 10px;
+  text-align: left;
+  caption-side: top;
+}
+
+.chapter1-compare-table th {
+  padding: 0 2px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.chapter1-compare-table td {
+  padding: 8px 10px;
+  border-left: 3px solid transparent;
+  border-radius: 6px;
+  vertical-align: top;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.chapter1-compare-table td.chapter1-line-matched {
+  border-left-color: var(--green);
+  background: var(--green-soft);
+}
+
+.chapter1-compare-table td.chapter1-line-unmatched {
+  border-left-color: var(--gold);
+  background: var(--gold-soft);
+}
+
+.chapter1-compare-table td.chapter1-cell-empty {
+  border: 1px dashed var(--line);
+  color: var(--muted);
+  text-align: center;
+  vertical-align: middle;
+}
+
+.chapter1-cell-number {
+  font-weight: 700;
+}
+
+.chapter1-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 650px) {
+  .chapter1-compare-table,
+  .chapter1-compare-table tbody,
+  .chapter1-compare-table tr,
+  .chapter1-compare-table td,
+  .chapter1-compare-table caption {
+    display: block;
+    width: 100%;
+  }
+  .chapter1-compare-table {
+    margin: 10px 0 0;
+  }
+  .chapter1-compare-table caption {
+    padding: 0;
+  }
+  .chapter1-compare-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .chapter1-compare-table tr {
+    margin-top: 12px;
+  }
+  .chapter1-compare-table td + td {
+    margin-top: 6px;
+  }
+  .chapter1-compare-table td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 2px;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .chapter1-compare-table td.chapter1-cell-empty {
+    display: none;
+  }
+}
