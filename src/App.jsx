@@ -91,6 +91,7 @@ export default function App() {
     onQualitativeFinalized,
     goToChapter4,
     backToAnalysis,
+    backToSetup,
     settingsView,
     leaveSettings,
     openAccount,
@@ -275,9 +276,7 @@ export default function App() {
                   } else if (
                     isDataset
                   ) {
-                    setStep(
-                      "setup"
-                    );
+                    backToSetup();
                   }
                 }}
                 disabled={

@@ -40,6 +40,50 @@ import {
   settingsBackTarget,
   settingsViewForPath,
 } from "../viewRoutes.js";
+import {
+  defaultProjectStep,
+  historyBackTarget,
+  isValidProjectId,
+  parseProjectPath,
+  projectPath,
+  redirectNotice,
+  resolveProjectStep,
+} from "../projectRoutes.js";
+import {
+  clearLastVisited,
+  getLastVisited,
+  setLastVisited,
+} from "../lastVisited.js";
+
+/*
+ * Route step names (projectRoutes.js's PROJECT_STEPS) <-> this file's own,
+ * pre-existing internal step names. Kept as an explicit, narrow translation
+ * at the URL boundary below rather than renaming `step`'s values everywhere
+ * (every isResearch/isDataset/... derivation in App.jsx, every setStep call
+ * in this file) -- that rename is not this stage's job, and this keeps the
+ * diff to exactly the setup/dataset wiring described in the PR.
+ */
+const ROUTE_STEP_OF = {
+  setup: "setup",
+  upload: "dataset",
+  review: "review",
+  workspace: "analysis",
+  chapter4: "chapter4",
+};
+const INTERNAL_STEP_OF = {
+  setup: "setup",
+  dataset: "upload",
+  review: "review",
+  analysis: "workspace",
+  chapter4: "chapter4",
+};
+
+// Only these two get their own persisted, bookmarkable URL in this stage
+// (PR "2/4" of the project-routes work; review/analysis/chapter4 land on the
+// bare /project/:id -- itself already reload-safe, since defaultProjectStep
+// resolves it the same way regardless -- until their own stage gives them a
+// dedicated sub-path).
+const ROUTED_STEPS = new Set(["setup", "dataset"]);
 
 /*
  * ---------------------------------------------------------
@@ -298,6 +342,10 @@ export function useThesisWorkflow({ user, authLoading }) {
         setStep("setup");
         setSidebarOpen(false);
         leaveSettings();
+
+        // "New analysis | push /project/:newId/setup" -- a genuinely new
+        // history entry, since this is a fresh, user-initiated navigation.
+        navigate(projectPath(c.id, "setup"));
       },
     });
   };
@@ -306,9 +354,24 @@ export function useThesisWorkflow({ user, authLoading }) {
    * ---------------------------------------------------------
    * SELECT CONVERSATION
    * ---------------------------------------------------------
+   *
+   * Also the URL-restore entry point (see the two effects below this
+   * function): a reload, a deep link, or the browser's Back/Forward button
+   * landing on /project/:id[/:step] calls this the same way a sidebar click
+   * does, just with `push: false` (nothing new to add to history -- the
+   * browser already has an entry for wherever it landed) and, when the URL
+   * named an explicit step, `requestedStep` so a bookmark to /setup or
+   * /dataset is honoured rather than silently overridden by the project's
+   * current default.
+   *
+   * `requestedStep` is only ever acted on for "setup"/"dataset" -- the two
+   * steps this stage gives their own URL (ROUTED_STEPS). Any other value
+   * (review/analysis/chapter4, or none) falls through to the same
+   * defaultProjectStep() this function has always used, unchanged from
+   * before this file knew about routing at all.
    */
 
-  const select = async (c) => {
+  const select = async (c, { push = true, requestedStep = null } = {}) => {
     await runAction({
       setBusy: setLoading,
       setError,
@@ -354,45 +417,179 @@ export function useThesisWorkflow({ user, authLoading }) {
         );
 
         /*
-         * Decide where the user should return.
+         * Decide where the user should land -- same priority order as
+         * before (results > plan > active dataset > pending review >
+         * setup), now expressed once as defaultProjectStep() so this and
+         * the URL-restore effects below agree by construction.
          *
-         * Analysis results exist:
-         *     Analysis screen.
-         *
-         * Analysis plan exists:
-         *     Analysis screen.
-         *
-         * Dataset activated (active_dataset_version_id set):
-         *     Dataset screen.
-         *
-         * Dataset uploaded but not yet reviewed/activated:
-         *     Dataset review screen.
-         *
-         * Otherwise:
-         *     Research screen.
+         * The versions list is fetched only in the one case it was fetched
+         * before (dataset uploaded, not yet active): that is the only
+         * outcome that can be "review" rather than "dataset", so it is the
+         * only case that needs to know whether a pending version exists.
          */
+        let hasPendingReviewVersion = false;
+        let pendingVersion = null;
 
-        if (p.analysis_results) {
-          setStep("workspace");
-        } else if (p.analysis_plan) {
-          setStep("workspace");
-        } else if (p.dataset_path && p.active_dataset_version_id) {
-          setStep("upload");
-        } else if (p.dataset_path) {
-          const routed = await goReviewPendingDataset(c.id).catch(() => false);
+        if (p.dataset_path && !p.active_dataset_version_id) {
+          const { versions } = await listDatasetVersions(c.id).catch(() => ({ versions: [] }));
 
-          if (!routed) {
-            setStep("upload");
+          pendingVersion =
+            (versions || []).find(
+              (v) => v.kind === "cleaned" && (v.status === "cleaned" || v.status === "validated")
+            ) || null;
+
+          hasPendingReviewVersion = Boolean(pendingVersion);
+        }
+
+        /*
+         * A bookmark or reload naming "setup" or "dataset" explicitly is
+         * honoured (resolveProjectStep) rather than overridden by the
+         * default -- both are "always allowed once the project has
+         * loaded", so this is mostly future-proofing (see
+         * resolveProjectStep's own comment). Any other requested value
+         * (review/analysis/chapter4, or none) uses the same default this
+         * function has always used.
+         */
+        let routeStep;
+        let notice = null;
+
+        if (requestedStep === "setup" || requestedStep === "dataset") {
+          const resolved = resolveProjectStep(requestedStep, p, { hasPendingReviewVersion });
+
+          routeStep = resolved.step;
+
+          if (resolved.redirected) {
+            notice = redirectNotice(resolved.reason);
           }
         } else {
-          setStep("setup");
+          routeStep = defaultProjectStep(p, { hasPendingReviewVersion });
         }
+
+        if (routeStep === "review" && pendingVersion) {
+          setDatasetVersion(pendingVersion);
+        }
+
+        setStep(INTERNAL_STEP_OF[routeStep]);
+
+        if (notice) {
+          setError(notice);
+        }
+
+        setLastVisited(user.id, fresh.id, routeStep);
 
         setSidebarOpen(false);
         leaveSettings();
+
+        /*
+         * Only setup/dataset get their own persisted sub-path in this
+         * stage (ROUTED_STEPS); anything else lands on the bare project id
+         * -- itself already reload-safe, since the next load resolves the
+         * same way, just without a step-specific URL yet.
+         */
+        const targetPath = ROUTED_STEPS.has(routeStep)
+          ? projectPath(fresh.id, routeStep)
+          : projectPath(fresh.id);
+
+        if (location.pathname !== targetPath) {
+          navigate(targetPath, { replace: !push });
+        }
+      },
+      onError: async (e) => {
+        /*
+         * The conversation was deleted, or never belonged to this
+         * account (R2): clear it out, drop any last-visited pointer to
+         * it so a later bare "/" doesn't retry it, and land on the main
+         * page with a one-time notice instead of a generic error banner.
+         */
+        if (e?.status === 404) {
+          setActive(null);
+          setProject(null);
+          setUpload(null);
+          setPlan(null);
+          setAnalysis(null);
+          setMessages([]);
+          setDatasetVersion(null);
+          setStep("setup");
+
+          clearLastVisited(user.id);
+          navigate("/", { replace: true });
+          setError("That project isn't available.");
+
+          return true;
+        }
+
+        return false;
       },
     });
   };
+
+  /*
+   * ---------------------------------------------------------
+   * RESTORE FROM THE URL
+   * ---------------------------------------------------------
+   *
+   * Two effects, mutually exclusive by construction (one only acts on
+   * /project/:id[...], the other only on exactly "/"):
+   *
+   * 1. /project/:id[/:step] -- a reload, a deep link, or the browser's
+   *    Back/Forward button landing here. A malformed id makes no request
+   *    (R1). Everything else routes through select(), the same function a
+   *    sidebar click uses, with push:false (there is already a history
+   *    entry for wherever this is) and requestedStep from the URL.
+   *
+   *    The "already there" guard is what stops this from fighting with
+   *    select()'s OWN navigate() calls above: every push/replace this file
+   *    does is paired, in the same synchronous handler, with the matching
+   *    setStep/setActive -- so by the time the URL changes, state already
+   *    matches it, and this effect no-ops. It only does real work for a
+   *    URL change THIS file didn't just cause: a fresh load, or a history
+   *    pop (Back/Forward, including backToSetup's navigate(-1) branch,
+   *    which deliberately sets no state itself and leans entirely on this
+   *    effect to reconcile from wherever that pop actually lands).
+   *
+   * 2. Bare "/" -- decision: reopens the last project (localStorage, per
+   *    user), on whatever step it was last at. Skipped once a project is
+   *    already open (e.g. newChat/select just set one, or effect 1 already
+   *    ran on the same render). No entry, or a project this account no
+   *    longer has: nothing to restore, land on the blank new-project form
+   *    as before this existed.
+   */
+
+  useEffect(() => {
+    if (authLoading || !user) return;
+
+    const parsed = parseProjectPath(location.pathname);
+    if (!parsed) return;
+
+    if (!isValidProjectId(parsed.id)) {
+      clearLastVisited(user.id);
+      setError("That project isn't available.");
+      navigate("/", { replace: true });
+      return;
+    }
+
+    const id = parsed.id.toLowerCase();
+    const alreadyThere =
+      active?.id === id &&
+      (!parsed.step || INTERNAL_STEP_OF[parsed.step] === step);
+
+    if (alreadyThere) return;
+
+    select({ id }, { push: false, requestedStep: parsed.step });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, authLoading, user?.id]);
+
+  useEffect(() => {
+    if (authLoading || !user) return;
+    if (location.pathname !== "/") return;
+    if (active) return;
+
+    const last = getLastVisited(user.id);
+    if (!last) return;
+
+    select({ id: last.projectId }, { push: false, requestedStep: last.step });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, authLoading, user?.id]);
 
   /*
    * ---------------------------------------------------------
@@ -441,6 +638,12 @@ export function useThesisWorkflow({ user, authLoading }) {
 
         setProject(p);
         setStep("upload");
+        setLastVisited(user.id, c.id, "dataset");
+
+        // "Continue and step buttons | push" -- a fresh entry, so Back from
+        // Dataset returns to Setup (see backToSetup below) rather than out
+        // of the project entirely.
+        navigate(projectPath(c.id, "dataset"));
       },
     });
   };
@@ -966,6 +1169,34 @@ export function useThesisWorkflow({ user, authLoading }) {
 
   /*
    * ---------------------------------------------------------
+   * BACK TO SETUP (the header's Back button, from Dataset)
+   * ---------------------------------------------------------
+   *
+   * History-aware, same shape as backFromSettings below: step history back
+   * when there is an earlier in-app entry (which the URL-restore effect
+   * then resolves state from -- see below), otherwise push /setup directly
+   * (per the approved history table: "steps history back if the previous
+   * entry is that route, otherwise pushes it"). The other Back branches
+   * (Chapter 4/Analysis/Review) are untouched -- they are not routed yet.
+   */
+  const backToSetup =
+    () => {
+      if (!active) return;
+
+      setError("");
+
+      const target = historyBackTarget(location.key, projectPath(active.id, "setup"));
+
+      if (target === -1) {
+        navigate(-1);
+      } else {
+        setStep("setup");
+        navigate(target);
+      }
+    };
+
+  /*
+   * ---------------------------------------------------------
    * ACCOUNT / CREDITS
    * ---------------------------------------------------------
    *
@@ -1070,7 +1301,13 @@ export function useThesisWorkflow({ user, authLoading }) {
           setPlan(null);
           setAnalysis(null);
           setMessages([]);
+          setDatasetVersion(null);
           setStep("setup");
+
+          clearLastVisited(user.id);
+          // "Delete the active project | replace /" -- the resource this
+          // entry named is gone.
+          navigate("/", { replace: true });
         }
       },
     });
@@ -1183,6 +1420,7 @@ export function useThesisWorkflow({ user, authLoading }) {
     onQualitativeFinalized,
     goToChapter4,
     backToAnalysis,
+    backToSetup,
     settingsView,
     leaveSettings,
     openAccount,
