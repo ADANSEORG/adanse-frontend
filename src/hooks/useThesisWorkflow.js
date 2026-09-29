@@ -78,12 +78,12 @@ const INTERNAL_STEP_OF = {
   chapter4: "chapter4",
 };
 
-// Only these two get their own persisted, bookmarkable URL in this stage
-// (PR "2/4" of the project-routes work; review/analysis/chapter4 land on the
-// bare /project/:id -- itself already reload-safe, since defaultProjectStep
-// resolves it the same way regardless -- until their own stage gives them a
-// dedicated sub-path).
-const ROUTED_STEPS = new Set(["setup", "dataset"]);
+// Review and analysis join setup/dataset here in PR "3/4" of the
+// project-routes work; chapter4 lands on the bare /project/:id -- itself
+// already reload-safe, since defaultProjectStep resolves it the same way
+// regardless -- until its own stage (with the gate) gives it a dedicated
+// sub-path.
+const ROUTED_STEPS = new Set(["setup", "dataset", "review", "analysis"]);
 
 /*
  * ---------------------------------------------------------
@@ -360,15 +360,14 @@ export function useThesisWorkflow({ user, authLoading }) {
    * landing on /project/:id[/:step] calls this the same way a sidebar click
    * does, just with `push: false` (nothing new to add to history -- the
    * browser already has an entry for wherever it landed) and, when the URL
-   * named an explicit step, `requestedStep` so a bookmark to /setup or
-   * /dataset is honoured rather than silently overridden by the project's
-   * current default.
+   * named an explicit step, `requestedStep` so a bookmark is honoured
+   * rather than silently overridden by the project's current default.
    *
-   * `requestedStep` is only ever acted on for "setup"/"dataset" -- the two
-   * steps this stage gives their own URL (ROUTED_STEPS). Any other value
-   * (review/analysis/chapter4, or none) falls through to the same
-   * defaultProjectStep() this function has always used, unchanged from
-   * before this file knew about routing at all.
+   * `requestedStep` is only ever acted on for ROUTED_STEPS (setup, dataset,
+   * review, analysis as of this stage). Any other value (chapter4, or none)
+   * falls through to the same defaultProjectStep() this function has
+   * always used, unchanged from before this file knew about routing at
+   * all.
    */
 
   const select = async (c, { push = true, requestedStep = null } = {}) => {
@@ -422,15 +421,20 @@ export function useThesisWorkflow({ user, authLoading }) {
          * setup), now expressed once as defaultProjectStep() so this and
          * the URL-restore effects below agree by construction.
          *
-         * The versions list is fetched only in the one case it was fetched
-         * before (dataset uploaded, not yet active): that is the only
-         * outcome that can be "review" rather than "dataset", so it is the
-         * only case that needs to know whether a pending version exists.
+         * The versions list is fetched in the one case it was always
+         * fetched for (dataset uploaded, not yet active -- the only way
+         * defaultProjectStep's own routing can land on "review"), PLUS
+         * whenever "review" is explicitly requested: a project can already
+         * have an active version and STILL have a newer pending one (a
+         * re-grouping or a declared-type change after activation creates a
+         * fresh version needing its own review -- see backend #67), and a
+         * bookmark or reload landing on /review needs to know about that
+         * even though the default-routing case above never would.
          */
         let hasPendingReviewVersion = false;
         let pendingVersion = null;
 
-        if (p.dataset_path && !p.active_dataset_version_id) {
+        if ((p.dataset_path && !p.active_dataset_version_id) || requestedStep === "review") {
           const { versions } = await listDatasetVersions(c.id).catch(() => ({ versions: [] }));
 
           pendingVersion =
@@ -442,18 +446,20 @@ export function useThesisWorkflow({ user, authLoading }) {
         }
 
         /*
-         * A bookmark or reload naming "setup" or "dataset" explicitly is
-         * honoured (resolveProjectStep) rather than overridden by the
-         * default -- both are "always allowed once the project has
-         * loaded", so this is mostly future-proofing (see
-         * resolveProjectStep's own comment). Any other requested value
-         * (review/analysis/chapter4, or none) uses the same default this
-         * function has always used.
+         * A bookmark or reload naming one of this stage's routed steps
+         * explicitly is honoured (resolveProjectStep) rather than
+         * overridden by the default: setup/dataset are unconditionally
+         * allowed (mostly future-proofing, see resolveProjectStep's own
+         * comment), while review/analysis are corrected back to dataset
+         * when the project's current data doesn't support them (a stale
+         * bookmark to /review once the pending version has been resolved,
+         * say). Anything else (chapter4, or none) uses the same default
+         * this function has always used.
          */
         let routeStep;
         let notice = null;
 
-        if (requestedStep === "setup" || requestedStep === "dataset") {
+        if (ROUTED_STEPS.has(requestedStep)) {
           const resolved = resolveProjectStep(requestedStep, p, { hasPendingReviewVersion });
 
           routeStep = resolved.step;
@@ -481,10 +487,10 @@ export function useThesisWorkflow({ user, authLoading }) {
         leaveSettings();
 
         /*
-         * Only setup/dataset get their own persisted sub-path in this
-         * stage (ROUTED_STEPS); anything else lands on the bare project id
-         * -- itself already reload-safe, since the next load resolves the
-         * same way, just without a step-specific URL yet.
+         * Only ROUTED_STEPS get their own persisted sub-path; chapter4
+         * lands on the bare project id -- itself already reload-safe,
+         * since the next load resolves the same way, just without a
+         * step-specific URL until its own stage.
          */
         const targetPath = ROUTED_STEPS.has(routeStep)
           ? projectPath(fresh.id, routeStep)
@@ -700,10 +706,14 @@ export function useThesisWorkflow({ user, authLoading }) {
 
           setDatasetVersion(versionDetail.version);
           setStep("review");
+          setLastVisited(user.id, id, "review");
+          navigate(projectPath(id, "review"));
         } else {
           // Legacy projects without dataset versioning fall
           // back to the old direct-to-analysis flow.
           setStep("workspace");
+          setLastVisited(user.id, id, "analysis");
+          navigate(projectPath(id, "analysis"));
         }
       },
     });
@@ -878,6 +888,8 @@ export function useThesisWorkflow({ user, authLoading }) {
         setAnalysis(null);
 
         setStep("workspace");
+        setLastVisited(user.id, active.id, "analysis");
+        navigate(projectPath(active.id, "analysis"));
       },
     });
   };
@@ -890,7 +902,8 @@ export function useThesisWorkflow({ user, authLoading }) {
    * Finds the most recent cleaned version that is not yet the
    * project's active version and opens the review stage for
    * it. Used when the backend refuses to build an analysis
-   * plan (409) and when reopening a project left mid-review.
+   * plan (409) -- its only remaining caller (select()'s own
+   * URL-restore path finds a pending version itself, see above).
    */
 
   const goReviewPendingDataset = async (
@@ -911,6 +924,13 @@ export function useThesisWorkflow({ user, authLoading }) {
     if (pending) {
       setDatasetVersion(pending);
       setStep("review");
+      setLastVisited(user.id, conversationId, "review");
+
+      // The plan build the caller asked for was refused (409) because the
+      // dataset needs review first -- a correction, not the destination
+      // they asked for, so replace rather than push.
+      navigate(projectPath(conversationId, "review"), { replace: true });
+
       return true;
     }
 
@@ -935,6 +955,8 @@ export function useThesisWorkflow({ user, authLoading }) {
         setPlan(p);
         setProject(await getThesisProject(active.id));
         setStep("workspace");
+        setLastVisited(user.id, active.id, "analysis");
+        navigate(projectPath(active.id, "analysis"));
       },
       onError: async (e) => {
         /*
@@ -1169,15 +1191,15 @@ export function useThesisWorkflow({ user, authLoading }) {
 
   /*
    * ---------------------------------------------------------
-   * BACK TO SETUP (the header's Back button, from Dataset)
+   * BACK TO SETUP / REVIEW / ANALYSIS (the header's Back button)
    * ---------------------------------------------------------
    *
    * History-aware, same shape as backFromSettings below: step history back
    * when there is an earlier in-app entry (which the URL-restore effect
-   * then resolves state from -- see below), otherwise push /setup directly
-   * (per the approved history table: "steps history back if the previous
-   * entry is that route, otherwise pushes it"). The other Back branches
-   * (Chapter 4/Analysis/Review) are untouched -- they are not routed yet.
+   * then resolves state from -- see above), otherwise push the fallback
+   * step directly (per the approved history table: "steps history back if
+   * the previous entry is that route, otherwise pushes it"). The Chapter 4
+   * Back branch is untouched -- chapter4 is not routed yet.
    */
   const backToSetup =
     () => {
@@ -1191,6 +1213,42 @@ export function useThesisWorkflow({ user, authLoading }) {
         navigate(-1);
       } else {
         setStep("setup");
+        navigate(target);
+      }
+    };
+
+  const backFromReview =
+    () => {
+      if (!active) return;
+
+      setError("");
+
+      const target = historyBackTarget(location.key, projectPath(active.id, "dataset"));
+
+      if (target === -1) {
+        navigate(-1);
+      } else {
+        setStep("upload");
+        navigate(target);
+      }
+    };
+
+  // Analysis's Back target depends on whether a cleaned dataset version is
+  // known: review if it is (the researcher can look at the cleaning report
+  // again), dataset if not -- same rule the pre-routing code used.
+  const backFromAnalysis =
+    () => {
+      if (!active) return;
+
+      setError("");
+
+      const fallbackStep = datasetVersion ? "review" : "dataset";
+      const target = historyBackTarget(location.key, projectPath(active.id, fallbackStep));
+
+      if (target === -1) {
+        navigate(-1);
+      } else {
+        setStep(datasetVersion ? "review" : "upload");
         navigate(target);
       }
     };
@@ -1421,6 +1479,8 @@ export function useThesisWorkflow({ user, authLoading }) {
     goToChapter4,
     backToAnalysis,
     backToSetup,
+    backFromReview,
+    backFromAnalysis,
     settingsView,
     leaveSettings,
     openAccount,
