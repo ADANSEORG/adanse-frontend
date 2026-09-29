@@ -21,6 +21,7 @@ import {
   activateDatasetVersion,
   applyDatasetGroupings,
   declareColumnTypes,
+  setReverseScores,
   saveCategoryOrder,
   clearCategoryOrder,
   buildAnalysisPlan,
@@ -370,29 +371,51 @@ export function useThesisWorkflow({ user, authLoading }) {
       setBusy: setLoading,
       setError,
       action: async () => {
-        const [fresh, msg] = await Promise.all([
+        /*
+         * getThesisProject(c.id) needs only c.id -- already known before
+         * this function starts -- so it has no reason to wait for
+         * getConversation/listMessages to resolve first. It used to (a
+         * plain `await` after their Promise.all), which on a reload/deep
+         * link serialises the single slowest of the three calls after
+         * the other two instead of overlapping it with them; measured on
+         * a production trace, that tail alone was the dominant cost of
+         * the reload's blank-page time.
+         *
+         * Its expected failure (the project doesn't exist yet, 404) is
+         * resolved to a sentinel here rather than left to throw, so it
+         * doesn't fail the whole Promise.all group the way an unhandled
+         * rejection would -- the same outcome the old try/catch produced,
+         * just without forcing this call to run alone, after the others,
+         * to get it. Any OTHER error still rejects (unchanged: it was
+         * already rethrown here before, and still propagates to
+         * runAction's onError exactly as getConversation/listMessages'
+         * own failures always have).
+         */
+        const [fresh, msg, projectOutcome] = await Promise.all([
           getConversation(c.id),
           listMessages(c.id),
+          getThesisProject(c.id).then(
+            (project) => ({ project }),
+            (error) => {
+              if (error?.status !== 404) {
+                throw error;
+              }
+
+              return { notFound: true };
+            }
+          ),
         ]);
 
-        let p;
-
-        try {
-          p = await getThesisProject(c.id);
-        } catch (e) {
-          if (e?.status !== 404) {
-            throw e;
-          }
-
-          p = await createThesisProject({
-            conversation_id: c.id,
-            title: fresh.title || "Untitled research",
-            objectives: [],
-            research_questions: [],
-            hypotheses: [],
-            methodology: "",
-          });
-        }
+        const p = projectOutcome.notFound
+          ? await createThesisProject({
+              conversation_id: c.id,
+              title: fresh.title || "Untitled research",
+              objectives: [],
+              research_questions: [],
+              hypotheses: [],
+              methodology: "",
+            })
+          : projectOutcome.project;
 
         setActive(fresh);
         setMessages(msg.messages || []);
@@ -800,6 +823,34 @@ export function useThesisWorkflow({ user, authLoading }) {
       setError,
       action: async () => {
         const result = await declareColumnTypes(
+          active.id,
+          datasetVersion.id,
+          columns
+        );
+
+        setDatasetVersion(result.version);
+      },
+    });
+  };
+
+  /*
+   * ---------------------------------------------------------
+   * REVERSE-SCORE RATING QUESTIONS
+   *
+   * `columns` is every scored rating question that should end up
+   * reversed. Like declareTypes, this creates a new cleaned dataset
+   * version that needs its own validate + activate.
+   * ---------------------------------------------------------
+   */
+
+  const reverseScores = async (columns) => {
+    if (!active || !datasetVersion) return;
+
+    await runAction({
+      setBusy: () => {},
+      setError,
+      action: async () => {
+        const result = await setReverseScores(
           active.id,
           datasetVersion.id,
           columns
@@ -1496,6 +1547,7 @@ export function useThesisWorkflow({ user, authLoading }) {
     validateDataset,
     applyGroupings,
     declareTypes,
+    reverseScores,
     saveColumnCategoryOrder,
     clearColumnCategoryOrder,
     activateDataset,

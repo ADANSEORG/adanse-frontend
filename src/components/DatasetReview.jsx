@@ -17,6 +17,13 @@ import {
   orderStatusLabel,
 } from "../categoryOrder.js";
 import { appliedSteps, stepLabel } from "../cleaningSteps.js";
+import {
+  canReverse,
+  gridChanged,
+  reverseConfirmation,
+  reverseRequest,
+  reversedColumns,
+} from "../reverseScores.js";
 
 function formatVariableName(name) {
   if (!name) return "";
@@ -217,6 +224,7 @@ export default function DatasetReview({
   onReplace,
   onApplyGroupings,
   onDeclareColumnTypes,
+  onSetReverseScores,
   onSaveCategoryOrder,
   onClearCategoryOrder,
   loading,
@@ -226,6 +234,11 @@ export default function DatasetReview({
   const [applyingGroupings, setApplyingGroupings] = useState(false);
   const [confirmingColumn, setConfirmingColumn] = useState(null);
   const [includingColumn, setIncludingColumn] = useState(null);
+  // Rating questions ticked as negatively worded, for one version; a new
+  // version (after applying, or any other change) starts from what it stores.
+  const [reverseTicks, setReverseTicks] = useState(null);
+  const [confirmingGrid, setConfirmingGrid] = useState(null);
+  const [reversingGrid, setReversingGrid] = useState(null);
 
   if (!version) {
     return null;
@@ -246,6 +259,38 @@ export default function DatasetReview({
   const actionsApplied = appliedSteps(
     cleaningReport.actions_applied
   );
+
+  const reversedNow = reversedColumns(cleaningReport.actions_applied);
+  const ticked =
+    reverseTicks && reverseTicks.versionId === version.id
+      ? reverseTicks.columns
+      : reversedNow;
+  const reverseEditable =
+    Boolean(onSetReverseScores) &&
+    canReverse(version, loading || Boolean(reversingGrid));
+
+  function toggleReverse(column) {
+    const next = new Set(ticked);
+    if (next.has(column)) {
+      next.delete(column);
+    } else {
+      next.add(column);
+    }
+    setReverseTicks({ versionId: version.id, columns: next });
+    setConfirmingGrid(null);
+  }
+
+  async function handleReverse(step) {
+    if (!onSetReverseScores || reversingGrid) return;
+
+    setReversingGrid(step.key);
+    try {
+      await onSetReverseScores(reverseRequest(reversedNow, ticked, step.columns));
+      setConfirmingGrid(null);
+    } finally {
+      setReversingGrid(null);
+    }
+  }
 
   const unresolvedIssues = Array.isArray(
     cleaningReport.unresolved_issues
@@ -491,43 +536,117 @@ export default function DatasetReview({
           </div>
 
           <div className="dataset-variable-list">
-            {actionsApplied.map((step) => (
-              <div
-                className="dataset-variable-row clean"
-                key={step.key}
-              >
+            {actionsApplied.map((step) => {
+              // A rating scale lists its questions as tick boxes under the
+              // reason (which points to them), to mark negatively worded ones.
+              const rating = step.rule === "score_rating_grid" && step.columns.length > 0;
+              const changed = rating && gridChanged(reversedNow, ticked, step.columns);
+              const confirming = confirmingGrid === step.key;
+              const busy = reversingGrid === step.key;
+
+              return (
                 <div
                   className={
-                    step.reason
-                      ? "dataset-variable-main personal-data-main"
-                      : "dataset-variable-main"
+                    rating
+                      ? "dataset-variable-row clean rating-reverse-row"
+                      : "dataset-variable-row clean"
                   }
+                  key={step.key}
                 >
-                  <strong>
-                    {stepLabel(step.rule) || formatRuleLabel(step.rule)}
-                  </strong>
-                  {step.columns.length > 0 && (
-                    <span className="dataset-step-columns">
-                      {step.columns.map((column) => (
-                        <span className="dataset-type-badge" key={column}>
-                          {formatVariableName(column)}
-                        </span>
-                      ))}
-                    </span>
-                  )}
-                  {step.reason && (
-                    <span className="personal-data-reason">{step.reason}</span>
-                  )}
-                </div>
+                  <div
+                    className={
+                      step.reason || rating
+                        ? "dataset-variable-main personal-data-main"
+                        : "dataset-variable-main"
+                    }
+                  >
+                    <strong>
+                      {stepLabel(step.rule) || formatRuleLabel(step.rule)}
+                    </strong>
+                    {!rating && step.columns.length > 0 && (
+                      <span className="dataset-step-columns">
+                        {step.columns.map((column) => (
+                          <span className="dataset-type-badge" key={column}>
+                            {formatVariableName(column)}
+                          </span>
+                        ))}
+                      </span>
+                    )}
+                    {step.reason && (
+                      <span className="personal-data-reason">{step.reason}</span>
+                    )}
+                    {rating && (
+                      <span className="rating-reverse-list">
+                        {step.columns.map((column) => (
+                          <label className="rating-reverse-item" key={column}>
+                            <input
+                              type="checkbox"
+                              checked={ticked.has(column)}
+                              onChange={() => toggleReverse(column)}
+                              disabled={!reverseEditable}
+                            />
+                            <span className="rating-reverse-name">
+                              {formatVariableName(column)}
+                            </span>
+                            {reversedNow.has(column) && (
+                              <span className="dataset-status clean">Reversed</span>
+                            )}
+                          </label>
+                        ))}
+                      </span>
+                    )}
+                    {changed && reverseEditable && !confirming && (
+                      <button
+                        className="btn btn-tertiary"
+                        type="button"
+                        onClick={() => setConfirmingGrid(step.key)}
+                      >
+                        Apply these changes
+                      </button>
+                    )}
+                  </div>
 
-                <div className="dataset-variable-status">
-                  <span className="dataset-status clean">
-                    {step.rows === null ? "" : `${step.rows} rows · `}
-                    {step.values} values
-                  </span>
+                  <div className="dataset-variable-status">
+                    <span className="dataset-status clean">
+                      {step.rows === null ? "" : `${step.rows} rows · `}
+                      {step.values} values
+                    </span>
+                  </div>
+
+                  {confirming && changed && (
+                    <div className="personal-data-confirm" role="alert">
+                      <p>
+                        {reverseConfirmation(
+                          reversedNow,
+                          ticked,
+                          step.columns,
+                          active,
+                          costs?.analysis
+                        )}
+                      </p>
+                      <div className="personal-data-confirm-actions">
+                        <button
+                          className="btn btn-tertiary"
+                          type="button"
+                          onClick={() => setConfirmingGrid(null)}
+                          disabled={busy}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          className="btn btn-primary"
+                          type="button"
+                          onClick={() => handleReverse(step)}
+                          disabled={busy}
+                        >
+                          {busy ? "Working…" : "Yes, create the new version"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

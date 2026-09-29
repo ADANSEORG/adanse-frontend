@@ -395,6 +395,27 @@ export const declareColumnTypes = (
   );
 
 /*
+ * Set which scored rating questions are reversed (dataset review step).
+ * `columns` is the full set that should END UP reversed: one left out that is
+ * reversed now is put back. Creates a NEW dataset version -- like
+ * column-types -- that still has to be validated and activated.
+ */
+export const setReverseScores = (
+  id,
+  versionId,
+  columns
+) =>
+  request(
+    `/thesis/projects/${encodeURIComponent(id)}/datasets/${encodeURIComponent(versionId)}/reverse-scores`,
+    {
+      method: "POST",
+      body: {
+        columns,
+      },
+    }
+  );
+
+/*
  * Manual category display order (dataset review step). Display only --
  * never changes analysis results, only how Chapter 4 orders that
  * column's categories the next time it's generated.

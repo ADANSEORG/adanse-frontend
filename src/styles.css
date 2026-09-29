@@ -3980,6 +3980,24 @@ button {
   font-size: 13px;
 }
 
+/* Every footer bar on phones: the text goes above the action, which takes the
+   full width, instead of the two squeezing each other side by side (a single
+   button used to wrap to three or four lines beside half-width text). A
+   credit-priced action keeps its cost note under the button. */
+@media (max-width: 650px) {
+  .analysis-action-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .analysis-action-bar .credit-action {
+    align-items: stretch;
+  }
+  .analysis-action-bar .credit-action-notice {
+    max-width: 100%;
+    text-align: left;
+  }
+}
+
 /* =========================================================
    CHAPTER 4 — ACADEMIC DOCUMENT PREVIEW
    =========================================================
@@ -5267,8 +5285,49 @@ button {
   gap: 6px;
 }
 
+/* A rating scale's questions, each with a box to mark it negatively worded. */
+.rating-reverse-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.rating-reverse-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.rating-reverse-item input {
+  flex: none;
+}
+
+.rating-reverse-name {
+  overflow-wrap: anywhere;
+}
+
+/* Rows that open a confirmation (a personal-data column, a rating scale's
+   reversals). The row is a flex row, so it wraps and the confirmation takes a
+   full line of its own under it. On wider screens the main column grows from
+   zero, so the wrapping never pushes the status off the first line; on phones
+   the row is already a column. */
+.personal-data-row,
+.rating-reverse-row {
+  flex-wrap: wrap;
+}
+
+@media (min-width: 651px) {
+  .personal-data-row > .dataset-variable-main,
+  .rating-reverse-row > .dataset-variable-main {
+    flex: 1 1 0;
+  }
+}
+
 .personal-data-confirm {
-  grid-column: 1 / -1;
+  flex: 1 1 100%;
   margin-top: 10px;
   padding: 12px 14px;
   border: 1px solid var(--line);
