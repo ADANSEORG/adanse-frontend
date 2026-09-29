@@ -92,6 +92,8 @@ export default function App() {
     goToChapter4,
     backToAnalysis,
     backToSetup,
+    backFromReview,
+    backFromAnalysis,
     settingsView,
     leaveSettings,
     openAccount,
@@ -262,17 +264,11 @@ export default function App() {
                   } else if (
                     isAnalysis
                   ) {
-                    setStep(
-                      datasetVersion
-                        ? "review"
-                        : "upload"
-                    );
+                    backFromAnalysis();
                   } else if (
                     isReview
                   ) {
-                    setStep(
-                      "upload"
-                    );
+                    backFromReview();
                   } else if (
                     isDataset
                   ) {
