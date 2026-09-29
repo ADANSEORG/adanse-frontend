@@ -10,6 +10,7 @@ import {
   matchLabel,
   matchPositions,
   normalizeForMatch,
+  objectivesWithDocumentWording,
 } from "./chapter1Compare.js";
 
 const found = {
@@ -176,7 +177,69 @@ test("labels: document lines point into what you entered, entered lines into you
 
 test("the panel labels each side against the other list", () => {
   const source = readFileSync(new URL("./components/Chapter1Compare.jsx", import.meta.url), "utf8");
-  assert.match(source, /position=\{view\.documentMatchPositions\[i\]\} otherSide="entered"/);
-  assert.match(source, /position=\{view\.enteredMatchPositions\[i\]\} otherSide="document"/);
+  assert.match(source, /position=\{view\.documentMatchPositions\[i\]\}\s+otherSide="entered"/);
+  assert.match(source, /position=\{view\.enteredMatchPositions\[i\]\}\s+otherSide="document"/);
   assert.doesNotMatch(source, /Same wording in both lists/);
+});
+
+// ---------------------------------------------------------------------------
+// "Use this wording" (document side, unmatched lines only)
+// ---------------------------------------------------------------------------
+test("use this wording replaces the entered objective at the same position", () => {
+  assert.deepEqual(
+    objectivesWithDocumentWording(["Typed one.", "Typed two.", "Typed three."], 2, "To assess impact."),
+    ["Typed one.", "To assess impact.", "Typed three."]
+  );
+});
+
+test("use this wording adds at the end when the entered list is shorter", () => {
+  assert.deepEqual(
+    objectivesWithDocumentWording(["Typed one."], 3, "To compare groups."),
+    ["Typed one.", "To compare groups."]
+  );
+  assert.deepEqual(objectivesWithDocumentWording([], 1, "To compare groups."), ["To compare groups."]);
+});
+
+test("positions are the ones shown in the entered list (blank entries aren't shown)", () => {
+  assert.deepEqual(
+    objectivesWithDocumentWording(["", "Typed one.", "Typed two."], 2, "To assess impact."),
+    ["Typed one.", "To assess impact."]
+  );
+});
+
+test("the document's wording is copied exactly (only its ends trimmed), and blank wording changes nothing", () => {
+  const curly = "To examine lecturers\u2019 \u201cfeedback\u201d \u2014 timing.";
+  assert.deepEqual(objectivesWithDocumentWording(["Typed."], 1, `  ${curly} `), [curly]);
+  assert.deepEqual(objectivesWithDocumentWording(["Typed."], 1, "   "), ["Typed."]);
+});
+
+test("after using the wording, the match check shows the line as matched on both sides", () => {
+  const before = { objectives: ["Typed one.", "Typed two."], chapter1_objectives: found };
+  assert.deepEqual(comparisonView(before).documentMatchPositions, [null, null]);
+
+  const objectives = objectivesWithDocumentWording(before.objectives, 2, found.objectives[1]);
+  const after = comparisonView({ ...before, objectives });
+  assert.deepEqual(after.documentMatchPositions, [null, 2]);
+  assert.deepEqual(after.enteredMatchPositions, [null, 2]);
+  assert.equal(matchLabel(after.documentMatchPositions[1], "entered"), "Matches item 2 in what you entered");
+});
+
+test("only unmatched document lines get the button; the entered side gets none", () => {
+  const source = readFileSync(new URL("./components/Chapter1Compare.jsx", import.meta.url), "utf8");
+  assert.match(source, /\{!matched && action\}/);
+  const documentSide = source.slice(source.indexOf("view.fromDocument.map"), source.indexOf("You entered"));
+  const enteredSide = source.slice(source.indexOf("view.entered.map"));
+  assert.match(documentSide, /Use this wording/);
+  assert.doesNotMatch(enteredSide, /Use this wording|action=|onUseWording/);
+});
+
+test("saving the wording stays on the Dataset step and uses the project PATCH", () => {
+  const workflow = readFileSync(new URL("./hooks/useThesisWorkflow.js", import.meta.url), "utf8");
+  const start = workflow.indexOf("const adoptChapter1Wording");
+  const end = workflow.slice(start).search(/\r?\n  };\r?\n/);
+  assert.ok(start > 0 && end > 0);
+  const body = workflow.slice(start, start + end);
+  assert.match(body, /updateThesisProject\(active\.id, \{ objectives \}\)/);
+  assert.match(body, /setProject\(/);
+  assert.doesNotMatch(body, /setStep|pushStep|navigate|setLoading/);
 });

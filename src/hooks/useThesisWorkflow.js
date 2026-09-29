@@ -35,6 +35,7 @@ import {
 } from "../api.js";
 
 import { friendly } from "../errors.js";
+import { objectivesWithDocumentWording } from "../chapter1Compare.js";
 import {
   datasetContinueTarget,
   isPendingReviewVersion,
@@ -1013,6 +1014,24 @@ export function useThesisWorkflow({ user, authLoading }) {
     setChapter1Objectives(null);
   };
 
+  // "Use this wording" on an unmatched document objective: saved through the
+  // same project PATCH Research Context uses (saveSetup), but without
+  // saveSetup's step change or screen-wide loading -- the researcher stays on
+  // the Dataset step and the panel re-checks matches from the saved project.
+  const adoptChapter1Wording = async (position, wording) => {
+    if (!active) return;
+
+    const objectives = objectivesWithDocumentWording(
+      project?.objectives,
+      position,
+      wording
+    );
+
+    const updated = await updateThesisProject(active.id, { objectives });
+
+    setProject((prev) => ({ ...(prev || {}), ...(updated || {}), objectives }));
+  };
+
   /*
    * ---------------------------------------------------------
    * ACTIVATE DATASET VERSION
@@ -1658,6 +1677,7 @@ export function useThesisWorkflow({ user, authLoading }) {
     clearColumnCategoryOrder,
     uploadChapter1,
     removeChapter1,
+    adoptChapter1Wording,
     activateDataset,
     build,
     confirmQualitativeColumns,

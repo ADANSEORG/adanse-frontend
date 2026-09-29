@@ -8,9 +8,12 @@
  * nothing at all -- see backend app/services/chapter1_objectives.py) and
  * saves it on the project as `chapter1_objectives`.
  *
- * This is informational only: both lists are shown next to each other
- * and nothing is changed in Research Context or Chapter 4. No verdicts --
- * the researcher decides what a difference means.
+ * Both lists are shown next to each other with no verdicts -- the
+ * researcher decides what a difference means. The only change it can make
+ * is one the researcher asks for: "Use this wording" on a document line
+ * copies that wording into Research Context's objectives
+ * (objectivesWithDocumentWording). Chapter 4 is never touched, and nothing
+ * ever flows the other way: the document is read-only and never stored.
  */
 
 export const CONSENT_NOTICE =
@@ -69,6 +72,26 @@ export function matchPositions(list, other) {
   return cleanList(list).map(
     (item) => positions.get(normalizeForMatch(item)) ?? null
   );
+}
+
+/*
+ * The Research Context objectives after "Use this wording" on the document
+ * objective at 1-based `position`: the entered objective at the same
+ * position takes the document's wording, or, if the entered list is
+ * shorter, the wording is added at the end. Positions are those shown in
+ * the panel's numbered "You entered" list (blank entries aren't shown, so
+ * they're dropped here too).
+ */
+export function objectivesWithDocumentWording(entered, position, wording) {
+  const list = cleanList(entered);
+  const text = String(wording ?? "").trim();
+  if (!text) return list;
+  if (Number.isInteger(position) && position >= 1 && position <= list.length) {
+    list[position - 1] = text;
+  } else {
+    list.push(text);
+  }
+  return list;
 }
 
 /*

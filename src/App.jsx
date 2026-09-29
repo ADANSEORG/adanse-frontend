@@ -87,6 +87,7 @@ export default function App() {
     clearColumnCategoryOrder,
     uploadChapter1,
     removeChapter1,
+    adoptChapter1Wording,
     activateDataset,
     build,
     confirmQualitativeColumns,
@@ -593,6 +594,7 @@ export default function App() {
                   project={project}
                   onUpload={uploadChapter1}
                   onRemove={removeChapter1}
+                  onUseWording={adoptChapter1Wording}
                   disabled={loading}
                 />
 

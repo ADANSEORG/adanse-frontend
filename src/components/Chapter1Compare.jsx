@@ -11,23 +11,25 @@ import {
 
 /*
  * Optional: the researcher's own Chapter 1-3 (.docx) objectives next to the
- * objectives saved in Research Context. Informational only -- nothing here
- * changes Research Context or Chapter 4. See chapter1Compare.js.
+ * objectives saved in Research Context. The only change it makes is one the
+ * researcher clicks for: "Use this wording" on a document line. Chapter 4 is
+ * never touched. See chapter1Compare.js.
  */
 // One objective, marked by whether the same wording (normalizeForMatch, then
 // exact equality) is in the other list, and if so which numbered item it is.
 // A text label goes with the colour so the cue doesn't rely on colour alone.
-function MatchLine({ position, otherSide, children }) {
+function MatchLine({ position, otherSide, action = null, children }) {
   const matched = position !== null && position !== undefined;
   return (
     <li className={matched ? "chapter1-line-matched" : "chapter1-line-unmatched"}>
       {children}
       <span className="chapter1-line-tag">{matchLabel(position, otherSide)}</span>
+      {!matched && action}
     </li>
   );
 }
 
-export default function Chapter1Compare({ project, onUpload, onRemove, disabled = false }) {
+export default function Chapter1Compare({ project, onUpload, onRemove, onUseWording, disabled = false }) {
   const inputRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -56,6 +58,21 @@ export default function Chapter1Compare({ project, onUpload, onRemove, disabled 
     }
   }
 
+  // Document side only: copy this document objective's wording into
+  // Research Context (same position, or added at the end). The panel
+  // re-checks matches from the saved project straight away.
+  async function useWording(position, wording) {
+    setBusy(true);
+    setError("");
+    try {
+      await onUseWording(position, wording);
+    } catch (e) {
+      setError(friendly(e, "Couldn't update your Research Context objectives. Please try again."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function remove() {
     setBusy(true);
     setError("");
@@ -74,8 +91,9 @@ export default function Chapter1Compare({ project, onUpload, onRemove, disabled 
 
       <p className="chapter1-compare-lead">
         Upload your Chapter 1–3 Word document (.docx) to see the objectives it
-        states next to the ones you entered in Research Context. Nothing is
-        changed. It's there for you to compare.
+        states next to the ones you entered in Research Context. Nothing
+        changes unless you choose “Use this wording” on one of your
+        document's objectives.
       </p>
 
       <p className="chapter1-compare-consent">{CONSENT_NOTICE}</p>
@@ -98,7 +116,23 @@ export default function Chapter1Compare({ project, onUpload, onRemove, disabled 
             )}
             <ol>
               {view.fromDocument.map((objective, i) => (
-                <MatchLine key={i} position={view.documentMatchPositions[i]} otherSide="entered">
+                <MatchLine
+                  key={i}
+                  position={view.documentMatchPositions[i]}
+                  otherSide="entered"
+                  action={
+                    onUseWording && (
+                      <button
+                        className="chapter1-use-wording"
+                        type="button"
+                        disabled={locked}
+                        onClick={() => useWording(i + 1, objective)}
+                      >
+                        Use this wording →
+                      </button>
+                    )
+                  }
+                >
                   <q>{objective}</q>
                 </MatchLine>
               ))}
@@ -106,7 +140,9 @@ export default function Chapter1Compare({ project, onUpload, onRemove, disabled 
             <div className="chapter1-compare-note">
               Quoted word for word from your document, in the order they appear.
               Each line is marked by whether the exact same wording appears in
-              the other list.
+              the other list. “Use this wording” puts a line's wording into
+              your Research Context objectives: it replaces the objective at the
+              same number, or is added at the end if you have fewer.
             </div>
           </div>
 

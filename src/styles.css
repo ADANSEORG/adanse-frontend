@@ -5524,3 +5524,26 @@ button {
 .chapter1-line-unmatched .chapter1-line-tag {
   color: #7a5a06;
 }
+
+.chapter1-use-wording {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.chapter1-use-wording:hover:not(:disabled) {
+  background: var(--gold-soft);
+}
+
+.chapter1-use-wording:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
