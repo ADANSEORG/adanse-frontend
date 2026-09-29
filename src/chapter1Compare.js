@@ -30,13 +30,29 @@ function cleanList(values) {
 }
 
 /*
- * For each item of `list`, whether the exact same text (after trimming
- * surrounding whitespace) appears anywhere in `other`. Pure string
- * equality: no case folding, no fuzzy matching.
+ * Character normalization applied to both sides before comparing -- not
+ * fuzzy matching: curly quotes become straight ones, en/em dashes become
+ * "-", runs of whitespace become one space, and the ends are trimmed.
+ * Case, punctuation and every word are left exactly as written. Used
+ * only for the comparison; the text shown is never changed.
+ */
+export function normalizeForMatch(text) {
+  return String(text ?? "")
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[–—]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/*
+ * For each item of `list`, whether an item of `other` is identical once
+ * both are normalized (normalizeForMatch). Still exact string equality:
+ * no case folding, no similarity scoring.
  */
 export function exactMatches(list, other) {
-  const others = new Set(cleanList(other));
-  return cleanList(list).map((item) => others.has(item));
+  const others = new Set(cleanList(other).map(normalizeForMatch));
+  return cleanList(list).map((item) => others.has(normalizeForMatch(item)));
 }
 
 /*

@@ -7,6 +7,7 @@ import {
   comparisonView,
   exactMatches,
   isDocxFile,
+  normalizeForMatch,
 } from "./chapter1Compare.js";
 
 const found = {
@@ -73,13 +74,13 @@ test("exact match is pure string equality after trimming, nothing fuzzier", () =
       [
         "To assess impact.",        // same after trimming
         "to assess impact.",        // case differs
-        "To assess  impact.",       // inner spacing differs
+        "To assess  impact.",       // repeated inner whitespace collapses
         "To assess impact",         // punctuation differs
         "To identify factors.",
       ],
       other
     ),
-    [true, false, false, false, true]
+    [true, false, true, false, true]
   );
 });
 
@@ -98,4 +99,39 @@ test("nothing entered yet: every document line is unmatched", () => {
   const view = comparisonView({ objectives: [], chapter1_objectives: found });
   assert.deepEqual(view.documentMatches, [false, false]);
   assert.deepEqual(view.enteredMatches, []);
+});
+
+test("curly quotes, en/em dashes and whitespace are normalized, nothing else", () => {
+  assert.equal(
+    normalizeForMatch("  To assess students\u2019 \u201cAI\u201d use \u2013 and\u00a0its\t\neffect \u2014 on GPA.  "),
+    "To assess students' \"AI\" use - and its effect - on GPA."
+  );
+  assert.equal(normalizeForMatch("To Assess"), "To Assess");
+});
+
+test("typographic differences match; different wording still does not", () => {
+  const document = ["To examine lecturers’ “feedback” — timing and quality."];
+  assert.deepEqual(
+    exactMatches(document, ["To examine lecturers' \"feedback\" - timing and quality."]),
+    [true]
+  );
+  for (const typed of [
+    "To examine lecturers' \"feedback\" - timing and quantity.",  // one word differs
+    "to examine lecturers' \"feedback\" - timing and quality.",   // case differs
+    "To examine lecturers' feedback - timing and quality.",        // quotes removed
+  ]) {
+    assert.deepEqual(exactMatches(document, [typed]), [false], typed);
+    assert.deepEqual(exactMatches([typed], document), [false], typed);
+  }
+});
+
+test("normalization is for comparing only: the text shown is unchanged", () => {
+  const curly = "To assess students’ use – of AI.";
+  const view = comparisonView({
+    objectives: ["To assess students' use - of AI."],
+    chapter1_objectives: { ...found, objectives: [curly, "To identify factors."] },
+  });
+  assert.equal(view.fromDocument[0], curly);
+  assert.deepEqual(view.documentMatches, [true, false]);
+  assert.deepEqual(view.enteredMatches, [true]);
 });
