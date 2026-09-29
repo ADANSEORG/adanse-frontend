@@ -13,7 +13,7 @@ import {
  * objectives saved in Research Context. Informational only -- nothing here
  * changes Research Context or Chapter 4. See chapter1Compare.js.
  */
-export default function Chapter1Compare({ project, onUpload, onRemove }) {
+export default function Chapter1Compare({ project, onUpload, onRemove, disabled = false }) {
   const inputRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -21,6 +21,7 @@ export default function Chapter1Compare({ project, onUpload, onRemove }) {
   if (!project) return null;
 
   const view = comparisonView(project);
+  const locked = busy || disabled;
 
   async function choose(event) {
     const file = event.target.files?.[0];
@@ -71,7 +72,7 @@ export default function Chapter1Compare({ project, onUpload, onRemove }) {
         type="file"
         accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         onChange={choose}
-        disabled={busy}
+        disabled={locked}
       />
 
       {view.state === "found" && (
@@ -123,7 +124,7 @@ export default function Chapter1Compare({ project, onUpload, onRemove }) {
         <button
           className="btn btn-secondary"
           type="button"
-          disabled={busy}
+          disabled={locked}
           onClick={() => inputRef.current?.click()}
         >
           {busy
@@ -134,7 +135,7 @@ export default function Chapter1Compare({ project, onUpload, onRemove }) {
         </button>
 
         {view.state !== "none" && (
-          <button className="btn btn-secondary" type="button" disabled={busy} onClick={remove}>
+          <button className="btn btn-secondary" type="button" disabled={locked} onClick={remove}>
             Remove
           </button>
         )}

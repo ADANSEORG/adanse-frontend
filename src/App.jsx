@@ -64,7 +64,6 @@ export default function App() {
     setCredits,
     costs,
     step,
-    setStep,
     loading,
     error,
     setError,
@@ -79,6 +78,7 @@ export default function App() {
     unpinChat,
     saveSetup,
     file,
+    continueFromDataset,
     validateDataset,
     applyGroupings,
     declareTypes,
@@ -573,15 +573,9 @@ export default function App() {
                       <button
                         className="btn btn-primary"
                         type="button"
-                        onClick={() => {
-                          setError(
-                            ""
-                          );
-
-                          setStep(
-                            "workspace"
-                          );
-                        }}
+                        onClick={
+                          continueFromDataset
+                        }
                         disabled={
                           loading
                         }
@@ -592,13 +586,15 @@ export default function App() {
                   </div>
                 )}
 
-                {!loading && (
-                  <Chapter1Compare
-                    project={project}
-                    onUpload={uploadChapter1}
-                    onRemove={removeChapter1}
-                  />
-                )}
+                {/* Independent of the dataset upload: either,
+                    both, or one then the other. Stays visible (but
+                    locked) while a dataset uploads. */}
+                <Chapter1Compare
+                  project={project}
+                  onUpload={uploadChapter1}
+                  onRemove={removeChapter1}
+                  disabled={loading}
+                />
 
                 {upload && !loading && (
                   <ColumnPreview

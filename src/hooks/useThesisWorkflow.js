@@ -35,6 +35,10 @@ import {
 } from "../api.js";
 
 import { friendly } from "../errors.js";
+import {
+  datasetContinueTarget,
+  isPendingReviewVersion,
+} from "../datasetContinue.js";
 import { finalizeConfirmationMessage } from "../qualitativeFinalizePolling.js";
 import { withPinnedAt } from "../sidebarGroups.js";
 import { chapter4Gate } from "../chapter4Gate.js";
@@ -741,8 +745,12 @@ export function useThesisWorkflow({ user, authLoading }) {
 
         /*
          * Upload complete, but the cleaned candidate is not
-         * active yet. Load it so the researcher can review the
-         * cleaning report, then validate and activate it.
+         * active yet. Load it so Continue can open its review
+         * (cleaning report, then validate and activate).
+         *
+         * Stay on the Dataset step: the researcher may still
+         * attach their Chapter 1-3 document here, and moves on
+         * with the explicit Continue (continueFromDataset).
          */
         if (d?.dataset_version_id) {
           const versionDetail = await getDatasetVersion(
@@ -751,16 +759,66 @@ export function useThesisWorkflow({ user, authLoading }) {
           );
 
           setDatasetVersion(versionDetail.version);
-          setStep("review");
-          setLastVisited(user.id, id, "review");
-          pushStep(projectPath(id, "review"));
-        } else {
-          // Legacy projects without dataset versioning fall
-          // back to the old direct-to-analysis flow.
-          setStep("workspace");
-          setLastVisited(user.id, id, "analysis");
-          pushStep(projectPath(id, "analysis"));
         }
+
+        if (!active) {
+          // A project created by this upload has no URL yet.
+          setStep("upload");
+          setLastVisited(user.id, id, "dataset");
+          pushStep(projectPath(id, "dataset"));
+        }
+      },
+    });
+  };
+
+  /*
+   * ---------------------------------------------------------
+   * CONTINUE FROM THE DATASET STEP
+   * ---------------------------------------------------------
+   *
+   * Review when a version is waiting to be reviewed, analysis
+   * otherwise -- never past a version that still needs
+   * validating and activating. See datasetContinue.js.
+   */
+
+  const continueFromDataset = async () => {
+    if (!active) return;
+
+    const id = active.id;
+
+    const goReview = (version) => {
+      setDatasetVersion(version);
+      setStep("review");
+      setLastVisited(user.id, id, "review");
+      pushStep(projectPath(id, "review"));
+    };
+
+    const goAnalysis = () => {
+      setStep("workspace");
+      setLastVisited(user.id, id, "analysis");
+      pushStep(projectPath(id, "analysis"));
+    };
+
+    setError("");
+
+    const target = datasetContinueTarget(project, datasetVersion);
+
+    if (target === "review") return goReview(datasetVersion);
+    if (target === "analysis") return goAnalysis();
+
+    await runAction({
+      setBusy: setLoading,
+      setError,
+      action: async () => {
+        const { versions } = await listDatasetVersions(id);
+        const pending = (versions || []).find((v) =>
+          isPendingReviewVersion(v, project)
+        );
+
+        // No versioned dataset at all: legacy projects go
+        // straight to analysis, as they always have.
+        if (pending) goReview(pending);
+        else goAnalysis();
       },
     });
   };
@@ -1591,6 +1649,7 @@ export function useThesisWorkflow({ user, authLoading }) {
     unpinChat,
     saveSetup,
     file,
+    continueFromDataset,
     validateDataset,
     applyGroupings,
     declareTypes,
