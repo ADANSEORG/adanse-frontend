@@ -44,6 +44,7 @@ import {
 import {
   defaultProjectStep,
   historyBackTarget,
+  stepPushState,
   isProjectStep,
   isValidProjectId,
   parseProjectPath,
@@ -135,6 +136,16 @@ export function useThesisWorkflow({ user, authLoading }) {
   const navigate = useNavigate();
   const location = useLocation();
   const settingsView = settingsViewForPath(location.pathname);
+
+  // Every push of a project step goes through here, recording the page it was
+  // pushed from in the new entry's history state. The in-page Back then steps
+  // history back only when that page IS the logical previous step, and pushes
+  // the step otherwise (spec section 10; see projectRoutes.js's
+  // historyBackTarget). Replaces record nothing: they are corrections, not a
+  // place the user came from.
+  const pushStep = (path) => {
+    navigate(path, { state: stepPushState(location.pathname) });
+  };
 
   // Leave a settings page for the project view (choosing or creating a
   // project). Replaces the entry so Back doesn't return to the settings page
@@ -341,7 +352,7 @@ export function useThesisWorkflow({ user, authLoading }) {
 
         // "New analysis | push /project/:newId/setup" -- a genuinely new
         // history entry, since this is a fresh, user-initiated navigation.
-        navigate(projectPath(c.id, "setup"));
+        pushStep(projectPath(c.id, "setup"));
       },
     });
   };
@@ -526,7 +537,11 @@ export function useThesisWorkflow({ user, authLoading }) {
         const targetPath = projectPath(fresh.id, routeStep);
 
         if (location.pathname !== targetPath) {
-          navigate(targetPath, { replace: !push });
+          if (push) {
+            pushStep(targetPath);
+          } else {
+            navigate(targetPath, { replace: true });
+          }
         }
       },
       onError: async (e) => {
@@ -678,7 +693,7 @@ export function useThesisWorkflow({ user, authLoading }) {
         // "Continue and step buttons | push" -- a fresh entry, so Back from
         // Dataset returns to Setup (see backToSetup below) rather than out
         // of the project entirely.
-        navigate(projectPath(c.id, "dataset"));
+        pushStep(projectPath(c.id, "dataset"));
       },
     });
   };
@@ -736,13 +751,13 @@ export function useThesisWorkflow({ user, authLoading }) {
           setDatasetVersion(versionDetail.version);
           setStep("review");
           setLastVisited(user.id, id, "review");
-          navigate(projectPath(id, "review"));
+          pushStep(projectPath(id, "review"));
         } else {
           // Legacy projects without dataset versioning fall
           // back to the old direct-to-analysis flow.
           setStep("workspace");
           setLastVisited(user.id, id, "analysis");
-          navigate(projectPath(id, "analysis"));
+          pushStep(projectPath(id, "analysis"));
         }
       },
     });
@@ -946,7 +961,7 @@ export function useThesisWorkflow({ user, authLoading }) {
 
         setStep("workspace");
         setLastVisited(user.id, active.id, "analysis");
-        navigate(projectPath(active.id, "analysis"));
+        pushStep(projectPath(active.id, "analysis"));
       },
     });
   };
@@ -1013,7 +1028,7 @@ export function useThesisWorkflow({ user, authLoading }) {
         setProject(await getThesisProject(active.id));
         setStep("workspace");
         setLastVisited(user.id, active.id, "analysis");
-        navigate(projectPath(active.id, "analysis"));
+        pushStep(projectPath(active.id, "analysis"));
       },
       onError: async (e) => {
         /*
@@ -1241,7 +1256,7 @@ export function useThesisWorkflow({ user, authLoading }) {
       setLastVisited(user.id, active.id, "chapter4");
 
       // "Continue and step buttons | push".
-      navigate(projectPath(active.id, "chapter4"));
+      pushStep(projectPath(active.id, "chapter4"));
     };
 
   /*
@@ -1264,7 +1279,7 @@ export function useThesisWorkflow({ user, authLoading }) {
         navigate(-1);
       } else {
         setStep("workspace");
-        navigate(target);
+        pushStep(target);
       }
     };
 
@@ -1292,7 +1307,7 @@ export function useThesisWorkflow({ user, authLoading }) {
         navigate(-1);
       } else {
         setStep("setup");
-        navigate(target);
+        pushStep(target);
       }
     };
 
@@ -1308,7 +1323,7 @@ export function useThesisWorkflow({ user, authLoading }) {
         navigate(-1);
       } else {
         setStep("upload");
-        navigate(target);
+        pushStep(target);
       }
     };
 
@@ -1328,7 +1343,7 @@ export function useThesisWorkflow({ user, authLoading }) {
         navigate(-1);
       } else {
         setStep(datasetVersion ? "review" : "upload");
-        navigate(target);
+        pushStep(target);
       }
     };
 
