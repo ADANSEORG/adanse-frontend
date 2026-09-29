@@ -11,6 +11,12 @@ import {
 import { chapter4AffordabilityWarning } from "../qualitativeFinalizePolling.js";
 import { chapter4Gate } from "../chapter4Gate.js";
 import {
+  actionButton,
+  anyBusy,
+  buildButtonLabel,
+  selectionButtonLabel,
+} from "../actionBusy.js";
+import {
   analysisStatus,
   columnLabel,
   columnPairLabel,
@@ -136,7 +142,9 @@ function QualitativeResult({ result }) {
   );
 }
 
-function QualitativeDataSelector({ detectedColumns, selectedColumns, columnObjectives, objectives, onConfirm, loading }) {
+// `state` is this action's own button state (actionBusy.actionButton): its
+// label shows only its own save; any running action disables it.
+function QualitativeDataSelector({ detectedColumns, selectedColumns, columnObjectives, objectives, onConfirm, state }) {
   const [checked, setChecked] = useState(() =>
     new Set(selectedColumns && selectedColumns.length ? selectedColumns : detectedColumns)
   );
@@ -197,7 +205,7 @@ function QualitativeDataSelector({ detectedColumns, selectedColumns, columnObjec
                 type="checkbox"
                 checked={checked.has(column)}
                 onChange={() => toggleColumn(column)}
-                disabled={loading}
+                disabled={state.disabled}
               />
               {columnLabel(column)}
             </label>
@@ -210,7 +218,7 @@ function QualitativeDataSelector({ detectedColumns, selectedColumns, columnObjec
                       type="checkbox"
                       checked={(tags[column] || new Set()).has(objective.id)}
                       onChange={() => toggleTag(column, objective.id)}
-                      disabled={loading}
+                      disabled={state.disabled}
                     />
                     Objective {objective.id}
                   </label>
@@ -239,9 +247,9 @@ function QualitativeDataSelector({ detectedColumns, selectedColumns, columnObjec
           className="btn btn-secondary"
           type="button"
           onClick={handleConfirm}
-          disabled={loading}
+          disabled={state.disabled}
         >
-          {loading ? "Saving…" : confirmed ? "Update selection" : "Confirm qualitative data →"}
+          {selectionButtonLabel(state, confirmed)}
         </button>
       </div>
     </section>
@@ -337,7 +345,7 @@ function HypothesisPlan({ plan, analysis }) {
   );
 }
 
-function AnalysisCard({ item, objectiveId, numericColumns, categoricalColumns, onOverride, conversationId, onQualitativeFinalized, credits, onBuyCredits }) {
+function AnalysisCard({ item, objectiveId, numericColumns, categoricalColumns, onOverride, overrideLocked = false, conversationId, onQualitativeFinalized, credits, onBuyCredits }) {
   const result = item?.result;
   const method = result?.test || item?.test;
   const name = TEST_NAMES[method] || item?.method || item?.test_name || "Analysis";
@@ -396,6 +404,7 @@ function AnalysisCard({ item, objectiveId, numericColumns, categoricalColumns, o
           numericColumns={numericColumns}
           categoricalColumns={categoricalColumns}
           onOverride={onOverride}
+          locked={overrideLocked}
         />
       )}
     </article>
@@ -409,7 +418,9 @@ function AnalysisCard({ item, objectiveId, numericColumns, categoricalColumns, o
 // regression, the predictor multi-select + outcome dropdown; submitting
 // calls the server-side override (validated against the dataset and
 // select_test()'s own type rules) and collapses back.
-function ChangeVariablesControl({ objectiveId, isRegression, numericColumns, categoricalColumns, onOverride }) {
+// `saving` is this form's own save (its label); `locked` is any action
+// running on the step, which disables submitting without changing the label.
+function ChangeVariablesControl({ objectiveId, isRegression, numericColumns, categoricalColumns, onOverride, locked = false }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -443,6 +454,7 @@ function ChangeVariablesControl({ objectiveId, isRegression, numericColumns, cat
           numericColumns={numericColumns}
           onOverride={handleOverride}
           loading={saving}
+          locked={locked}
         />
       ) : (
         <AnalysisOverrideForm
@@ -451,6 +463,7 @@ function ChangeVariablesControl({ objectiveId, isRegression, numericColumns, cat
           categoricalColumns={categoricalColumns}
           onOverride={handleOverride}
           loading={saving}
+          locked={locked}
         />
       )}
       <button
@@ -465,7 +478,7 @@ function ChangeVariablesControl({ objectiveId, isRegression, numericColumns, cat
   );
 }
 
-function AnalysisOverrideForm({ objectiveId, numericColumns, categoricalColumns, onOverride, loading }) {
+function AnalysisOverrideForm({ objectiveId, numericColumns, categoricalColumns, onOverride, loading, locked = false }) {
   const allColumns = useMemo(
     () => [...numericColumns, ...categoricalColumns],
     [numericColumns, categoricalColumns]
@@ -506,7 +519,7 @@ function AnalysisOverrideForm({ objectiveId, numericColumns, categoricalColumns,
           className="btn btn-secondary"
           type="button"
           onClick={handleSubmit}
-          disabled={loading || !payload}
+          disabled={loading || locked || !payload}
         >
           {loading ? "Saving…" : "Use these variables →"}
         </button>
@@ -519,7 +532,7 @@ function AnalysisOverrideForm({ objectiveId, numericColumns, categoricalColumns,
 // -- a different shape from the two-dropdown pairwise form. Only numeric
 // columns are offered: regression requires numeric variables on both
 // sides, same as the server validates.
-function RegressionOverrideForm({ objectiveId, numericColumns, onOverride, loading }) {
+function RegressionOverrideForm({ objectiveId, numericColumns, onOverride, loading, locked = false }) {
   const [dependentColumn, setDependentColumn] = useState("");
   const [predictors, setPredictors] = useState(() => new Set());
 
@@ -576,7 +589,7 @@ function RegressionOverrideForm({ objectiveId, numericColumns, onOverride, loadi
         className="btn btn-secondary"
         type="button"
         onClick={handleSubmit}
-        disabled={loading || !payload}
+        disabled={loading || locked || !payload}
       >
         {loading ? "Saving…" : "Use these variables →"}
       </button>
@@ -584,7 +597,7 @@ function RegressionOverrideForm({ objectiveId, numericColumns, onOverride, loadi
   );
 }
 
-export default function ThesisWorkspace({ project, upload, plan, analysis, onBuildPlan, onRun, onConfirmQualitativeColumns, onOverrideAnalysis, onContinueChapter4, onQualitativeFinalized, loading, credits, costs, onBuyCredits, conversationId }) {
+export default function ThesisWorkspace({ project, upload, plan, analysis, onBuildPlan, onRun, onConfirmQualitativeColumns, onOverrideAnalysis, onContinueChapter4, onQualitativeFinalized, loading, busyActions = {}, credits, costs, onBuyCredits, conversationId }) {
   const objectives = useMemo(() => plan?.items || [], [plan]);
   const datasetType = analysis?.dataset_type || plan?.dataset_type;
   const summary = analysis?.dataset_summary || plan?.dataset_summary || {};
@@ -597,6 +610,13 @@ export default function ThesisWorkspace({ project, upload, plan, analysis, onBui
   const selectedQualitativeColumns = plan?.qualitative?.selected_columns ?? null;
   const qualitativeConfirmed = Array.isArray(selectedQualitativeColumns);
   const qualitativeSelectionPending = detectedQualitativeColumns.length > 0 && !qualitativeConfirmed;
+
+  // Each action's button shows its own loading label only; any running
+  // action (or a screen-wide load) disables them all. See actionBusy.js.
+  const buildButton = actionButton(busyActions, "build", loading);
+  const selectionButton = actionButton(busyActions, "qualitative", loading);
+  const runButton = actionButton(busyActions, "run", loading);
+  const overrideLocked = Boolean(loading) || anyBusy(busyActions);
 
   return (
     <section>
@@ -622,7 +642,7 @@ export default function ThesisWorkspace({ project, upload, plan, analysis, onBui
         <div className="analysis-empty-state">
           <h2>Ready to understand your dataset.</h2>
           <p>Build the analysis plan. No discipline or fixed research template is assumed; the uploaded columns are inspected first.</p>
-          <button className="btn btn-primary" onClick={onBuildPlan} disabled={loading}>{loading ? "Understanding dataset…" : "Understand dataset →"}</button>
+          <button className="btn btn-primary" onClick={onBuildPlan} disabled={buildButton.disabled}>{buildButtonLabel(buildButton)}</button>
         </div>
       )}
 
@@ -649,6 +669,7 @@ export default function ThesisWorkspace({ project, upload, plan, analysis, onBui
                   numericColumns={summary.numeric_columns || []}
                   categoricalColumns={summary.categorical_columns || []}
                   onOverride={onOverrideAnalysis}
+                overrideLocked={overrideLocked}
                 />
               ))}
             </div>
@@ -671,7 +692,7 @@ export default function ThesisWorkspace({ project, upload, plan, analysis, onBui
           columnObjectives={plan?.qualitative?.column_objectives}
           objectives={objectives}
           onConfirm={onConfirmQualitativeColumns}
-          loading={loading}
+          state={selectionButton}
         />
       )}
 
@@ -691,10 +712,10 @@ export default function ThesisWorkspace({ project, upload, plan, analysis, onBui
             loadingLabel="Analysing…"
             cost={costs?.analysis}
             balance={credits}
-            loading={loading}
+            loading={runButton.loading}
             onConfirm={onRun}
             onBuyCredits={onBuyCredits}
-            disabled={qualitativeSelectionPending}
+            disabled={qualitativeSelectionPending || runButton.disabled}
           />
         </div>
       )}
@@ -721,6 +742,7 @@ export default function ThesisWorkspace({ project, upload, plan, analysis, onBui
                 numericColumns={summary.numeric_columns || []}
                 categoricalColumns={summary.categorical_columns || []}
                 onOverride={onOverrideAnalysis}
+                overrideLocked={overrideLocked}
                 conversationId={conversationId}
                 onQualitativeFinalized={onQualitativeFinalized}
                 credits={credits}
