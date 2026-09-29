@@ -4,6 +4,8 @@
 // into, which rating scale was scored -- and the "What Adanse already fixed"
 // list shows it, so a researcher can see why columns appeared or changed.
 
+import { REVERSE_RULE } from "./reverseScores.js";
+
 const EXPLAINED_STEPS = {
   split_multi_select: "Split a “select all that apply” question",
   score_rating_grid: "Scored a rating scale",
@@ -15,11 +17,23 @@ export function stepLabel(rule) {
   return EXPLAINED_STEPS[rule] || "";
 }
 
+// The backend ends every score_rating_grid reason with an instruction written
+// before reversing existed. The screen now offers it: each question of the grid
+// has a tick box under the step.
+const REVERSE_INSTRUCTION =
+  "A negatively worded statement is scored the same way and must be reversed by you.";
+export const REVERSE_POINTER =
+  "A negatively worded statement is scored the same way: tick it below to reverse its scores.";
+
 // The reason to show under the step, or "" when there is nothing to show.
 // Only the explained steps show one: other steps are self-describing.
 export function stepReason(action) {
   if (!action || !EXPLAINED_STEPS[action.rule]) return "";
-  return typeof action.reason === "string" ? action.reason.trim() : "";
+  if (typeof action.reason !== "string") return "";
+  const reason = action.reason.trim();
+  return action.rule === "score_rating_grid"
+    ? reason.replace(REVERSE_INSTRUCTION, REVERSE_POINTER)
+    : reason;
 }
 
 // The backend records one score_rating_grid action per column, each repeating
@@ -35,7 +49,7 @@ function groupedRatingReason(members) {
     `${first.scale_name} scale (${scale[0]} to ${scale[scale.length - 1]}), so the ` +
     `answers were converted to scores 1 to ${scale.length} (by position on the scale). ` +
     "The original words are kept in the file but left out of analysis. " +
-    "A negatively worded statement is scored the same way and must be reversed by you."
+    REVERSE_POINTER
   );
 }
 
@@ -45,7 +59,9 @@ function ratingGridKey(action) {
 
 // What "What Adanse already fixed" lists, from the backend's applied actions:
 //  - a step that changed 0 rows is left out (nothing happened, so nothing to
-//    report), and
+//    report),
+//  - a reversal the researcher applied is left out (the rating-scale entry
+//    shows it, as a ticked question), and
 //  - the rating-scale steps of one grid become a single entry listing its
 //    columns, in the position of the grid's first column.
 // Each entry: { key, rule, columns, reason, rows, values }. A grouped entry has
@@ -57,6 +73,7 @@ export function appliedSteps(actions) {
 
   list.forEach((action, index) => {
     if (!action || !((action.affected_rows ?? 0) > 0)) return;
+    if (action.rule === REVERSE_RULE) return;
 
     const single = {
       key: `${action.rule || "action"}-${index}`,

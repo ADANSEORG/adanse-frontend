@@ -5267,6 +5267,39 @@ button {
   gap: 6px;
 }
 
+/* A rating scale's questions, each with a box to mark it negatively worded. */
+.rating-reverse-row {
+  flex-wrap: wrap;
+}
+
+/* The row is a flex row, so the confirmation takes a line of its own under it. */
+.rating-reverse-row .personal-data-confirm {
+  flex: 1 1 100%;
+}
+
+.rating-reverse-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.rating-reverse-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.rating-reverse-item input {
+  flex: none;
+}
+
+.rating-reverse-name {
+  overflow-wrap: anywhere;
+}
+
 .personal-data-confirm {
   grid-column: 1 / -1;
   margin-top: 10px;
