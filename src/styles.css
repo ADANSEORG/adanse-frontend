@@ -5394,3 +5394,99 @@ button {
   gap: 10px;
   justify-content: flex-end;
 }
+
+/* =========================================================
+   CHAPTER 1 OBJECTIVES — OPTIONAL SIDE-BY-SIDE COMPARISON
+   ========================================================= */
+
+.chapter1-compare {
+  width: 100%;
+  margin-top: 24px;
+  padding: 20px 22px;
+  border: 1px dashed var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.chapter1-compare-lead {
+  margin: 0 0 6px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.chapter1-compare-consent,
+.chapter1-compare-note,
+.chapter1-compare-source {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.chapter1-compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.chapter1-compare-col {
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.chapter1-compare-col h3 {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.chapter1-compare-col ol {
+  margin: 8px 0;
+  padding-left: 20px;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.chapter1-compare-col li + li {
+  margin-top: 6px;
+}
+
+.chapter1-compare-empty {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--gold-soft);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.chapter1-compare-error {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--red-soft);
+  color: var(--red);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.chapter1-compare-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+@media (max-width: 650px) {
+  .chapter1-compare-grid {
+    grid-template-columns: 1fr;
+  }
+  .chapter1-compare-actions .btn {
+    width: 100%;
+  }
+}

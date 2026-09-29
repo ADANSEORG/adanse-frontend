@@ -15,6 +15,7 @@ import ColumnPreview from "./components/ColumnPreview.jsx";
 import DatasetReview from "./components/DatasetReview.jsx";
 import Account from "./components/Account.jsx";
 import Credits from "./components/Credits.jsx";
+import Chapter1Compare from "./components/Chapter1Compare.jsx";
 
 export default function App() {
   const {
@@ -84,6 +85,8 @@ export default function App() {
     reverseScores,
     saveColumnCategoryOrder,
     clearColumnCategoryOrder,
+    uploadChapter1,
+    removeChapter1,
     activateDataset,
     build,
     confirmQualitativeColumns,
@@ -587,6 +590,14 @@ export default function App() {
                       </button>
                     </div>
                   </div>
+                )}
+
+                {!loading && (
+                  <Chapter1Compare
+                    project={project}
+                    onUpload={uploadChapter1}
+                    onRemove={removeChapter1}
+                  />
                 )}
 
                 {upload && !loading && (

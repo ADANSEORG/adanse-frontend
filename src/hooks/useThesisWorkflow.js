@@ -15,6 +15,8 @@ import {
   getThesisProject,
   updateThesisProject,
   uploadThesisDataset,
+  uploadChapter1Document,
+  removeChapter1Document,
   listDatasetVersions,
   getDatasetVersion,
   validateDatasetVersion,
@@ -925,6 +927,36 @@ export function useThesisWorkflow({ user, authLoading }) {
 
   /*
    * ---------------------------------------------------------
+   * CHAPTER 1 OBJECTIVES (OPTIONAL, COMPARISON ONLY)
+   * ---------------------------------------------------------
+   *
+   * Errors are thrown to the caller (Chapter1Compare shows them next
+   * to its own button) instead of the screen-wide error banner.
+   */
+
+  const setChapter1Objectives = (value) =>
+    setProject((prev) =>
+      prev ? { ...prev, chapter1_objectives: value } : prev
+    );
+
+  const uploadChapter1 = async (docFile) => {
+    if (!active) return;
+
+    const result = await uploadChapter1Document(active.id, docFile);
+
+    setChapter1Objectives(result.chapter1_objectives);
+  };
+
+  const removeChapter1 = async () => {
+    if (!active) return;
+
+    await removeChapter1Document(active.id);
+
+    setChapter1Objectives(null);
+  };
+
+  /*
+   * ---------------------------------------------------------
    * ACTIVATE DATASET VERSION
    * ---------------------------------------------------------
    */
@@ -1565,6 +1597,8 @@ export function useThesisWorkflow({ user, authLoading }) {
     reverseScores,
     saveColumnCategoryOrder,
     clearColumnCategoryOrder,
+    uploadChapter1,
+    removeChapter1,
     activateDataset,
     build,
     confirmQualitativeColumns,

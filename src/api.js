@@ -315,6 +315,44 @@ export const uploadThesisDataset = (
 
 /*
  * ---------------------------------------------------------
+ * CHAPTER 1 OBJECTIVES (OPTIONAL .DOCX, COMPARISON ONLY)
+ * ---------------------------------------------------------
+ *
+ * The document is read and discarded by the backend; only the
+ * objectives it finds (word for word, or none) are saved on the
+ * project as `chapter1_objectives`.
+ */
+
+export const uploadChapter1Document = (
+  id,
+  file
+) => {
+  const form = new FormData();
+
+  form.append("file", file);
+
+  return request(
+    `/thesis/projects/${encodeURIComponent(id)}/chapter1-document`,
+    {
+      method: "POST",
+      body: form,
+      formData: true,
+    }
+  );
+};
+
+export const removeChapter1Document = (
+  id
+) =>
+  request(
+    `/thesis/projects/${encodeURIComponent(id)}/chapter1-document`,
+    {
+      method: "DELETE",
+    }
+  );
+
+/*
+ * ---------------------------------------------------------
  * DATASET VERSIONS
  * ---------------------------------------------------------
  *
