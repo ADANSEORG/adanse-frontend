@@ -21,6 +21,7 @@ import {
   activateDatasetVersion,
   applyDatasetGroupings,
   declareColumnTypes,
+  setReverseScores,
   saveCategoryOrder,
   clearCategoryOrder,
   buildAnalysisPlan,
@@ -834,6 +835,34 @@ export function useThesisWorkflow({ user, authLoading }) {
 
   /*
    * ---------------------------------------------------------
+   * REVERSE-SCORE RATING QUESTIONS
+   *
+   * `columns` is every scored rating question that should end up
+   * reversed. Like declareTypes, this creates a new cleaned dataset
+   * version that needs its own validate + activate.
+   * ---------------------------------------------------------
+   */
+
+  const reverseScores = async (columns) => {
+    if (!active || !datasetVersion) return;
+
+    await runAction({
+      setBusy: () => {},
+      setError,
+      action: async () => {
+        const result = await setReverseScores(
+          active.id,
+          datasetVersion.id,
+          columns
+        );
+
+        setDatasetVersion(result.version);
+      },
+    });
+  };
+
+  /*
+   * ---------------------------------------------------------
    * SAVE / CLEAR A COLUMN'S MANUAL CATEGORY ORDER
    *
    * Display only — updates the same dataset version in place
@@ -1518,6 +1547,7 @@ export function useThesisWorkflow({ user, authLoading }) {
     validateDataset,
     applyGroupings,
     declareTypes,
+    reverseScores,
     saveColumnCategoryOrder,
     clearColumnCategoryOrder,
     activateDataset,

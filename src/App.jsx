@@ -81,6 +81,7 @@ export default function App() {
     validateDataset,
     applyGroupings,
     declareTypes,
+    reverseScores,
     saveColumnCategoryOrder,
     clearColumnCategoryOrder,
     activateDataset,
@@ -647,6 +648,7 @@ export default function App() {
                   onActivate={activateDataset}
                   onApplyGroupings={applyGroupings}
                   onDeclareColumnTypes={declareTypes}
+                  onSetReverseScores={reverseScores}
                   onSaveCategoryOrder={saveColumnCategoryOrder}
                   onClearCategoryOrder={clearColumnCategoryOrder}
                   onReplace={() =>

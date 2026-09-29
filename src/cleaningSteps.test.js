@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { appliedSteps, stepLabel, stepReason } from "./cleaningSteps.js";
+import { REVERSE_POINTER, appliedSteps, stepLabel, stepReason } from "./cleaningSteps.js";
 
 const SPLIT_REASON =
   "Answers were separated by commas. It was split into 3 Yes/No columns; the original " +
@@ -134,4 +134,38 @@ test("nothing to show gives an empty list, whatever the report held", () => {
   assert.deepEqual(appliedSteps(undefined), []);
   assert.deepEqual(appliedSteps(null), []);
   assert.deepEqual(appliedSteps([null, { rule: "trim_whitespace", affected_rows: 0 }]), []);
+});
+
+// ---------------------------------------------------------------------------
+// Reverse-scoring: the rating-scale entry points to its tick boxes
+// ---------------------------------------------------------------------------
+
+const BACKEND_GRID_REASON =
+  "This is one of 3 questions answered on the same 5-point agreement scale (Strongly disagree " +
+  "to Strongly agree), so the answers were converted to scores 1 to 5 (by position on the scale). " +
+  "The original words are kept in the file ('Q1 [original labels]') but left out of analysis. " +
+  "A negatively worded statement is scored the same way and must be reversed by you.";
+
+test("a rating-scale reason points to the tick boxes instead of telling the researcher to reverse by hand", () => {
+  const reason = stepReason({ rule: "score_rating_grid", reason: BACKEND_GRID_REASON });
+  assert.equal(reason.endsWith(REVERSE_POINTER), true);
+  assert.doesNotMatch(reason, /must be reversed by you/);
+  assert.match(reason, /^This is one of 3 questions/); // the rest is kept as recorded
+});
+
+test("the grouped rating-scale reason points to the tick boxes too", () => {
+  const steps = appliedSteps([gridAction("Q1"), gridAction("Q2")]);
+  assert.equal(steps[0].reason.endsWith(REVERSE_POINTER), true);
+  assert.doesNotMatch(steps[0].reason, /must be reversed by you/);
+});
+
+test("a reversal is not listed as a step of its own: the grid entry shows it", () => {
+  const steps = appliedSteps([
+    gridAction("Q1"),
+    gridAction("Q2"),
+    { rule: "reverse_rating_scores", column: "Q2", scale_points: 5, affected_rows: 40, affected_values: 40 },
+  ]);
+  assert.equal(steps.length, 1);
+  assert.deepEqual(steps[0].columns, ["Q1", "Q2"]);
+  assert.equal(steps[0].values, 80); // the reversal's values are not added to the scoring's
 });
