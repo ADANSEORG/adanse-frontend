@@ -1516,6 +1516,55 @@ button {
   opacity: 0.7;
 }
 
+/* "or" between the email form and Continue with Google. */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 14px;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--line);
+}
+
+/* White with the coloured G, per Google's sign-in button guidelines; same
+   size and radius as the gold submit so the two read as equal choices. */
+.auth-google {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  padding: 13px 14px;
+  border-radius: 11px;
+  font-weight: 700;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+}
+
+.auth-google:hover:not(:disabled) {
+  border-color: #c99a32;
+  box-shadow: 0 6px 18px rgba(20, 20, 20, 0.08);
+}
+
+.auth-google:disabled {
+  opacity: 0.7;
+}
+
+.auth-google svg {
+  flex: none;
+}
+
 .auth-switch {
   border: 0;
   background: none;
