@@ -51,16 +51,46 @@ export function normalizeForMatch(text) {
  * no case folding, no similarity scoring.
  */
 export function exactMatches(list, other) {
-  const others = new Set(cleanList(other).map(normalizeForMatch));
-  return cleanList(list).map((item) => others.has(normalizeForMatch(item)));
+  return matchPositions(list, other).map((position) => position !== null);
+}
+
+/*
+ * For each item of `list`, the 1-based position in `other` of the item it
+ * matches (the same position as `other`'s own numbered list), or null if
+ * none does. Same comparison as exactMatches. If the same wording appears
+ * more than once in `other`, the first one is named.
+ */
+export function matchPositions(list, other) {
+  const positions = new Map();
+  cleanList(other).forEach((item, index) => {
+    const key = normalizeForMatch(item);
+    if (!positions.has(key)) positions.set(key, index + 1);
+  });
+  return cleanList(list).map(
+    (item) => positions.get(normalizeForMatch(item)) ?? null
+  );
+}
+
+/*
+ * The tag under one line. `position` is from matchPositions; `otherSide`
+ * names the list it points into: "entered" (for a document line) or
+ * "document" (for an entered line).
+ */
+export function matchLabel(position, otherSide) {
+  if (position === null || position === undefined) return "No exact match found";
+  return otherSide === "document"
+    ? `Matches item ${position} in your document`
+    : `Matches item ${position} in what you entered`;
 }
 
 /*
  * What the panel shows for a project:
  *   { state: "none" }                       -- no document uploaded
  *   { state: "found", heading, fromDocument, entered,
- *     documentMatches, enteredMatches }  -- per-line exact-match flags
- *                                           (see exactMatches)
+ *     documentMatches, enteredMatches,   -- per-line exact-match flags
+ *     documentMatchPositions,            -- and the 1-based position of the
+ *     enteredMatchPositions }               matched item on the other side
+ *                                           (see matchPositions)
  *   { state: "not_found", message, entered } -- nothing from the document
  * Anything malformed is treated as "not_found" with no objectives, never
  * as a partial list.
@@ -83,6 +113,8 @@ export function comparisonView(project) {
       entered,
       documentMatches: exactMatches(fromDocument, entered),
       enteredMatches: exactMatches(entered, fromDocument),
+      documentMatchPositions: matchPositions(fromDocument, entered),
+      enteredMatchPositions: matchPositions(entered, fromDocument),
     };
   }
 

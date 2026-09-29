@@ -7,6 +7,8 @@ import {
   comparisonView,
   exactMatches,
   isDocxFile,
+  matchLabel,
+  matchPositions,
   normalizeForMatch,
 } from "./chapter1Compare.js";
 
@@ -134,4 +136,47 @@ test("normalization is for comparing only: the text shown is unchanged", () => {
   assert.equal(view.fromDocument[0], curly);
   assert.deepEqual(view.documentMatches, [true, false]);
   assert.deepEqual(view.enteredMatches, [true]);
+});
+
+test("a matched line names the 1-based position of its match on the other side", () => {
+  const documentList = ["To identify factors.", "To assess impact.", "To compare groups."];
+  const entered = ["To compare groups.", "Something only typed.", "To identify factors."];
+  assert.deepEqual(matchPositions(documentList, entered), [3, null, 1]);
+  assert.deepEqual(matchPositions(entered, documentList), [3, null, 1]);
+});
+
+test("positions use the same normalized comparison as the highlighting", () => {
+  const documentList = ["To examine lecturers\u2019 \u201cfeedback\u201d \u2014 timing."];
+  const entered = ["Unrelated.", "To examine  lecturers' \"feedback\" - timing."];
+  assert.deepEqual(matchPositions(documentList, entered), [2]);
+  assert.deepEqual(matchPositions(entered, documentList), [null, 1]);
+  assert.deepEqual(matchPositions(["to examine lecturers' \"feedback\" - timing."], documentList), [null]);
+});
+
+test("the same wording twice on the other side points to its first position", () => {
+  assert.deepEqual(matchPositions(["To assess impact."], ["X.", "To assess impact.", "To assess impact."]), [2]);
+});
+
+test("positions follow each list's own numbering, skipping blank entries it doesn't show", () => {
+  const view = comparisonView({
+    objectives: ["", "To assess impact."],
+    chapter1_objectives: found,
+  });
+  assert.deepEqual(view.entered, ["To assess impact."]);
+  assert.deepEqual(view.documentMatchPositions, [null, 1]);
+  assert.deepEqual(view.enteredMatchPositions, [2]);
+});
+
+test("labels: document lines point into what you entered, entered lines into your document", () => {
+  assert.equal(matchLabel(2, "entered"), "Matches item 2 in what you entered");
+  assert.equal(matchLabel(3, "document"), "Matches item 3 in your document");
+  assert.equal(matchLabel(null, "entered"), "No exact match found");
+  assert.equal(matchLabel(null, "document"), "No exact match found");
+});
+
+test("the panel labels each side against the other list", () => {
+  const source = readFileSync(new URL("./components/Chapter1Compare.jsx", import.meta.url), "utf8");
+  assert.match(source, /position=\{view\.documentMatchPositions\[i\]\} otherSide="entered"/);
+  assert.match(source, /position=\{view\.enteredMatchPositions\[i\]\} otherSide="document"/);
+  assert.doesNotMatch(source, /Same wording in both lists/);
 });

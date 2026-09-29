@@ -6,6 +6,7 @@ import {
   NOT_A_DOCX_MESSAGE,
   comparisonView,
   isDocxFile,
+  matchLabel,
 } from "../chapter1Compare.js";
 
 /*
@@ -13,16 +14,15 @@ import {
  * objectives saved in Research Context. Informational only -- nothing here
  * changes Research Context or Chapter 4. See chapter1Compare.js.
  */
-// One objective, marked by whether the identical text (trimmed) is in the
-// other list -- pure string equality (exactMatches). A text label goes with
-// the colour so the cue doesn't rely on colour alone.
-function MatchLine({ matched, children }) {
+// One objective, marked by whether the same wording (normalizeForMatch, then
+// exact equality) is in the other list, and if so which numbered item it is.
+// A text label goes with the colour so the cue doesn't rely on colour alone.
+function MatchLine({ position, otherSide, children }) {
+  const matched = position !== null && position !== undefined;
   return (
     <li className={matched ? "chapter1-line-matched" : "chapter1-line-unmatched"}>
       {children}
-      <span className="chapter1-line-tag">
-        {matched ? "Same wording in both lists" : "No exact match found"}
-      </span>
+      <span className="chapter1-line-tag">{matchLabel(position, otherSide)}</span>
     </li>
   );
 }
@@ -98,7 +98,7 @@ export default function Chapter1Compare({ project, onUpload, onRemove, disabled 
             )}
             <ol>
               {view.fromDocument.map((objective, i) => (
-                <MatchLine key={i} matched={view.documentMatches[i]}>
+                <MatchLine key={i} position={view.documentMatchPositions[i]} otherSide="entered">
                   <q>{objective}</q>
                 </MatchLine>
               ))}
@@ -115,7 +115,7 @@ export default function Chapter1Compare({ project, onUpload, onRemove, disabled 
             {view.entered.length > 0 ? (
               <ol>
                 {view.entered.map((objective, i) => (
-                  <MatchLine key={i} matched={view.enteredMatches[i]}>
+                  <MatchLine key={i} position={view.enteredMatchPositions[i]} otherSide="document">
                     {objective}
                   </MatchLine>
                 ))}
