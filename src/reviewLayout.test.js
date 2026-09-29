@@ -13,16 +13,37 @@ const css = readFileSync(new URL("./styles.css", import.meta.url), "utf8")
   .replace(/\s+/g, " ");
 const screen = readFileSync(new URL("./components/DatasetReview.jsx", import.meta.url), "utf8");
 
+// The text of every `@media <media> { ... }` block, found by matching braces so
+// a search can never run past a block's end into the rules after it.
+function mediaBlocks(media) {
+  const blocks = [];
+  const head = `@media ${media}`;
+  let at = css.indexOf(head);
+  while (at !== -1) {
+    const open = css.indexOf("{", at);
+    let depth = 1;
+    let i = open + 1;
+    while (depth && i < css.length) {
+      if (css[i] === "{") depth++;
+      if (css[i] === "}") depth--;
+      i++;
+    }
+    blocks.push(css.slice(open + 1, i - 1));
+    at = css.indexOf(head, i);
+  }
+  return blocks;
+}
+
 // The body of the first rule whose selector list is exactly `selectors`,
-// optionally inside `media`.
+// either at the top level or inside a `media` block.
 function body(selectors, media = null) {
   const list = selectors.map((s) => s.replace(/[.*+?^${}()|[\]\\>]/g, "\\$&")).join(" ?, ?");
-  const rule = `${list} ?\\{([^}]*)\\}`;
-  const pattern = media
-    ? new RegExp(`@media ${media.replace(/[()]/g, "\\$&")} ?\\{[^@]*?${rule}`)
-    : new RegExp(`(?:^|\\}) ?${rule}`);
-  const match = css.match(pattern);
-  return match ? match[1] : null;
+  const pattern = new RegExp(`(?:^|[{}]) ?${list} ?\\{([^}]*)\\}`);
+  for (const text of media ? mediaBlocks(media) : [css]) {
+    const match = text.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
 }
 
 test("rows that open a confirmation wrap, so it can go under them", () => {
@@ -43,11 +64,19 @@ test("on wider screens the row's main column grows from zero, so the status stay
   assert.match(main ?? "", /flex: 1 1 0/);
 });
 
-test("on phones the review screen's footer stacks its text above the buttons", () => {
-  const bar = body([".analysis-action-bar.dataset-review-actions"], "(max-width: 650px)");
+test("on phones every footer bar stacks its text above a full-width action", () => {
+  const bar = body([".analysis-action-bar"], "(max-width: 650px)");
   assert.match(bar ?? "", /flex-direction: column/);
   assert.match(bar, /align-items: stretch/);
-  assert.match(screen, /className="analysis-action-bar dataset-review-actions"/);
+  // Not scoped to one screen: the analysis and qualitative footers squeezed too.
+  assert.doesNotMatch(css, /\.analysis-action-bar\.dataset-review-actions/);
+});
+
+test("on phones a credit-priced action stretches, with its cost note under it", () => {
+  assert.match(body([".analysis-action-bar .credit-action"], "(max-width: 650px)") ?? "", /align-items: stretch/);
+  const notice = body([".analysis-action-bar .credit-action-notice"], "(max-width: 650px)");
+  assert.match(notice ?? "", /max-width: 100%/);
+  assert.match(notice, /text-align: left/);
 });
 
 test("both rows that open a confirmation carry the wrapping class", () => {

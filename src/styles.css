@@ -3980,12 +3980,21 @@ button {
   font-size: 13px;
 }
 
-/* The review screen's footer on phones: its buttons already go full width, so
-   the text goes above them instead of being squeezed beside them. */
+/* Every footer bar on phones: the text goes above the action, which takes the
+   full width, instead of the two squeezing each other side by side (a single
+   button used to wrap to three or four lines beside half-width text). A
+   credit-priced action keeps its cost note under the button. */
 @media (max-width: 650px) {
-  .analysis-action-bar.dataset-review-actions {
+  .analysis-action-bar {
     flex-direction: column;
     align-items: stretch;
+  }
+  .analysis-action-bar .credit-action {
+    align-items: stretch;
+  }
+  .analysis-action-bar .credit-action-notice {
+    max-width: 100%;
+    text-align: left;
   }
 }
 
