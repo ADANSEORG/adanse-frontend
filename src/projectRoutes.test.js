@@ -6,6 +6,7 @@ import {
   PROJECT_STEPS,
   defaultProjectStep,
   historyBackTarget,
+  historyIndex,
   isProjectStep,
   isValidProjectId,
   parseProjectPath,
@@ -284,22 +285,48 @@ test("projectPath percent-encodes an id that isn't already URL-safe", () => {
 // ---------------------------------------------------------------------------
 // historyBackTarget
 // ---------------------------------------------------------------------------
+// `historyState` is window.history.state as React Router writes it:
+// { usr, key, idx }, idx counting the router's own entries in this tab.
 test("Back steps through history when an earlier entry of ours exists", () => {
-  assert.equal(historyBackTarget("k8f2ab", "/fallback"), -1);
-  assert.equal(historyBackTarget("abc123", "/fallback"), -1);
+  assert.equal(historyBackTarget({ key: "k8f2ab", idx: 1 }, "/fallback"), -1);
+  assert.equal(historyBackTarget({ key: "abc123", idx: 4 }, "/fallback"), -1);
 });
 
 test("after a reload or a link opened in a new tab (first entry) Back goes to the given fallback, not -1", () => {
-  assert.equal(historyBackTarget("default", "/fallback"), "/fallback");
+  assert.equal(historyBackTarget({ idx: 0 }, "/fallback"), "/fallback");
 });
 
-test("with no key at all Back goes to the fallback rather than leaving the app", () => {
-  for (const key of [undefined, null, ""]) {
-    assert.equal(historyBackTarget(key, "/fallback"), "/fallback");
+test("REGRESSION: a first entry that was REPLACED has a new key but is still the first -- Back must not leave the app", () => {
+  // Opening the app at "/" reopens the last project by replacing "/" with
+  // /project/:id/<step>; /project/:id and the chapter4 gate correction replace
+  // too. The key changes, the index stays 0. Keyed on location.key, this read
+  // as "an earlier entry exists", so Back called navigate(-1) and left the app.
+  assert.equal(historyBackTarget({ key: "e66o8tfp", idx: 0 }, "/project/abc/analysis"), "/project/abc/analysis");
+});
+
+test("with no usable history state Back goes to the fallback rather than leaving the app", () => {
+  for (const state of [undefined, null, {}, { idx: null }, { idx: "3" }, { idx: -1 }, { idx: 1.5 }]) {
+    assert.equal(historyBackTarget(state, "/fallback"), "/fallback", JSON.stringify(state));
   }
 });
 
-test("the fallback is returned verbatim, whatever the caller passes (viewRoutes.js's settingsBackTarget always passes \"/\"; the project Back button passes a specific step path)", () => {
-  assert.equal(historyBackTarget("default", "/project/abc/setup"), "/project/abc/setup");
-  assert.equal(historyBackTarget("default", "/"), "/");
+test("historyIndex reads React Router's idx, and anything unusable counts as the first entry", () => {
+  assert.equal(historyIndex({ idx: 3 }), 3);
+  assert.equal(historyIndex({ idx: 0, key: "x" }), 0);
+  assert.equal(historyIndex(null), 0);
+  assert.equal(historyIndex({ key: "only-a-key" }), 0);
+});
+
+test("the fallback is returned verbatim, whatever the caller passes (viewRoutes.js's settingsBackTarget always uses \"/\"; the project Back button passes a specific step path)", () => {
+  assert.equal(historyBackTarget({ idx: 0 }, "/project/abc/setup"), "/project/abc/setup");
+  assert.equal(historyBackTarget({ idx: 0 }, "/"), "/");
+});
+
+test("every in-page Back decides from the history index, never from location.key", async () => {
+  const { readFileSync } = await import("node:fs");
+  const hook = readFileSync(new URL("./hooks/useThesisWorkflow.js", import.meta.url), "utf8");
+  const calls = hook.match(/(historyBackTarget|settingsBackTarget)\(([^,)]*)/g) || [];
+  assert.equal(calls.length, 5, calls.join(" | "));
+  for (const call of calls) assert.match(call, /\(window\.history\.state$/, call);
+  assert.doesNotMatch(hook, /BackTarget\(location\.key/);
 });
