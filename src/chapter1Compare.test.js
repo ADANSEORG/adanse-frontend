@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 
 import {
   CONSENT_NOTICE,
+  comparisonRows,
   comparisonView,
   exactMatches,
   isDocxFile,
@@ -177,8 +178,8 @@ test("labels: document lines point into what you entered, entered lines into you
 
 test("the panel labels each side against the other list", () => {
   const source = readFileSync(new URL("./components/Chapter1Compare.jsx", import.meta.url), "utf8");
-  assert.match(source, /position=\{view\.documentMatchPositions\[i\]\}\s+otherSide="entered"/);
-  assert.match(source, /position=\{view\.enteredMatchPositions\[i\]\}\s+otherSide="document"/);
+  assert.match(source, /cell=\{row\.document\}\s+side="document"\s+otherSide="entered"/);
+  assert.match(source, /cell=\{row\.entered\} side="entered" otherSide="document"/);
   assert.doesNotMatch(source, /Same wording in both lists/);
 });
 
@@ -227,10 +228,10 @@ test("after using the wording, the match check shows the line as matched on both
 test("only unmatched document lines get the button; the entered side gets none", () => {
   const source = readFileSync(new URL("./components/Chapter1Compare.jsx", import.meta.url), "utf8");
   assert.match(source, /\{!matched && action\}/);
-  const documentSide = source.slice(source.indexOf("view.fromDocument.map"), source.indexOf("You entered"));
-  const enteredSide = source.slice(source.indexOf("view.entered.map"));
-  assert.match(documentSide, /Use this wording/);
-  assert.doesNotMatch(enteredSide, /Use this wording|action=|onUseWording/);
+  const documentCell = source.slice(source.indexOf("cell={row.document}"), source.indexOf("cell={row.entered}"));
+  assert.match(documentCell, /Use this wording/);
+  // The entered cell is rendered with no action at all.
+  assert.match(source, /<MatchCell cell=\{row\.entered\} side="entered" otherSide="document" \/>/);
 });
 
 test("saving the wording stays on the Dataset step and uses the project PATCH", () => {
@@ -242,4 +243,83 @@ test("saving the wording stays on the Dataset step and uses the project PATCH", 
   assert.match(body, /updateThesisProject\(active\.id, \{ objectives \}\)/);
   assert.match(body, /setProject\(/);
   assert.doesNotMatch(body, /setStep|pushStep|navigate|setLoading/);
+});
+
+// ---------------------------------------------------------------------------
+// Display rows: entered objectives aligned to their matches (display only)
+// ---------------------------------------------------------------------------
+const alignedProject = () => ({
+  objectives: ["Only typed one.", "To compare groups.", "Only typed two.", "To identify factors."],
+  chapter1_objectives: {
+    ...found,
+    objectives: ["To identify factors.", "To assess impact.", "To compare groups."],
+  },
+});
+
+test("matched pairs render in the same row across both columns", () => {
+  const rows = comparisonRows(comparisonView(alignedProject()));
+  assert.equal(rows[0].document.text, "To identify factors.");
+  assert.equal(rows[0].entered.text, "To identify factors.");
+  assert.equal(rows[2].document.text, "To compare groups.");
+  assert.equal(rows[2].entered.text, "To compare groups.");
+  for (const row of rows) {
+    if (row.document && row.entered) assert.equal(row.document.text, row.entered.text);
+  }
+});
+
+test("the document side stays in document order; its unmatched rows have no entered cell", () => {
+  const rows = comparisonRows(comparisonView(alignedProject()));
+  assert.deepEqual(
+    rows.filter((r) => r.document).map((r) => [r.document.number, r.document.text]),
+    [[1, "To identify factors."], [2, "To assess impact."], [3, "To compare groups."]]
+  );
+  assert.equal(rows[1].entered, null);
+});
+
+test("unmatched entered objectives render after all matched ones, in their original order", () => {
+  const rows = comparisonRows(comparisonView(alignedProject()));
+  assert.equal(rows.length, 5);
+  assert.deepEqual(rows.slice(3).map((r) => r.document), [null, null]);
+  assert.deepEqual(rows.slice(3).map((r) => r.entered.text), ["Only typed one.", "Only typed two."]);
+  const lastMatchedRow = Math.max(...rows.map((r, i) => (r.entered && r.entered.matchPosition !== null ? i : -1)));
+  const firstUnmatchedRow = rows.findIndex((r) => r.entered && r.entered.matchPosition === null);
+  assert.ok(lastMatchedRow < firstUnmatchedRow);
+});
+
+test("each entered objective keeps its real Research Context number wherever it is shown", () => {
+  const rows = comparisonRows(comparisonView(alignedProject()));
+  const shown = Object.fromEntries(rows.filter((r) => r.entered).map((r) => [r.entered.text, r.entered.number]));
+  assert.deepEqual(shown, {
+    "To identify factors.": 4,
+    "To compare groups.": 2,
+    "Only typed one.": 1,
+    "Only typed two.": 3,
+  });
+  assert.equal(rows[0].entered.matchPosition, 1);
+  assert.equal(rows[0].document.matchPosition, 4);
+});
+
+test("the display order never changes the Research Context objectives or their order", () => {
+  const project = alignedProject();
+  const before = [...project.objectives];
+  const view = comparisonView(project);
+  comparisonRows(view);
+  assert.deepEqual(project.objectives, before);
+  assert.deepEqual(view.entered, before);
+});
+
+test("wording that appears twice is placed once; the second copy follows the matched rows", () => {
+  const view = comparisonView({
+    objectives: ["To assess impact.", "To assess impact."],
+    chapter1_objectives: found,
+  });
+  const rows = comparisonRows(view);
+  assert.equal(rows[1].entered.number, 1);
+  assert.equal(rows[0].entered, null);
+  assert.deepEqual(rows.slice(2).map((r) => [r.document, r.entered.number]), [[null, 2]]);
+});
+
+test("nothing entered: one row per document objective, all without an entered cell", () => {
+  const rows = comparisonRows(comparisonView({ objectives: [], chapter1_objectives: found }));
+  assert.deepEqual(rows.map((r) => [r.document.number, r.entered]), [[1, null], [2, null]]);
 });

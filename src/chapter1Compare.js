@@ -95,6 +95,53 @@ export function objectivesWithDocumentWording(entered, position, wording) {
 }
 
 /*
+ * The panel's display rows, for a "found" view. Display order only --
+ * nothing here reorders or renumbers the objectives themselves.
+ *
+ *   - One row per document objective, in document order.
+ *   - A matched entered objective sits in the row of the document objective
+ *     it matches (the first one, if that wording appears twice in the
+ *     document); a document row with no match has `entered: null`.
+ *   - Every entered objective not placed that way (unmatched ones, and a
+ *     second copy of wording already placed) follows in its own row, in its
+ *     original relative order, with `document: null`.
+ *
+ * Each cell keeps its real 1-based `number` in its own list (for the
+ * entered side, its position in Research Context as the panel lists it)
+ * and its `matchPosition` on the other side (matchPositions).
+ */
+export function comparisonRows(view) {
+  const fromDocument = view?.fromDocument || [];
+  const entered = view?.entered || [];
+  const documentPositions = view?.documentMatchPositions || [];
+  const enteredPositions = view?.enteredMatchPositions || [];
+
+  const enteredCell = (index) => ({
+    text: entered[index],
+    number: index + 1,
+    matchPosition: enteredPositions[index] ?? null,
+  });
+
+  const placed = new Set();
+  const rows = fromDocument.map((text, index) => {
+    const matchPosition = documentPositions[index] ?? null;
+    const enteredIndex = matchPosition === null ? null : matchPosition - 1;
+    const usable = enteredIndex !== null && !placed.has(enteredIndex) && enteredIndex < entered.length;
+    if (usable) placed.add(enteredIndex);
+    return {
+      document: { text, number: index + 1, matchPosition },
+      entered: usable ? enteredCell(enteredIndex) : null,
+    };
+  });
+
+  entered.forEach((_, index) => {
+    if (!placed.has(index)) rows.push({ document: null, entered: enteredCell(index) });
+  });
+
+  return rows;
+}
+
+/*
  * The tag under one line. `position` is from matchPositions; `otherSide`
  * names the list it points into: "entered" (for a document line) or
  * "document" (for an entered line).

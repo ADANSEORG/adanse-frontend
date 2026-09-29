@@ -5423,39 +5423,6 @@ button {
   line-height: 1.5;
 }
 
-.chapter1-compare-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-top: 16px;
-}
-
-.chapter1-compare-col {
-  min-width: 0;
-  padding: 14px 16px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--bg);
-}
-
-.chapter1-compare-col h3 {
-  margin: 0 0 4px;
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.chapter1-compare-col ol {
-  margin: 8px 0;
-  padding-left: 20px;
-  font-size: 14px;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-
-.chapter1-compare-col li + li {
-  margin-top: 6px;
-}
-
 .chapter1-compare-empty {
   margin-top: 16px;
   padding: 12px 14px;
@@ -5483,30 +5450,9 @@ button {
 }
 
 @media (max-width: 650px) {
-  .chapter1-compare-grid {
-    grid-template-columns: 1fr;
-  }
   .chapter1-compare-actions .btn {
     width: 100%;
   }
-}
-
-/* Exact-match cue per objective line (pure string equality, both sides). */
-.chapter1-compare-col li.chapter1-line-matched,
-.chapter1-compare-col li.chapter1-line-unmatched {
-  padding: 6px 8px;
-  border-left: 3px solid;
-  border-radius: 6px;
-}
-
-.chapter1-compare-col li.chapter1-line-matched {
-  border-left-color: var(--green);
-  background: var(--green-soft);
-}
-
-.chapter1-compare-col li.chapter1-line-unmatched {
-  border-left-color: var(--gold);
-  background: var(--gold-soft);
 }
 
 .chapter1-line-tag {
@@ -5546,4 +5492,110 @@ button {
 .chapter1-use-wording:disabled {
   opacity: 0.55;
   cursor: default;
+}
+
+/* Aligned comparison: one row per document objective, a matched entered
+   objective in the same row (see comparisonRows). */
+.chapter1-compare-table {
+  width: calc(100% + 20px);
+  margin: 10px -10px 0;
+  border-collapse: separate;
+  border-spacing: 10px 8px;
+  table-layout: fixed;
+}
+
+.chapter1-compare-table caption {
+  padding: 0 10px;
+  text-align: left;
+  caption-side: top;
+}
+
+.chapter1-compare-table th {
+  padding: 0 2px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.chapter1-compare-table td {
+  padding: 8px 10px;
+  border-left: 3px solid transparent;
+  border-radius: 6px;
+  vertical-align: top;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.chapter1-compare-table td.chapter1-line-matched {
+  border-left-color: var(--green);
+  background: var(--green-soft);
+}
+
+.chapter1-compare-table td.chapter1-line-unmatched {
+  border-left-color: var(--gold);
+  background: var(--gold-soft);
+}
+
+.chapter1-compare-table td.chapter1-cell-empty {
+  border: 1px dashed var(--line);
+  color: var(--muted);
+  text-align: center;
+  vertical-align: middle;
+}
+
+.chapter1-cell-number {
+  font-weight: 700;
+}
+
+.chapter1-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 650px) {
+  .chapter1-compare-table,
+  .chapter1-compare-table tbody,
+  .chapter1-compare-table tr,
+  .chapter1-compare-table td,
+  .chapter1-compare-table caption {
+    display: block;
+    width: 100%;
+  }
+  .chapter1-compare-table {
+    margin: 10px 0 0;
+  }
+  .chapter1-compare-table caption {
+    padding: 0;
+  }
+  .chapter1-compare-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .chapter1-compare-table tr {
+    margin-top: 12px;
+  }
+  .chapter1-compare-table td + td {
+    margin-top: 6px;
+  }
+  .chapter1-compare-table td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 2px;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .chapter1-compare-table td.chapter1-cell-empty {
+    display: none;
+  }
 }
