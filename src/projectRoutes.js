@@ -210,6 +210,24 @@ export function historyIndex(historyState) {
   return Number.isInteger(idx) && idx > 0 ? idx : 0;
 }
 
+// The page a history entry was pushed FROM, as the step navigations record it
+// (useThesisWorkflow's pushStep: navigate(path, { state: stepPushState(from) })).
+// React Router keeps navigate()'s state under history.state.usr. Null for an
+// entry nothing recorded on: the tab's first entry, a replace, or a push that
+// is not a project step.
+export function stepPushState(fromPath) {
+  return { prev: fromPath };
+}
+
+export function pushedFrom(historyState) {
+  const prev = historyState?.usr?.prev;
+  return typeof prev === "string" && prev ? prev : null;
+}
+
+// Spec section 10: the in-page Back "steps history back if the previous entry
+// is that route, otherwise pushes it". Stepping back whenever ANY earlier entry
+// existed let two Backs bounce between two pages (Chapter 4 -> Analysis ->
+// Chapter 4, when Analysis had been reached by Back from Chapter 4).
 export function historyBackTarget(historyState, fallbackPath) {
-  return historyIndex(historyState) > 0 ? -1 : fallbackPath;
+  return historyIndex(historyState) > 0 && pushedFrom(historyState) === fallbackPath ? -1 : fallbackPath;
 }

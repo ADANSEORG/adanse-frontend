@@ -7,6 +7,8 @@ import {
   defaultProjectStep,
   historyBackTarget,
   historyIndex,
+  pushedFrom,
+  stepPushState,
   isProjectStep,
   isValidProjectId,
   parseProjectPath,
@@ -287,9 +289,37 @@ test("projectPath percent-encodes an id that isn't already URL-safe", () => {
 // ---------------------------------------------------------------------------
 // `historyState` is window.history.state as React Router writes it:
 // { usr, key, idx }, idx counting the router's own entries in this tab.
-test("Back steps through history when an earlier entry of ours exists", () => {
-  assert.equal(historyBackTarget({ key: "k8f2ab", idx: 1 }, "/fallback"), -1);
-  assert.equal(historyBackTarget({ key: "abc123", idx: 4 }, "/fallback"), -1);
+// An entry pushed by a step navigation: React Router keeps navigate()'s state
+// under history.state.usr.
+const pushed = (idx, from) => ({ key: "k" + idx, idx, usr: stepPushState(from) });
+
+test("Back steps through history when the previous entry is the logical previous step", () => {
+  assert.equal(historyBackTarget(pushed(1, "/fallback"), "/fallback"), -1);
+  assert.equal(historyBackTarget(pushed(4, "/project/abc/analysis"), "/project/abc/analysis"), -1);
+});
+
+test("REGRESSION (bounce): an earlier entry that is NOT the logical previous step is pushed over, not stepped back to", () => {
+  // Chapter 4 -> in-page Back pushed Analysis (recording it came from Chapter 4).
+  // Back from that Analysis must go to Review/Dataset, not step back to Chapter 4.
+  const analysisReachedByBack = pushed(2, "/project/abc/chapter4");
+  assert.equal(historyBackTarget(analysisReachedByBack, "/project/abc/review"), "/project/abc/review");
+});
+
+test("an earlier entry with nothing recorded (reached some other way) pushes the logical previous step", () => {
+  assert.equal(historyBackTarget({ key: "k8f2ab", idx: 1 }, "/fallback"), "/fallback");
+  assert.equal(historyBackTarget({ key: "k8f2ab", idx: 1, usr: null }, "/fallback"), "/fallback");
+  assert.equal(historyBackTarget({ key: "k8f2ab", idx: 1, usr: { prev: 5 } }, "/fallback"), "/fallback");
+});
+
+test("a recorded match on the tab's first entry still does not step out of the app", () => {
+  assert.equal(historyBackTarget({ key: "x", idx: 0, usr: stepPushState("/fallback") }, "/fallback"), "/fallback");
+});
+
+test("pushedFrom reads what stepPushState recorded, and nothing else", () => {
+  assert.equal(pushedFrom({ usr: stepPushState("/project/abc/analysis") }), "/project/abc/analysis");
+  for (const state of [undefined, null, {}, { usr: {} }, { usr: { prev: "" } }, { usr: { prev: 1 } }]) {
+    assert.equal(pushedFrom(state), null, JSON.stringify(state));
+  }
 });
 
 test("after a reload or a link opened in a new tab (first entry) Back goes to the given fallback, not -1", () => {
@@ -329,4 +359,15 @@ test("every in-page Back decides from the history index, never from location.key
   assert.equal(calls.length, 5, calls.join(" | "));
   for (const call of calls) assert.match(call, /\(window\.history\.state$/, call);
   assert.doesNotMatch(hook, /BackTarget\(location\.key/);
+});
+
+test("every push of a project step records where it came from (pushStep); only replaces call navigate with a project path", async () => {
+  const { readFileSync } = await import("node:fs");
+  const hook = readFileSync(new URL("./hooks/useThesisWorkflow.js", import.meta.url), "utf8");
+  assert.match(hook, /const pushStep = \(path\) => \{\s*navigate\(path, \{ state: stepPushState\(location\.pathname\) \}\);/);
+  // A bare navigate() to a project path, or to a Back fallback `target`, would push without recording.
+  for (const call of hook.match(/navigate\((projectPath\([^)]*\)|target|targetPath)[^;]*;/g) || []) {
+    assert.match(call, /replace: true/, call);
+  }
+  assert.ok((hook.match(/pushStep\(/g) || []).length >= 12);
 });
