@@ -65,6 +65,7 @@ export default function App() {
     costs,
     step,
     loading,
+    busyActions,
     error,
     setError,
     sidebarOpen,
@@ -699,6 +700,9 @@ export default function App() {
                 }
                 loading={
                   loading
+                }
+                busyActions={
+                  busyActions
                 }
                 conversationId={
                   active.id

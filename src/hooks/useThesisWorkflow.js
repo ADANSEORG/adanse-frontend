@@ -183,6 +183,13 @@ export function useThesisWorkflow({ user, authLoading }) {
     setProject,
   ] = useState(null);
 
+  // One busy flag per independent action (see actionBusy.js), so one
+  // action's loading label never shows on another action's button.
+  const [busyActions, setBusyActions] = useState({});
+
+  const busyFor = (action) => (value) =>
+    setBusyActions((prev) => ({ ...prev, [action]: value }));
+
   const [
     upload,
     setUpload,
@@ -1128,7 +1135,7 @@ export function useThesisWorkflow({ user, authLoading }) {
     if (!active) return;
 
     await runAction({
-      setBusy: setLoading,
+      setBusy: busyFor("build"),
       setError,
       action: async () => {
         const p = await buildAnalysisPlan(active.id);
@@ -1180,7 +1187,7 @@ export function useThesisWorkflow({ user, authLoading }) {
     if (!active) return;
 
     await runAction({
-      setBusy: setLoading,
+      setBusy: busyFor("qualitative"),
       setError,
       action: async () => {
         const p = await selectQualitativeColumns(active.id, columns, columnObjectives);
@@ -1204,7 +1211,7 @@ export function useThesisWorkflow({ user, authLoading }) {
     if (!active) return;
 
     await runAction({
-      setBusy: setLoading,
+      setBusy: busyFor("override"),
       setError,
       action: async () => {
         const { plan: p, analysis_results: updatedAnalysis } =
@@ -1229,7 +1236,7 @@ export function useThesisWorkflow({ user, authLoading }) {
     if (!active) return;
 
     await runAction({
-      setBusy: setLoading,
+      setBusy: busyFor("run"),
       setError,
       action: async () => {
         const a = await runThesisAnalysis(active.id);
@@ -1655,6 +1662,7 @@ export function useThesisWorkflow({ user, authLoading }) {
     step,
     setStep,
     loading,
+    busyActions,
     error,
     setError,
     sidebarOpen,
