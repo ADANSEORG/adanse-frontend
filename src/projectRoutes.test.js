@@ -5,8 +5,11 @@ import assert from "node:assert/strict";
 import {
   PROJECT_STEPS,
   defaultProjectStep,
+  historyBackTarget,
   isProjectStep,
   isValidProjectId,
+  parseProjectPath,
+  projectPath,
   redirectNotice,
   resolveProjectStep,
 } from "./projectRoutes.js";
@@ -229,4 +232,74 @@ test("the two data-gap reasons have a notice; chapter4's own message and unknown
   assert.equal(redirectNotice("unknown-step"), null); // tolerated silently, per R22
   assert.equal(redirectNotice(null), null);
   assert.equal(redirectNotice("made-up-reason"), null);
+});
+
+// ---------------------------------------------------------------------------
+// parseProjectPath / projectPath
+// ---------------------------------------------------------------------------
+test("a bare /project/:id parses with step null", () => {
+  assert.deepEqual(parseProjectPath(`/project/${UUID}`), { id: UUID, step: null });
+});
+
+test("/project/:id/:step parses both parts, step lowercased", () => {
+  assert.deepEqual(parseProjectPath(`/project/${UUID}/Dataset`), { id: UUID, step: "dataset" });
+  assert.deepEqual(parseProjectPath(`/project/${UUID}/chapter4`), { id: UUID, step: "chapter4" });
+});
+
+test("case in the literal 'project' segment and a trailing slash do not matter, as with viewRoutes.js", () => {
+  assert.deepEqual(parseProjectPath(`/Project/${UUID}/setup`), { id: UUID, step: "setup" });
+  assert.deepEqual(parseProjectPath(`/project/${UUID}/`), { id: UUID, step: null });
+  assert.deepEqual(parseProjectPath(`/project/${UUID}/setup/`), { id: UUID, step: "setup" });
+  assert.deepEqual(parseProjectPath(`/PROJECT/${UUID}//`), { id: UUID, step: null });
+});
+
+test("the id segment is returned exactly as written -- id validity is isValidProjectId's job, not this function's", () => {
+  assert.deepEqual(parseProjectPath("/project/not-a-uuid"), { id: "not-a-uuid", step: null });
+  assert.deepEqual(parseProjectPath("/project/not-a-uuid/setup"), { id: "not-a-uuid", step: "setup" });
+});
+
+test("anything that is not a project path, or a third path segment, is not parsed", () => {
+  for (const path of ["/", "", "/account", "/credits", "/payment/callback", "/projects", `/project`, `/x/project/${UUID}`, `/project/${UUID}/setup/extra`]) {
+    assert.equal(parseProjectPath(path), null, path);
+  }
+});
+
+test("a pathname that is not a string does not parse", () => {
+  for (const value of [undefined, null, 42, {}]) {
+    assert.equal(parseProjectPath(value), null);
+  }
+});
+
+test("projectPath builds the two shapes parseProjectPath reads back, and percent-encodes the id (decision 5)", () => {
+  assert.equal(projectPath(UUID, "dataset"), `/project/${UUID}/dataset`);
+  assert.equal(projectPath(UUID), `/project/${UUID}`);
+  assert.deepEqual(parseProjectPath(projectPath(UUID, "review")), { id: UUID, step: "review" });
+  assert.deepEqual(parseProjectPath(projectPath(UUID)), { id: UUID, step: null });
+});
+
+test("projectPath percent-encodes an id that isn't already URL-safe", () => {
+  assert.equal(projectPath("abc/def", "setup"), "/project/abc%2Fdef/setup");
+});
+
+// ---------------------------------------------------------------------------
+// historyBackTarget
+// ---------------------------------------------------------------------------
+test("Back steps through history when an earlier entry of ours exists", () => {
+  assert.equal(historyBackTarget("k8f2ab", "/fallback"), -1);
+  assert.equal(historyBackTarget("abc123", "/fallback"), -1);
+});
+
+test("after a reload or a link opened in a new tab (first entry) Back goes to the given fallback, not -1", () => {
+  assert.equal(historyBackTarget("default", "/fallback"), "/fallback");
+});
+
+test("with no key at all Back goes to the fallback rather than leaving the app", () => {
+  for (const key of [undefined, null, ""]) {
+    assert.equal(historyBackTarget(key, "/fallback"), "/fallback");
+  }
+});
+
+test("the fallback is returned verbatim, whatever the caller passes (viewRoutes.js's settingsBackTarget always passes \"/\"; the project Back button passes a specific step path)", () => {
+  assert.equal(historyBackTarget("default", "/project/abc/setup"), "/project/abc/setup");
+  assert.equal(historyBackTarget("default", "/"), "/");
 });
