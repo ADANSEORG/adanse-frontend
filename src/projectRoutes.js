@@ -196,7 +196,20 @@ export function projectPath(id, step) {
  * approved spec's history table, the in-page Back arrow "steps history back
  * if the previous entry is that route, otherwise pushes it" -- so callers
  * push the fallback, not replace it.
+ *
+ * `historyState` is window.history.state. React Router numbers the entries it
+ * owns in `idx`: 0 is the first entry of ours in this tab, and a REPLACE keeps
+ * the index. That is what makes it the right test. location.key is not: it is
+ * "default" only until the first navigation, and a replace (reopening the last
+ * project from "/", /project/:id resolving to its step, the chapter4 gate's
+ * correction) gives the tab's first entry a new key -- which read as "there is
+ * an earlier entry", so Back stepped out of the app.
  */
-export function historyBackTarget(locationKey, fallbackPath) {
-  return locationKey && locationKey !== "default" ? -1 : fallbackPath;
+export function historyIndex(historyState) {
+  const idx = historyState?.idx;
+  return Number.isInteger(idx) && idx > 0 ? idx : 0;
+}
+
+export function historyBackTarget(historyState, fallbackPath) {
+  return historyIndex(historyState) > 0 ? -1 : fallbackPath;
 }
