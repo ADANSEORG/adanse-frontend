@@ -7,6 +7,7 @@ import {
 
 import { supabase } from "./supabaseClient";
 import { resolveSiteUrl } from "./siteUrl";
+import { oauthRedirectUrl } from "./oauth";
 
 const AuthContext = createContext(null);
 
@@ -215,6 +216,35 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // Google sign-in. Supabase sends the browser to Google and back to the site
+  // root, where the client (default implicit flow) picks the session up from
+  // the URL and onAuthStateChange above sets the user. The same call signs a
+  // new person up. A Google login with the email of an existing (confirmed)
+  // account is linked to that account by Supabase, so it keeps its credits.
+  async function signInWithGoogle() {
+    if (!supabase) {
+      throw new Error(
+        "Supabase is not configured."
+      );
+    }
+
+    const {
+      error,
+    } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: oauthRedirectUrl(
+          import.meta.env.VITE_SITE_URL,
+          window.location.origin
+        ),
+      },
+    });
+
+    if (error) {
+      throw error;
+    }
+  }
+
   async function resetPasswordForEmail(email) {
     if (!supabase) {
       throw new Error(
@@ -312,6 +342,7 @@ export function AuthProvider({ children }) {
         verifySignupOtp,
         resendSignupOtp,
         resetPasswordForEmail,
+        signInWithGoogle,
         updatePassword,
         markWelcomeSeen,
         signOut,
