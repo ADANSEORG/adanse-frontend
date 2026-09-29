@@ -200,20 +200,20 @@ export const createConversation = (title) =>
   });
 
 export const getConversation = (id) =>
-  request(`/conversations/${id}`);
+  request(`/conversations/${encodeURIComponent(id)}`);
 
 export const deleteConversation = (id) =>
-  request(`/conversations/${id}`, {
+  request(`/conversations/${encodeURIComponent(id)}`, {
     method: "DELETE",
   });
 
 export const pinConversation = (id) =>
-  request(`/conversations/${id}/pin`, {
+  request(`/conversations/${encodeURIComponent(id)}/pin`, {
     method: "PUT",
   });
 
 export const unpinConversation = (id) =>
-  request(`/conversations/${id}/pin`, {
+  request(`/conversations/${encodeURIComponent(id)}/pin`, {
     method: "DELETE",
   });
 
@@ -221,7 +221,7 @@ export const updateConversation = (
   id,
   title
 ) =>
-  request(`/conversations/${id}`, {
+  request(`/conversations/${encodeURIComponent(id)}`, {
     method: "PATCH",
     body: {
       title,
@@ -235,14 +235,14 @@ export const updateConversation = (
  */
 
 export const listMessages = (id) =>
-  request(`/conversations/${id}/messages`);
+  request(`/conversations/${encodeURIComponent(id)}/messages`);
 
 export const addMessage = (
   id,
   role,
   content
 ) =>
-  request(`/conversations/${id}/messages`, {
+  request(`/conversations/${encodeURIComponent(id)}/messages`, {
     method: "POST",
     body: {
       role,
@@ -254,7 +254,7 @@ export const chat = (
   id,
   content
 ) =>
-  request(`/conversations/${id}/chat`, {
+  request(`/conversations/${encodeURIComponent(id)}/chat`, {
     method: "POST",
     body: {
       content,
@@ -278,13 +278,13 @@ export const createThesisProject = (
 export const getThesisProject = (
   id
 ) =>
-  request(`/thesis/projects/${id}`);
+  request(`/thesis/projects/${encodeURIComponent(id)}`);
 
 export const updateThesisProject = (
   id,
   payload
 ) =>
-  request(`/thesis/projects/${id}`, {
+  request(`/thesis/projects/${encodeURIComponent(id)}`, {
     method: "PATCH",
     body: payload,
   });
@@ -304,7 +304,7 @@ export const uploadThesisDataset = (
   form.append("file", file);
 
   return request(
-    `/thesis/projects/${id}/upload`,
+    `/thesis/projects/${encodeURIComponent(id)}/upload`,
     {
       method: "POST",
       body: form,
@@ -327,14 +327,14 @@ export const uploadThesisDataset = (
 export const listDatasetVersions = (
   id
 ) =>
-  request(`/thesis/projects/${id}/datasets`);
+  request(`/thesis/projects/${encodeURIComponent(id)}/datasets`);
 
 export const getDatasetVersion = (
   id,
   versionId
 ) =>
   request(
-    `/thesis/projects/${id}/datasets/${versionId}`
+    `/thesis/projects/${encodeURIComponent(id)}/datasets/${encodeURIComponent(versionId)}`
   );
 
 export const validateDatasetVersion = (
@@ -342,7 +342,7 @@ export const validateDatasetVersion = (
   versionId
 ) =>
   request(
-    `/thesis/projects/${id}/datasets/${versionId}/validate`,
+    `/thesis/projects/${encodeURIComponent(id)}/datasets/${encodeURIComponent(versionId)}/validate`,
     {
       method: "POST",
     }
@@ -353,7 +353,7 @@ export const activateDatasetVersion = (
   versionId
 ) =>
   request(
-    `/thesis/projects/${id}/datasets/${versionId}/activate`,
+    `/thesis/projects/${encodeURIComponent(id)}/datasets/${encodeURIComponent(versionId)}/activate`,
     {
       method: "POST",
     }
@@ -365,7 +365,7 @@ export const applyDatasetGroupings = (
   groupings
 ) =>
   request(
-    `/thesis/projects/${id}/datasets/${versionId}/apply-groupings`,
+    `/thesis/projects/${encodeURIComponent(id)}/datasets/${encodeURIComponent(versionId)}/apply-groupings`,
     {
       method: "POST",
       body: {
@@ -385,7 +385,7 @@ export const declareColumnTypes = (
   columns
 ) =>
   request(
-    `/thesis/projects/${id}/datasets/${versionId}/column-types`,
+    `/thesis/projects/${encodeURIComponent(id)}/datasets/${encodeURIComponent(versionId)}/column-types`,
     {
       method: "POST",
       body: {
@@ -407,7 +407,7 @@ export const saveCategoryOrder = (
   order
 ) =>
   request(
-    `/thesis/projects/${id}/datasets/${versionId}/category-order/${encodeURIComponent(column)}`,
+    `/thesis/projects/${encodeURIComponent(id)}/datasets/${encodeURIComponent(versionId)}/category-order/${encodeURIComponent(column)}`,
     {
       method: "PATCH",
       body: {
@@ -422,7 +422,7 @@ export const clearCategoryOrder = (
   column
 ) =>
   request(
-    `/thesis/projects/${id}/datasets/${versionId}/category-order/${encodeURIComponent(column)}`,
+    `/thesis/projects/${encodeURIComponent(id)}/datasets/${encodeURIComponent(versionId)}/category-order/${encodeURIComponent(column)}`,
     {
       method: "DELETE",
     }
@@ -443,7 +443,7 @@ export const getQualitativeSession = (
   column
 ) =>
   request(
-    `/thesis/projects/${id}/qualitative/${encodeURIComponent(column)}`
+    `/thesis/projects/${encodeURIComponent(id)}/qualitative/${encodeURIComponent(column)}`
   );
 
 export const submitCodeReview = (
@@ -452,7 +452,7 @@ export const submitCodeReview = (
   codes
 ) =>
   request(
-    `/thesis/projects/${id}/qualitative/${encodeURIComponent(column)}/codes`,
+    `/thesis/projects/${encodeURIComponent(id)}/qualitative/${encodeURIComponent(column)}/codes`,
     {
       method: "PATCH",
       body: { codes },
@@ -464,7 +464,7 @@ export const groupCodesIntoThemes = (
   column
 ) =>
   request(
-    `/thesis/projects/${id}/qualitative/${encodeURIComponent(column)}/group`,
+    `/thesis/projects/${encodeURIComponent(id)}/qualitative/${encodeURIComponent(column)}/group`,
     {
       method: "POST",
     }
@@ -476,7 +476,7 @@ export const submitThemeReview = (
   themes
 ) =>
   request(
-    `/thesis/projects/${id}/qualitative/${encodeURIComponent(column)}/themes`,
+    `/thesis/projects/${encodeURIComponent(id)}/qualitative/${encodeURIComponent(column)}/themes`,
     {
       method: "PATCH",
       body: { themes },
@@ -488,7 +488,7 @@ export const defineQualitativeThemes = (
   column
 ) =>
   request(
-    `/thesis/projects/${id}/qualitative/${encodeURIComponent(column)}/define`,
+    `/thesis/projects/${encodeURIComponent(id)}/qualitative/${encodeURIComponent(column)}/define`,
     {
       method: "POST",
     }
@@ -499,7 +499,7 @@ export const finalizeQualitativeThemes = (
   column
 ) =>
   request(
-    `/thesis/projects/${id}/qualitative/${encodeURIComponent(column)}/finalize`,
+    `/thesis/projects/${encodeURIComponent(id)}/qualitative/${encodeURIComponent(column)}/finalize`,
     {
       method: "POST",
     }
@@ -515,7 +515,7 @@ export const buildAnalysisPlan = (
   id
 ) =>
   request(
-    `/thesis/projects/${id}/plan`,
+    `/thesis/projects/${encodeURIComponent(id)}/plan`,
     {
       method: "POST",
     }
@@ -536,7 +536,7 @@ export const selectQualitativeColumns = (
   columnObjectives
 ) =>
   request(
-    `/thesis/projects/${id}/qualitative-columns`,
+    `/thesis/projects/${encodeURIComponent(id)}/qualitative-columns`,
     {
       method: "PATCH",
       body: { columns, column_objectives: columnObjectives ?? null },
@@ -563,7 +563,7 @@ export const overrideAnalysisVariables = (
   override
 ) =>
   request(
-    `/thesis/projects/${id}/analysis-plan/objectives/${objectiveId}`,
+    `/thesis/projects/${encodeURIComponent(id)}/analysis-plan/objectives/${encodeURIComponent(objectiveId)}`,
     {
       method: "PATCH",
       body: override,
@@ -588,7 +588,7 @@ export const runThesisAnalysis = (
   id
 ) =>
   request(
-    `/thesis/projects/${id}/run`,
+    `/thesis/projects/${encodeURIComponent(id)}/run`,
     {
       method: "POST",
     }
@@ -607,7 +607,7 @@ export async function downloadChapter4(id) {
   let headers = await authHeaders();
 
   let response = await fetch(
-    `${API_BASE}/thesis/projects/${id}/chapter4`,
+    `${API_BASE}/thesis/projects/${encodeURIComponent(id)}/chapter4`,
     {
       headers,
     }
@@ -625,7 +625,7 @@ export async function downloadChapter4(id) {
       headers = await authHeaders();
 
       response = await fetch(
-        `${API_BASE}/thesis/projects/${id}/chapter4`,
+        `${API_BASE}/thesis/projects/${encodeURIComponent(id)}/chapter4`,
         {
           headers,
         }
