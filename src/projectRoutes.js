@@ -147,3 +147,56 @@ export function redirectNotice(reason) {
       return null;
   }
 }
+
+/*
+ * ---------------------------------------------------------
+ * URL <-> {id, step}
+ * ---------------------------------------------------------
+ *
+ * Companions to viewRoutes.js's settingsViewForPath/pathForSettingsView, same
+ * tolerance (case, trailing slash). Pure string handling only -- the id here
+ * is NOT validated as a UUID; that is isValidProjectId's job, kept separate
+ * so a caller can distinguish "not a project URL at all" (null) from "a
+ * project URL with a malformed id" (parses fine, isValidProjectId fails).
+ */
+
+const PROJECT_PATH_RE = /^\/project\/([^/]+)(?:\/([^/]+))?\/*$/i;
+
+// { id, step } for a /project/:id or /project/:id/:step pathname, or null for
+// anything else. `step` is lowercased (so a step name can be compared
+// directly against PROJECT_STEPS); `id` is returned exactly as written --
+// callers that use it in a comparison or a lookup key should lowercase it
+// themselves once isValidProjectId has confirmed it's a real UUID.
+export function parseProjectPath(pathname) {
+  if (typeof pathname !== "string") return null;
+
+  const match = pathname.match(PROJECT_PATH_RE);
+  if (!match) return null;
+
+  const [, id, step] = match;
+  return { id, step: step ? step.toLowerCase() : null };
+}
+
+export function projectPath(id, step) {
+  const encoded = encodeURIComponent(id);
+  return step ? `/project/${encoded}/${step}` : `/project/${encoded}`;
+}
+
+/*
+ * ---------------------------------------------------------
+ * BACK
+ * ---------------------------------------------------------
+ *
+ * The general form of viewRoutes.js's settingsBackTarget: -1 (step history
+ * back) when there is an earlier in-app entry to step to, or `fallbackPath`
+ * (push there instead) when this is the first entry of the tab (a reload or
+ * a link opened in a new tab), so Back never leaves the app. Unlike
+ * settingsBackTarget's own fallback (which the caller replaces with), the
+ * project Back button's fallback is a genuine forward navigation -- per the
+ * approved spec's history table, the in-page Back arrow "steps history back
+ * if the previous entry is that route, otherwise pushes it" -- so callers
+ * push the fallback, not replace it.
+ */
+export function historyBackTarget(locationKey, fallbackPath) {
+  return locationKey && locationKey !== "default" ? -1 : fallbackPath;
+}
