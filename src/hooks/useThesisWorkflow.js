@@ -1258,7 +1258,7 @@ export function useThesisWorkflow({ user, authLoading }) {
 
       setError("");
 
-      const target = historyBackTarget(location.key, projectPath(active.id, "analysis"));
+      const target = historyBackTarget(window.history.state, projectPath(active.id, "analysis"));
 
       if (target === -1) {
         navigate(-1);
@@ -1286,7 +1286,7 @@ export function useThesisWorkflow({ user, authLoading }) {
 
       setError("");
 
-      const target = historyBackTarget(location.key, projectPath(active.id, "setup"));
+      const target = historyBackTarget(window.history.state, projectPath(active.id, "setup"));
 
       if (target === -1) {
         navigate(-1);
@@ -1302,7 +1302,7 @@ export function useThesisWorkflow({ user, authLoading }) {
 
       setError("");
 
-      const target = historyBackTarget(location.key, projectPath(active.id, "dataset"));
+      const target = historyBackTarget(window.history.state, projectPath(active.id, "dataset"));
 
       if (target === -1) {
         navigate(-1);
@@ -1322,7 +1322,7 @@ export function useThesisWorkflow({ user, authLoading }) {
       setError("");
 
       const fallbackStep = datasetVersion ? "review" : "dataset";
-      const target = historyBackTarget(location.key, projectPath(active.id, fallbackStep));
+      const target = historyBackTarget(window.history.state, projectPath(active.id, fallbackStep));
 
       if (target === -1) {
         navigate(-1);
@@ -1364,7 +1364,7 @@ export function useThesisWorkflow({ user, authLoading }) {
     () => {
       setError("");
 
-      const target = settingsBackTarget(location.key);
+      const target = settingsBackTarget(window.history.state);
 
       if (target === -1) {
         navigate(-1);

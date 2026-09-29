@@ -60,17 +60,21 @@ test("anything that is not a settings view has no path (including inherited prop
 // Back
 // ---------------------------------------------------------------------------
 test("Back steps through history when an earlier entry of ours exists", () => {
-  assert.equal(settingsBackTarget("k8f2ab"), -1);
-  assert.equal(settingsBackTarget("abc123"), -1);
+  assert.equal(settingsBackTarget({ key: "k8f2ab", idx: 1 }), -1);
+  assert.equal(settingsBackTarget({ key: "abc123", idx: 2 }), -1);
 });
 
 test("after a reload or a link opened in a new tab (first entry) Back goes to the main page", () => {
-  assert.equal(settingsBackTarget("default"), "/");
+  assert.equal(settingsBackTarget({ idx: 0 }), "/");
 });
 
-test("with no key at all Back goes to the main page rather than leaving the app", () => {
-  for (const key of [undefined, null, ""]) {
-    assert.equal(settingsBackTarget(key), "/");
+test("REGRESSION: a replaced first entry (new key, idx 0) goes to the main page, not out of the app", () => {
+  assert.equal(settingsBackTarget({ key: "zp5u5xy6", idx: 0 }), "/");
+});
+
+test("with no usable history state Back goes to the main page rather than leaving the app", () => {
+  for (const state of [undefined, null, {}, { idx: "1" }]) {
+    assert.equal(settingsBackTarget(state), "/");
   }
 });
 
