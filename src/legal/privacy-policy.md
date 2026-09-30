@@ -28,12 +28,14 @@ When you use Adanse, you may provide:
 -   Thesis titles and research topics
 -   Research objectives and questions
 -   Research hypotheses
+-   Your planned sample size, if you give one (used to report your
+    response rate in Chapter 4)
 -   Research datasets
 -   Survey or interview data
 -   Documents and files
--   Your Chapter 1–3 document, if you choose to upload it for the
-    objectives comparison (see "Optional Chapter 1–3 Document" in
-    section 3)
+-   Your Chapter 1–3 document, if you choose to upload it to fill in
+    your Research Context or to compare objectives (see "Optional
+    Chapter 1–3 Document" in section 3)
 -   Other information you choose to include in a research project
 
 You are responsible for ensuring that you have the appropriate rights
@@ -88,36 +90,74 @@ identifiable information from datasets before uploading them.
 
 ### Optional Chapter 1–3 Document
 
-On the Dataset step you can choose to upload your own Chapter 1–3
-document (a Word .docx file) so Adanse can show the objectives stated in
-your Chapter 1 next to the objectives you entered in Research Context.
-This is optional; everything else in Adanse works without it.
+You can choose to upload your own Chapter 1–3 document (a Word .docx
+file) in two places. Both are optional; everything else in Adanse works
+without them.
 
-When you upload this document:
+-   On **Research Context**, "Fill in from my chapters" finds your thesis
+    title, research objectives, research questions, hypotheses and planned
+    sample size, for you to tick and add.
+-   On the **Dataset** step, the Chapter 1 comparison shows the objectives
+    stated in your Chapter 1 next to the objectives you entered.
+
+**What happens to the file**
 
 -   **The file itself is not stored.** It is read on our server only long
-    enough to find the list of objectives in your Chapter 1, and is then
-    discarded. We do not keep the file or its file name.
--   **Only the objectives we find are saved**, together with the heading
-    they appear under, a fingerprint of the file (a SHA-256 hash, which
-    cannot be turned back into the document) and the date it was checked.
-    If we cannot find a clear list of objectives, no text from the
-    document is saved.
--   **Email addresses and phone numbers** in the saved text are replaced
+    enough to find these items, and is then discarded. We do not keep the
+    file or its file name.
+-   If you use "Fill in from my chapters", your browser keeps the file only
+    while the page is open, so that saving your Research Context can also
+    attach it to the Chapter 1 comparison without asking you to upload it
+    again.
+
+**What is sent to our AI service**
+
+-   To find your research questions, hypotheses and planned sample size,
+    "Fill in from my chapters" sends **short excerpts** of your document to
+    an AI model run by our AI service provider: the parts of Chapter 1
+    under your objectives, research questions and hypotheses headings; if
+    Chapter 1 states no hypotheses, the hypotheses sections of Chapters 2
+    and 3; and the sentences in your methodology chapter about your sample
+    or population. Email addresses and phone numbers in these excerpts are
+    replaced with placeholders before they are sent.
+-   **Your title page is never sent.** Your thesis title is found by fixed
+    rules on our server, using only the lines above the "submitted by" or
+    "BY" line, so your name and the details after it are not read into the
+    result. Your declaration, acknowledgements and abstract are never sent
+    or kept.
+-   The Chapter 1 comparison on the Dataset step does not use AI. It finds
+    your objectives using fixed rules.
+-   Every item shown to you must match your document word for word;
+    anything that does not is not shown.
+
+**What is kept**
+
+-   **Nothing from "Fill in from my chapters" is saved to your project
+    unless you add it** and then save your Research Context. What you add
+    is treated like anything you type yourself, including being used as
+    background context when Adanse analyses open-ended responses with AI
+    assistance.
+-   So that the Chapter 1 comparison can show the same objectives, the
+    objectives found are held **for up to one hour** together with your
+    account and a fingerprint of the file (a SHA-256 hash, which cannot be
+    turned back into the document), and are then deleted.
+-   For the Chapter 1 comparison, **only the objectives found are saved**
+    with your project, together with the heading they appear under, the
+    file's fingerprint and the date it was checked. If no clear list of
+    objectives is found, no text from the document is saved.
+-   **Email addresses and phone numbers** in any saved text are replaced
     with placeholders before it is saved.
--   **The rest of the document is not kept**, including your title page,
-    declaration, acknowledgements and abstract, which often contain your
-    name, your supervisor's name and your institution.
--   **The document is not sent to any AI provider.** Objectives are found
-    using fixed rules, not AI.
 -   **Nothing in your project changes unless you ask.** If you choose
-    "Use this wording" for an objective, that wording is copied into your
-    Research Context and is then treated like any objective you type
-    yourself, including being used as background context when Adanse
-    analyses open-ended responses with AI assistance.
--   **You can remove it at any time** by choosing Remove on the Dataset
-    step, which deletes the saved objectives. They are also deleted when
-    you delete the project or your account.
+    "Use this wording" for an objective in the comparison, that wording is
+    copied into your Research Context and is then treated like any
+    objective you type yourself.
+-   **You can remove the comparison at any time** by choosing Remove on
+    the Dataset step, which deletes the saved objectives. They are also
+    deleted when you delete the project or your account.
+
+We do not record the text of your document in our logs. If our AI service
+returns an error, the short error message it sends back may be recorded
+to help us fix problems.
 
 Only upload a document you have the right to share with Adanse.
 
