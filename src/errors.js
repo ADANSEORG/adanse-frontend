@@ -12,6 +12,38 @@
  * on the Credits page) while still getting the same 401/402/
  * 409/insufficient-observations handling as everywhere else.
  */
+export const CONNECTION_MESSAGE =
+  "Adanse couldn't connect just now. Check your internet connection and try again.";
+
+export const SERVER_MESSAGE =
+  "Something went wrong on our side. Please try again in a moment.";
+
+// A request that never got a response (api.js tags it status 0 /
+// NETWORK_ERROR after its quiet retries), or a raw fetch() failure from a
+// call that doesn't go through request().
+function isConnectionFailure(e, m) {
+  return (
+    e?.status === 0 ||
+    e?.code === "NETWORK_ERROR" ||
+    /^(failed to fetch|load failed|networkerror when attempting to fetch resource\.?|network ?error)$/i.test(m.trim())
+  );
+}
+
+const GENERIC_SERVER_TEXT =
+  /^(internal server error|could not complete that request\.?|request failed \(\d+\)|the request could not be completed\.?)$/i;
+
+const INTERNAL_DETAIL = /supabase|postgrest|traceback|configuration|exception/i;
+
+const CODE_ERROR_NAMES = new Set(["TypeError", "ReferenceError", "SyntaxError", "RangeError"]);
+
+function isTechnicalMessage(e, m) {
+  const text = m.trim();
+  if (GENERIC_SERVER_TEXT.test(text)) return true;
+  if (Number(e?.status) >= 500 && INTERNAL_DETAIL.test(text)) return true;
+  // Not from the API at all (no HTTP status): a bug in the app's own code.
+  return e?.status === undefined && CODE_ERROR_NAMES.has(e?.name);
+}
+
 export function friendly(e, fallback) {
   const m = String(
     e?.message || ""
@@ -51,6 +83,19 @@ export function friendly(e, fallback) {
       m ||
       "Review and activate the cleaned dataset before building the analysis plan."
     );
+  }
+
+  if (isConnectionFailure(e, m)) {
+    return CONNECTION_MESSAGE;
+  }
+
+  // Never show a researcher raw technical text: a generic server failure
+  // ("Could not complete that request", "Internal Server Error",
+  // "Request failed (502)") or an error from the app's own code ("Cannot
+  // read properties of undefined"). Specific, useful server messages --
+  // e.g. the payment ones -- still come through below.
+  if (isTechnicalMessage(e, m)) {
+    return fallback || SERVER_MESSAGE;
   }
 
   if (
