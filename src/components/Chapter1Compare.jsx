@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 
 import { friendly } from "../errors.js";
+import { actionButton } from "../actionBusy.js";
 import {
   CONSENT_NOTICE,
   NOT_A_DOCX_MESSAGE,
@@ -49,13 +50,30 @@ function MatchCell({ cell, side, otherSide, action = null }) {
 
 export default function Chapter1Compare({ project, onUpload, onRemove, onUseWording, disabled = false }) {
   const inputRef = useRef(null);
-  const [busy, setBusy] = useState(false);
+  // One busy flag per action (see actionBusy.js): "upload", "remove", or
+  // "wording:<n>" for one document line. A button shows its loading label
+  // only for its own action; while any runs, the others are disabled with
+  // their normal label.
+  const [pending, setPending] = useState({});
   const [error, setError] = useState("");
 
   if (!project) return null;
 
   const view = comparisonView(project);
-  const locked = busy || disabled;
+  const uploadButton = actionButton(pending, "upload", disabled);
+  const removeButton = actionButton(pending, "remove", disabled);
+  const wordingButton = (number) => actionButton(pending, `wording:${number}`, disabled);
+  const locked = uploadButton.disabled;
+
+  async function run(action, work) {
+    setPending({ [action]: true });
+    setError("");
+    try {
+      await work();
+    } finally {
+      setPending({});
+    }
+  }
 
   async function choose(event) {
     const file = event.target.files?.[0];
@@ -65,42 +83,36 @@ export default function Chapter1Compare({ project, onUpload, onRemove, onUseWord
       setError(NOT_A_DOCX_MESSAGE);
       return;
     }
-    setBusy(true);
-    setError("");
-    try {
-      await onUpload(file);
-    } catch (e) {
-      setError(e?.status === 400 || e?.status === 413 ? e.message : friendly(e, "Adanse couldn't read that document. Please try again."));
-    } finally {
-      setBusy(false);
-    }
+    await run("upload", async () => {
+      try {
+        await onUpload(file);
+      } catch (e) {
+        setError(e?.status === 400 || e?.status === 413 ? e.message : friendly(e, "Adanse couldn't read that document. Please try again."));
+      }
+    });
   }
 
   // Document side only: copy this document objective's wording into
   // Research Context (same position, or added at the end). The panel
   // re-checks matches from the saved project straight away.
   async function useWording(position, wording) {
-    setBusy(true);
-    setError("");
-    try {
-      await onUseWording(position, wording);
-    } catch (e) {
-      setError(friendly(e, "Couldn't update your Research Context objectives. Please try again."));
-    } finally {
-      setBusy(false);
-    }
+    await run(`wording:${position}`, async () => {
+      try {
+        await onUseWording(position, wording);
+      } catch (e) {
+        setError(friendly(e, "Couldn't update your Research Context objectives. Please try again."));
+      }
+    });
   }
 
   async function remove() {
-    setBusy(true);
-    setError("");
-    try {
-      await onRemove();
-    } catch (e) {
-      setError(friendly(e, "Couldn't remove the comparison. Please try again."));
-    } finally {
-      setBusy(false);
-    }
+    await run("remove", async () => {
+      try {
+        await onRemove();
+      } catch (e) {
+        setError(friendly(e, "Couldn't remove the comparison. Please try again."));
+      }
+    });
   }
 
   return (
@@ -155,10 +167,10 @@ export default function Chapter1Compare({ project, onUpload, onRemove, onUseWord
                         <button
                           className="chapter1-use-wording"
                           type="button"
-                          disabled={locked}
+                          disabled={wordingButton(row.document.number).disabled}
                           onClick={() => useWording(row.document.number, row.document.text)}
                         >
-                          Use this wording →
+                          {wordingButton(row.document.number).loading ? "Saving…" : "Use this wording →"}
                         </button>
                       )
                     }
@@ -199,10 +211,10 @@ export default function Chapter1Compare({ project, onUpload, onRemove, onUseWord
         <button
           className="btn btn-secondary"
           type="button"
-          disabled={locked}
+          disabled={uploadButton.disabled}
           onClick={() => inputRef.current?.click()}
         >
-          {busy
+          {uploadButton.loading
             ? "Reading…"
             : view.state === "none"
             ? "Upload Chapter 1–3 (.docx)"
@@ -210,8 +222,8 @@ export default function Chapter1Compare({ project, onUpload, onRemove, onUseWord
         </button>
 
         {view.state !== "none" && (
-          <button className="btn btn-secondary" type="button" disabled={locked} onClick={remove}>
-            Remove
+          <button className="btn btn-secondary" type="button" disabled={removeButton.disabled} onClick={remove}>
+            {removeButton.loading ? "Removing…" : "Remove"}
           </button>
         )}
       </div>
