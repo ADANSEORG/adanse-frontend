@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext.jsx";
 import ParticleField from "./ParticleField.jsx";
 import { validateNewPassword } from "../passwordValidation.js";
+import { friendly } from "../errors.js";
 
 /*
  * ---------------------------------------------------------
@@ -67,8 +68,7 @@ export default function ResetPassword() {
       });
     } catch (err) {
       setError(
-        err?.message ||
-          "We couldn't update your password. Please try again."
+        friendly(err, "We couldn't update your password. Please try again.")
       );
     } finally {
       setLoading(false);

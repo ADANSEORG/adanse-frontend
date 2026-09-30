@@ -10,6 +10,7 @@ import {
 } from "../otp.js";
 import { MIN_PASSWORD_LENGTH } from "../passwordValidation.js";
 import { oauthErrorMessage } from "../oauth.js";
+import { friendly } from "../errors.js";
 
 const RESEND_COOLDOWN_SECONDS = 45;
 const OTP_LENGTH = 8;
@@ -173,8 +174,7 @@ function describeOtpError(err) {
       return "Too many attempts. Please wait a moment and try again.";
     default:
       return (
-        err?.message ||
-        "We couldn't verify that code. Please try again."
+        friendly(err, "We couldn't verify that code. Please try again.")
       );
   }
 }
@@ -324,8 +324,7 @@ export default function AuthScreen() {
       }
     } catch (err) {
       setError(
-        err?.message ||
-          "We couldn't complete that request. Please try again."
+        friendly(err, "We couldn't complete that request. Please try again.")
       );
     } finally {
       setLoading(false);
@@ -343,8 +342,7 @@ export default function AuthScreen() {
       await signInWithGoogle();
     } catch (err) {
       setError(
-        err?.message ||
-          "We couldn't open Google sign-in. Please try again."
+        friendly(err, "We couldn't open Google sign-in. Please try again.")
       );
       setGoogleLoading(false);
     }
@@ -388,8 +386,7 @@ export default function AuthScreen() {
       );
     } catch (err) {
       setError(
-        err?.message ||
-          "We couldn't send that email. Please try again."
+        friendly(err, "We couldn't send that email. Please try again.")
       );
     } finally {
       setLoading(false);
