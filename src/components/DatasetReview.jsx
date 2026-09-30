@@ -17,6 +17,7 @@ import {
   orderStatusLabel,
 } from "../categoryOrder.js";
 import { appliedSteps, stepLabel } from "../cleaningSteps.js";
+import { actionButton, anyBusy } from "../actionBusy.js";
 import {
   canReverse,
   gridChanged,
@@ -61,7 +62,12 @@ function CategoryOrderControl({ column, savedOrder, onSave, onClear }) {
 
   const [expanded, setExpanded] = useState(false);
   const [order, setOrder] = useState(baselineOrder);
-  const [busy, setBusy] = useState(false);
+  // Save and "Reset to automatic" each have their own busy flag (see
+  // actionBusy.js): a reset no longer shows "Saving…" on Save.
+  const [pending, setPending] = useState({});
+  const busy = anyBusy(pending);
+  const saveButton = actionButton(pending, "save");
+  const resetButton = actionButton(pending, "reset");
 
   function openControl() {
     setOrder(baselineOrder);
@@ -74,23 +80,23 @@ function CategoryOrderControl({ column, savedOrder, onSave, onClear }) {
 
   async function handleSave() {
     if (!canSave || busy) return;
-    setBusy(true);
+    setPending({ save: true });
     try {
       await onSave(column.name, order);
       setExpanded(false);
     } finally {
-      setBusy(false);
+      setPending({});
     }
   }
 
   async function handleReset() {
     if (busy) return;
-    setBusy(true);
+    setPending({ reset: true });
     try {
       await onClear(column.name);
       setExpanded(false);
     } finally {
-      setBusy(false);
+      setPending({});
     }
   }
 
@@ -153,9 +159,9 @@ function CategoryOrderControl({ column, savedOrder, onSave, onClear }) {
                 className="category-order-reset-link"
                 type="button"
                 onClick={handleReset}
-                disabled={busy}
+                disabled={resetButton.disabled}
               >
-                Reset to automatic
+                {resetButton.loading ? "Resetting…" : "Reset to automatic"}
               </button>
             )}
             <button
@@ -170,9 +176,9 @@ function CategoryOrderControl({ column, savedOrder, onSave, onClear }) {
               className="btn btn-primary"
               type="button"
               onClick={handleSave}
-              disabled={!canSave || busy}
+              disabled={!canSave || saveButton.disabled}
             >
-              {busy ? "Saving…" : "Save"}
+              {saveButton.loading ? "Saving…" : "Save"}
             </button>
           </div>
         </div>
