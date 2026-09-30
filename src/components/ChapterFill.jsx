@@ -19,7 +19,7 @@ import {
  * .docx, and add only what they tick to the form. Nothing is saved until
  * they save the form. See chapterFill.js.
  */
-export default function ChapterFill({ current, onApply, disabled = false }) {
+export default function ChapterFill({ current, onApply, onFileRead, disabled = false }) {
   const inputRef = useRef(null);
   const [reading, setReading] = useState(false);
   const [error, setError] = useState("");
@@ -45,6 +45,9 @@ export default function ChapterFill({ current, onApply, disabled = false }) {
       const next = fillReview(await extractChapterDocument(file));
       setReview(next);
       setTicked(defaultTicks(next));
+      // Kept in memory so saving Research Context can attach it to the
+      // Chapter 1 comparison (the Dataset step won't ask for it again).
+      onFileRead?.(file);
     } catch (e) {
       setReview(null);
       setError(

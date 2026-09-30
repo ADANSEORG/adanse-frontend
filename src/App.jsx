@@ -89,6 +89,7 @@ export default function App() {
     uploadChapter1,
     removeChapter1,
     adoptChapter1Wording,
+    rememberChapterFile,
     activateDataset,
     build,
     confirmQualitativeColumns,
@@ -446,6 +447,9 @@ export default function App() {
                 onSave={
                   saveSetup
                 }
+                onChapterFile={
+                  rememberChapterFile
+                }
                 loading={
                   loading
                 }
@@ -460,6 +464,9 @@ export default function App() {
                 initial={project}
                 onSave={
                   saveSetup
+                }
+                onChapterFile={
+                  rememberChapterFile
                 }
                 loading={
                   loading

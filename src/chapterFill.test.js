@@ -148,3 +148,48 @@ test("the form puts a ticked title into the title field", () => {
   const form = readFileSync(new URL("./components/ThesisSetup.jsx", import.meta.url), "utf8");
   assert.match(form, /if\(c\.title\)setTitle\(c\.title\)/);
 });
+
+// ---------------------------------------------------------------------------
+// Reuse on the Dataset step: the file isn't asked for twice
+// ---------------------------------------------------------------------------
+const workflowSource = () => readFileSync(new URL("./hooks/useThesisWorkflow.js", import.meta.url), "utf8");
+const bodyOf = (source, name) => {
+  const start = source.indexOf(`const ${name} = async`);
+  const end = source.slice(start).search(/\r?\n  };\r?\n/);
+  assert.ok(start > 0 && end > 0, name);
+  return source.slice(start, start + end);
+};
+
+test("the panel reports the file only after a successful reading", () => {
+  const panel = readFileSync(new URL("./components/ChapterFill.jsx", import.meta.url), "utf8");
+  const success = panel.indexOf("setTicked(defaultTicks(next));");
+  const report = panel.indexOf("onFileRead?.(file);");
+  const failure = panel.indexOf("} catch (e) {");
+  assert.ok(success > 0 && report > success && report < failure);
+});
+
+test("saving Research Context attaches the file only for the project it was read for", () => {
+  const save = bodyOf(workflowSource(), "saveSetup");
+  assert.match(save, /pending\.conversationId === \(active\?\.id \?\? null\)/);
+  assert.match(save, /await uploadChapter1Document\(c\.id, chapterFile\)/);
+  assert.match(save, /chapter1_objectives: attached\.chapter1_objectives/);
+  // Best effort: a failure leaves the comparison as it was and never blocks the save.
+  assert.match(save, /try \{[\s\S]*uploadChapter1Document[\s\S]*\} catch \{/);
+  assert.match(save, /pendingChapterFileRef\.current = null;/);
+});
+
+test("opening another project or starting a new one forgets the file", () => {
+  const source = workflowSource();
+  assert.match(bodyOf(source, "newChat"), /pendingChapterFileRef\.current = null;/);
+  assert.match(
+    bodyOf(source, "select"),
+    /if \(c\?\.id !== pendingChapterFileRef\.current\?\.conversationId\) \{\s*pendingChapterFileRef\.current = null;/
+  );
+});
+
+test("the file is handed from the form to the workflow", () => {
+  const app = readFileSync(new URL("./App.jsx", import.meta.url), "utf8");
+  assert.equal((app.match(/onChapterFile=\{\s*rememberChapterFile\s*\}/g) || []).length, 2);
+  const form = readFileSync(new URL("./components/ThesisSetup.jsx", import.meta.url), "utf8");
+  assert.match(form, /onFileRead=\{onChapterFile\}/);
+});
