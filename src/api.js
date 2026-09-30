@@ -360,6 +360,24 @@ export const uploadChapter1Document = (
   );
 };
 
+/*
+ * "Fill in from my chapters" (Research Context): objectives, research
+ * questions, hypotheses and planned sample size read word for word from the
+ * student's own .docx. Needs no project and stores nothing. POST, so it is
+ * never retried automatically (one AI call, daily cap per user).
+ */
+export const extractChapterDocument = (file) => {
+  const form = new FormData();
+
+  form.append("file", file);
+
+  return request("/thesis/chapter-document/extract", {
+    method: "POST",
+    body: form,
+    formData: true,
+  });
+};
+
 export const removeChapter1Document = (
   id
 ) =>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import {
@@ -187,6 +187,20 @@ export function useThesisWorkflow({ user, authLoading }) {
   // action's loading label never shows on another action's button.
   const [busyActions, setBusyActions] = useState({});
 
+  // The .docx read by "Fill in from my chapters" on Research Context, kept in
+  // memory for this visit only (never stored on the server), with the
+  // project it was read for (null = a project not created yet). Saving
+  // Research Context attaches it to that project's Chapter 1 comparison, so
+  // the Dataset step doesn't ask for it again. Opening another project or
+  // starting a new one forgets it.
+  const pendingChapterFileRef = useRef(null);
+
+  const rememberChapterFile = (file) => {
+    pendingChapterFileRef.current = file
+      ? { file, conversationId: active?.id ?? null }
+      : null;
+  };
+
   const busyFor = (action) => (value) =>
     setBusyActions((prev) => ({ ...prev, [action]: value }));
 
@@ -353,6 +367,8 @@ export function useThesisWorkflow({ user, authLoading }) {
   const newChat = async () => {
     if (creating) return;
 
+    pendingChapterFileRef.current = null;
+
     await runAction({
       setBusy: setCreating,
       setError,
@@ -409,6 +425,10 @@ export function useThesisWorkflow({ user, authLoading }) {
    */
 
   const select = async (c, { push = true, requestedStep = null } = {}) => {
+    if (c?.id !== pendingChapterFileRef.current?.conversationId) {
+      pendingChapterFileRef.current = null;
+    }
+
     await runAction({
       setBusy: setLoading,
       setError,
@@ -679,6 +699,13 @@ export function useThesisWorkflow({ user, authLoading }) {
    */
 
   const saveSetup = async (data) => {
+    // Only a file read for THIS project (or for the new one being created).
+    const pending = pendingChapterFileRef.current;
+    const chapterFile =
+      pending && pending.conversationId === (active?.id ?? null)
+        ? pending.file
+        : null;
+
     await runAction({
       setBusy: setLoading,
       setError,
@@ -715,7 +742,19 @@ export function useThesisWorkflow({ user, authLoading }) {
           }
         }
 
-        const p = await getThesisProject(c.id);
+        let p = await getThesisProject(c.id);
+
+        if (chapterFile) {
+          // Best effort: if it fails, the Dataset step just offers the upload
+          // as before. Code-only reading; no AI call, no daily limit.
+          try {
+            const attached = await uploadChapter1Document(c.id, chapterFile);
+            p = { ...p, chapter1_objectives: attached.chapter1_objectives };
+          } catch {
+            // leave the comparison as it was
+          }
+          pendingChapterFileRef.current = null;
+        }
 
         setProject(p);
         setStep("upload");
@@ -1703,6 +1742,7 @@ export function useThesisWorkflow({ user, authLoading }) {
     uploadChapter1,
     removeChapter1,
     adoptChapter1Wording,
+    rememberChapterFile,
     activateDataset,
     build,
     confirmQualitativeColumns,

@@ -5614,3 +5614,77 @@ button {
     display: none;
   }
 }
+
+/* Research Context: planned sample size (a short number field) */
+.sample-size-input {
+  max-width: 220px;
+}
+
+.field-error {
+  margin: 6px 0 0;
+  color: var(--red);
+  font-size: 13px;
+}
+
+/* =========================================================
+   RESEARCH CONTEXT: "FILL IN FROM MY CHAPTERS"
+   ========================================================= */
+
+.chapter-fill {
+  margin: 8px 0 28px;
+  padding: 18px 20px;
+  border: 1px dashed var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.chapter-fill-review {
+  margin-top: 14px;
+}
+
+.chapter-fill-field {
+  margin: 0 0 14px;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.chapter-fill-field legend {
+  margin-bottom: 6px;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.chapter-fill-count {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.chapter-fill-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.chapter-fill-item input {
+  flex: none;
+  margin-top: 4px;
+}
+
+.chapter-fill-added {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--green-soft);
+  color: var(--green);
+  font-size: 13px;
+}
