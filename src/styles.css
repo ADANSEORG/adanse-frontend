@@ -5614,3 +5614,14 @@ button {
     display: none;
   }
 }
+
+/* Research Context: planned sample size (a short number field) */
+.sample-size-input {
+  max-width: 220px;
+}
+
+.field-error {
+  margin: 6px 0 0;
+  color: var(--red);
+  font-size: 13px;
+}
