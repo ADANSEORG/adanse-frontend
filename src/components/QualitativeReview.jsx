@@ -22,6 +22,7 @@ import {
   finalizeInsufficientBalanceMessage,
 } from "../qualitativeFinalizePolling.js";
 import { codeCoverageSummary } from "../qualitativeCoverage.js";
+import { friendly } from "../errors.js";
 
 /*
  * QualitativeReview
@@ -209,7 +210,7 @@ export default function QualitativeReview({ conversationId, column, onFinalized,
         setStep(stepForPhase(res.session.phase));
       })
       .catch((err) => {
-        if (!cancelled) setError(err.message || "Could not load the qualitative review.");
+        if (!cancelled) setError(friendly(err, "Could not load the qualitative review."));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -254,7 +255,7 @@ export default function QualitativeReview({ conversationId, column, onFinalized,
           }
         })
         .catch((err) => {
-          if (!cancelled) setError(err.message || "Could not check the finalize status.");
+          if (!cancelled) setError(friendly(err, "Could not check the finalize status."));
         });
     };
 
@@ -371,7 +372,7 @@ export default function QualitativeReview({ conversationId, column, onFinalized,
       loadThemesFromSession(res.session);
       setStep("group");
     } catch (err) {
-      setError(err.message || "Could not group codes into themes.");
+      setError(friendly(err, "Could not group codes into themes."));
     } finally {
       setBusy(false);
     }
@@ -453,7 +454,7 @@ export default function QualitativeReview({ conversationId, column, onFinalized,
       loadThemesFromSession(res.session);
       setStep("review");
     } catch (err) {
-      setError(err.message || "Could not save the theme grouping.");
+      setError(friendly(err, "Could not save the theme grouping."));
     } finally {
       setBusy(false);
     }
@@ -474,7 +475,7 @@ export default function QualitativeReview({ conversationId, column, onFinalized,
       setSession(res.session);
       setStep("define");
     } catch (err) {
-      setError(err.message || "Could not define themes.");
+      setError(friendly(err, "Could not define themes."));
     } finally {
       setBusy(false);
     }
@@ -492,7 +493,7 @@ export default function QualitativeReview({ conversationId, column, onFinalized,
       setSession(res.session);
       setStep(stepForPhase(res.session.phase));
     } catch (err) {
-      setError(err.message || "Could not finalize themes.");
+      setError(friendly(err, "Could not finalize themes."));
     } finally {
       setBusy(false);
     }

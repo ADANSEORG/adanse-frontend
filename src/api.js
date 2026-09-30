@@ -1,4 +1,5 @@
 import { supabase } from "./supabaseClient.js";
+import { fetchWithRetry, isNetworkError } from "./transientRetry.js";
 
 const API_BASE = (
   import.meta.env.VITE_API_BASE ||
@@ -67,6 +68,26 @@ async function authHeaders(extra = {}) {
  * ---------------------------------------------------------
  */
 
+/*
+ * One fetch, with quiet retries for transient failures (GET only -- see
+ * transientRetry.js). A request that never got a response even after the
+ * retries becomes an Error with status 0 and code "NETWORK_ERROR", which
+ * friendly() turns into plain words instead of "Failed to fetch".
+ */
+async function send(url, options, method) {
+  try {
+    return await fetchWithRetry(() => fetch(url, options), { method });
+  } catch (error) {
+    if (isNetworkError(error)) {
+      const networkError = new Error("NETWORK_ERROR");
+      networkError.status = 0;
+      networkError.code = "NETWORK_ERROR";
+      throw networkError;
+    }
+    throw error;
+  }
+}
+
 async function request(
   path,
   {
@@ -92,10 +113,7 @@ async function request(
     }
   }
 
-  let response = await fetch(
-    `${API_BASE}${path}`,
-    options
-  );
+  let response = await send(`${API_BASE}${path}`, options, method);
 
   /*
    * Refresh expired token once.
@@ -123,9 +141,10 @@ async function request(
         }
       }
 
-      response = await fetch(
+      response = await send(
         `${API_BASE}${path}`,
-        retryOptions
+        retryOptions,
+        method
       );
     }
   }

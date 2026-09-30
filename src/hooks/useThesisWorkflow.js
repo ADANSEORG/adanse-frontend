@@ -292,36 +292,53 @@ export function useThesisWorkflow({ user, authLoading }) {
       return;
     }
 
-    Promise.all([
+    // Loaded independently: one failing (after api.js's quiet retries)
+    // must not throw away the other's result.
+    Promise.allSettled([
       listConversations(),
       getCredits(),
-    ])
-      .then(
-        ([
-          conversationData,
-          creditData,
-        ]) => {
+    ]).then(
+      ([
+        conversationResult,
+        creditResult,
+      ]) => {
+        if (conversationResult.status === "fulfilled") {
           setConversations(
-            conversationData.conversations ||
+            conversationResult.value?.conversations ||
               []
           );
+        }
 
+        if (creditResult.status === "fulfilled") {
           setCredits(
             Number(
-              creditData?.balance || 0
+              creditResult.value?.balance || 0
             )
           );
 
           setCosts(
-            creditData?.costs || {}
+            creditResult.value?.costs || {}
           );
         }
-      )
-      .catch((e) => {
-        setError(
-          friendly(e)
-        );
-      });
+
+        if (conversationResult.status === "rejected") {
+          setError(
+            friendly(
+              conversationResult.reason,
+              "Your projects couldn't be loaded just now. Refresh the page to try again."
+            )
+          );
+        } else if (creditResult.status === "rejected") {
+          // Left unsaid, the balance would read 0 and suggest buying credits.
+          setError(
+            friendly(
+              creditResult.reason,
+              "Your credit balance couldn't be loaded just now. Refresh the page to try again."
+            )
+          );
+        }
+      }
+    );
   }, [
     user?.id,
     authLoading,

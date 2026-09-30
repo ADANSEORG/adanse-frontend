@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../AuthContext.jsx";
 import { validateNewPassword } from "../passwordValidation.js";
+import { friendly } from "../errors.js";
 
 export default function Account({
   user,
@@ -40,8 +41,7 @@ export default function Account({
       setConfirmPassword("");
     } catch (err) {
       setPasswordError(
-        err?.message ||
-          "We couldn't update your password. Please try again."
+        friendly(err, "We couldn't update your password. Please try again.")
       );
     } finally {
       setPasswordLoading(false);
