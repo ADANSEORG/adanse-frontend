@@ -8,6 +8,7 @@ import {
   defaultTicks,
   fillReview,
   tickedCount,
+  titleWouldReplace,
 } from "./chapterFill.js";
 
 const RESULT = {
@@ -22,14 +23,15 @@ const RESULT = {
 test("found items become a review list; not-found fields keep their plain reason", () => {
   const review = fillReview(RESULT);
   assert.deepEqual(review.map((e) => [e.field, e.found, e.items.length]), [
+    ["title", false, 0],
     ["objectives", true, 2],
     ["research_questions", true, 1],
     ["hypotheses", false, 0],
     ["planned_sample_size", true, 1],
   ]);
-  assert.equal(review[2].message, "Adanse didn't find this in the section it read.");
-  assert.equal(review[3].value, 200);
-  assert.equal(review[3].items[0].text, "A sample of 200 respondents was used.");
+  assert.equal(review[3].message, "Adanse didn't find this in the section it read.");
+  assert.equal(review[4].value, 200);
+  assert.equal(review[4].items[0].text, "A sample of 200 respondents was used.");
 });
 
 test("anything malformed is treated as not found, never shown", () => {
@@ -87,11 +89,62 @@ test("unticked items are not added, and typographic twins aren't duplicated", ()
 
 test("the Research Context form offers it above the fields and applies only what changes", () => {
   const form = readFileSync(new URL("./components/ThesisSetup.jsx", import.meta.url), "utf8");
-  assert.match(form, /<ChapterFill current=\{\{objectives,research_questions:questions,hypotheses\}\} onApply=\{applyChapterFill\}/);
+  assert.match(form, /<ChapterFill current=\{\{title,objectives,research_questions:questions,hypotheses\}\} onApply=\{applyChapterFill\}/);
   assert.match(form, /if\(c\.plannedSample!==undefined\)setPlannedSample\(c\.plannedSample\)/);
   const panel = readFileSync(new URL("./components/ChapterFill.jsx", import.meta.url), "utf8");
   assert.match(panel, /FILL_CONSENT_NOTICE/);
   assert.match(panel, /e\?\.status === 429/);
   assert.doesNotMatch(panel, /updateThesisProject|createThesisProject/);   // never saves by itself
   assert.match(FILL_CONSENT_NOTICE, /doesn't store your file/);
+});
+
+// ---------------------------------------------------------------------------
+// The thesis title (from the title page)
+// ---------------------------------------------------------------------------
+const WITH_TITLE = {
+  fields: {
+    ...RESULT.fields,
+    title: { status: "found", items: ["The Effect of Safety Climate on Safety Behaviour"], source: "title_page" },
+  },
+};
+
+test("a found title comes first, as one tickable item", () => {
+  const review = fillReview(WITH_TITLE);
+  assert.equal(review[0].field, "title");
+  assert.deepEqual(review[0].items, [{ key: "title", text: "The Effect of Safety Climate on Safety Behaviour" }]);
+  assert.equal(defaultTicks(review).has("title"), true);
+});
+
+test("a ticked title replaces the title field; the same title changes nothing", () => {
+  const review = fillReview(WITH_TITLE);
+  const ticked = defaultTicks(review);
+  const typed = { title: "My working title", objectives: [], research_questions: [], hypotheses: [] };
+  assert.equal(applyFill(typed, review, ticked).changes.title, "The Effect of Safety Climate on Safety Behaviour");
+
+  const same = { ...typed, title: "The  Effect of Safety Climate on Safety Behaviour " };
+  assert.equal("title" in applyFill(same, review, ticked).changes, false);
+
+  ticked.delete("title");
+  assert.equal("title" in applyFill(typed, review, ticked).changes, false);
+});
+
+test("the student is warned before a typed title would be replaced", () => {
+  const review = fillReview(WITH_TITLE);
+  assert.equal(titleWouldReplace({ title: "My working title" }, review), true);
+  assert.equal(titleWouldReplace({ title: "" }, review), false);
+  assert.equal(titleWouldReplace({ title: "The Effect of Safety Climate on Safety Behaviour" }, review), false);
+  assert.equal(titleWouldReplace({ title: "Anything" }, fillReview(RESULT)), false);  // no title found
+});
+
+test("a malformed title is treated as not found", () => {
+  for (const title of [{ status: "found", items: [] }, { status: "found", items: [7] }, { status: "found" }, "x"]) {
+    const review = fillReview({ fields: { ...RESULT.fields, title } });
+    assert.equal(review[0].found, false);
+    assert.deepEqual(review[0].items, []);
+  }
+});
+
+test("the form puts a ticked title into the title field", () => {
+  const form = readFileSync(new URL("./components/ThesisSetup.jsx", import.meta.url), "utf8");
+  assert.match(form, /if\(c\.title\)setTitle\(c\.title\)/);
 });

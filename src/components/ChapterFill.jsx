@@ -10,6 +10,7 @@ import {
   defaultTicks,
   fillReview,
   tickedCount,
+  titleWouldReplace,
 } from "../chapterFill.js";
 
 /*
@@ -123,6 +124,10 @@ export default function ChapterFill({ current, onApply, disabled = false }) {
                   </span>
                 )}
               </legend>
+
+              {entry.field === "title" && titleWouldReplace(current, review) && (
+                <p className="chapter1-compare-note">Ticking this replaces the title you've typed.</p>
+              )}
 
               {entry.found ? (
                 entry.items.map((item) => (

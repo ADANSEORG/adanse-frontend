@@ -55,6 +55,17 @@ export function fillReview(result) {
     };
   });
 
+  // The thesis title (read in code from the title page): one item.
+  const titleEntry = fields.title || {};
+  const titleText = titleEntry.status === "found" ? cleanItems(titleEntry.items)[0] : undefined;
+  const title = {
+    field: "title",
+    label: "Thesis title",
+    found: Boolean(titleText),
+    items: titleText ? [{ key: "title", text: titleText }] : [],
+    message: titleText ? "" : String(titleEntry.message || NOT_FOUND_FALLBACK),
+  };
+
   const sample = fields.planned_sample_size || {};
   const value = sample.value;
   const sampleFound =
@@ -65,6 +76,7 @@ export function fillReview(result) {
     sample.quote.trim() !== "";
 
   return [
+    title,
     ...lists,
     {
       field: "planned_sample_size",
@@ -82,6 +94,15 @@ export function defaultTicks(review) {
   return new Set(review.flatMap((entry) => entry.items.map((item) => item.key)));
 }
 
+// The tick-list warns before a ticked title would replace a typed one.
+export function titleWouldReplace(current, review) {
+  const entry = (review || []).find((e) => e.field === "title");
+  const typed = String(current?.title || "").trim();
+  return Boolean(
+    entry?.found && typed && normalizeForMatch(typed) !== normalizeForMatch(entry.items[0].text)
+  );
+}
+
 export function tickedCount(review, ticked) {
   return review.reduce(
     (count, entry) => count + entry.items.filter((item) => ticked.has(item.key)).length,
@@ -92,8 +113,8 @@ export function tickedCount(review, ticked) {
 /*
  * The form after adding the ticked items. Lists keep what the student
  * already has and gain the ticked items that aren't already there (same
- * normalized comparison as the Chapter 1 panel). A ticked sample size
- * replaces the sample size box. Returns only the fields that change, and
+ * normalized comparison as the Chapter 1 panel). A ticked title replaces the
+ * title field, and a ticked sample size the sample size box. Returns only the fields that change, and
  * how many items each gained.
  */
 export function applyFill(current, review, ticked) {
@@ -103,6 +124,16 @@ export function applyFill(current, review, ticked) {
   for (const entry of review) {
     const picked = entry.items.filter((item) => ticked.has(item.key));
     if (!picked.length) continue;
+
+    if (entry.field === "title") {
+      // One title: a ticked title replaces the title field (unless it's the same).
+      const text = picked[0].text;
+      if (normalizeForMatch(text) !== normalizeForMatch(current?.title)) {
+        changes.title = text;
+        added.title = 1;
+      }
+      continue;
+    }
 
     if (entry.field === "planned_sample_size") {
       changes.plannedSample = String(entry.value);
