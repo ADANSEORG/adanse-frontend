@@ -127,8 +127,10 @@ export default function App() {
 
   if (authLoading) {
     return (
-      <div className="loading-screen">
-        Checking your session…
+      // Only while a sign-in or reset link in the URL is processed (see
+      // sessionBootstrap.js); otherwise the app or sign-in screen shows at once.
+      <div className="loading-screen" role="status" aria-label="Loading">
+        <span className="loading-screen-spinner" aria-hidden="true" />
       </div>
     );
   }

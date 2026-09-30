@@ -8,12 +8,36 @@ import {
 import { supabase } from "./supabaseClient";
 import { resolveSiteUrl } from "./siteUrl";
 import { oauthRedirectUrl } from "./oauth";
+import {
+  initialAuthState,
+  isNetworkAuthFailure,
+  storedSessionUser,
+  urlHasAuthReturn,
+} from "./sessionBootstrap";
+
+// Read once, synchronously, before the first render: see sessionBootstrap.js.
+function bootAuthState() {
+  if (!supabase || typeof window === "undefined") {
+    return { user: null, loading: Boolean(supabase) };
+  }
+  let storage = null;
+  try {
+    storage = window.localStorage;
+  } catch {
+    storage = null;
+  }
+  return initialAuthState({
+    storedUser: storedSessionUser(storage, supabase.storageKey),
+    authReturn: urlHasAuthReturn(window.location.search, window.location.hash),
+  });
+}
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [boot] = useState(bootAuthState);
+  const [user, setUser] = useState(boot.user);
+  const [loading, setLoading] = useState(boot.loading);
 
   useEffect(() => {
     if (!supabase) {
@@ -36,7 +60,9 @@ export function AuthProvider({ children }) {
             error
           );
 
-          if (active) {
+          // Keep whoever is shown signed in when the check simply didn't get
+          // through; only a session the server rejected signs them out.
+          if (active && !isNetworkAuthFailure(error)) {
             setUser(null);
           }
 
@@ -52,7 +78,7 @@ export function AuthProvider({ children }) {
           error
         );
 
-        if (active) {
+        if (active && !isNetworkAuthFailure(error)) {
           setUser(null);
         }
       } finally {
