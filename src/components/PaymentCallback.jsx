@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { verifyCreditPayment } from "../api.js";
 import { friendly } from "../errors.js";
+import Skeleton, { SkeletonLines } from "./Skeleton.jsx";
 
 /*
  * ---------------------------------------------------------
@@ -146,15 +147,14 @@ export default function PaymentCallback() {
         )}
 
         {status === "verifying" && (
-          <div style={styles.spinnerWrap}>
-            <div
-              className="upload-progress-spinner"
-              aria-hidden="true"
-            />
-
-            <div className="upload-progress-text">
-              Confirming your payment…
-            </div>
+          <div
+            className="auth-skeleton"
+            role="status"
+            aria-label="Confirming your payment"
+          >
+            <Skeleton width="200px" height="20px" />
+            <SkeletonLines lines={2} />
+            <Skeleton width="100%" height="36px" />
 
             <div className="upload-progress-sub">
               This only takes a moment. Please don't close this
@@ -244,15 +244,13 @@ const styles = {
     maxWidth: "480px",
     background: "var(--surface)",
     border: "1px solid var(--line)",
-    borderRadius: "20px",
-    boxShadow: "var(--shadow)",
+    borderRadius: "3px",
     padding: "40px 35px",
     textAlign: "center",
   },
 
   title: {
-    font: "600 clamp(24px, 4vw, 30px) / 1.1 var(--display)",
-    letterSpacing: "-0.03em",
+    font: "600 20px / 1.3 var(--body)",
     margin: "10px 0 16px",
   },
 
@@ -281,7 +279,7 @@ const styles = {
   alertError: {
     marginBottom: "20px",
     padding: "14px 16px",
-    borderRadius: "12px",
+    borderRadius: "3px",
     background: "rgba(180, 55, 55, 0.08)",
     border: "1px solid rgba(180, 55, 55, 0.18)",
     color: "#a33",
@@ -293,7 +291,7 @@ const styles = {
   alertSuccess: {
     marginBottom: "28px",
     padding: "14px 16px",
-    borderRadius: "12px",
+    borderRadius: "3px",
     background: "rgba(44, 126, 82, 0.08)",
     border: "1px solid rgba(44, 126, 82, 0.18)",
     color: "var(--green)",

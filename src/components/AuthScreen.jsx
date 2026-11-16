@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext.jsx";
-import ParticleField from "./ParticleField.jsx";
 import {
   cleanOtpCode,
   otpDigitAt,
@@ -450,42 +449,38 @@ export default function AuthScreen() {
 
   return (
     <main className="auth-page">
-      <ParticleField />
-
       <div className="auth-container">
 
         <header className="auth-header">
           <div className="auth-brand">
+            <img
+              className="auth-logo"
+              src="/logo.svg"
+              alt=""
+              width="24"
+              height="24"
+            />
             Adanse
           </div>
 
           <div className="auth-tagline">
             thesis data analysis
           </div>
-        </header>
+        </header>        <section className="landing">
 
-        <section className="auth-layout">
-
-          <div className="auth-intro">
-            <div className="auth-eyebrow">
-              THESIS DATA ANALYSIS
-            </div>
-
-            <h1>
-              Turn your data into
-              <br />
-              a thesis you can explain.
+          <div className="landing-left">
+            <h1 className="landing-title">
+              Thesis data analysis
             </h1>
 
-            <p className="auth-description">
-              Upload your dataset, ask your research
-              question, and let Adanse guide you
-              toward an appropriate statistical
-              analysis.
+            <p className="landing-lede">
+              Upload your dataset, state your research
+              questions, and Adanse suggests suitable
+              statistical tests and drafts your
+              Chapter 4 results.
             </p>
 
             <div className="auth-features">
-
               <div className="auth-feature">
                 <span className="auth-feature-number">
                   01
@@ -536,11 +531,10 @@ export default function AuthScreen() {
                   </p>
                 </div>
               </div>
-
             </div>
           </div>
 
-          <div className="auth-card">
+          <div className="auth-card signin-card">
 
             {isVerifying ? (
               <>
@@ -716,11 +710,11 @@ export default function AuthScreen() {
               </>
             ) : (
               <>
-                <div className="auth-card-top">
-                  {isSignup
-                    ? "Get started"
-                    : "Welcome back"}
-                </div>
+                {isSignup && (
+                  <div className="auth-card-top">
+                    Get started
+                  </div>
+                )}
 
                 <div className="auth-card-heading">
                   <h2>

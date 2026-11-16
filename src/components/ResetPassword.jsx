@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext.jsx";
-import ParticleField from "./ParticleField.jsx";
 import { validateNewPassword } from "../passwordValidation.js";
 import { friendly } from "../errors.js";
+import Skeleton, { SkeletonLines } from "./Skeleton.jsx";
 
 /*
  * ---------------------------------------------------------
@@ -77,8 +77,6 @@ export default function ResetPassword() {
 
   return (
     <main className="auth-page">
-      <ParticleField />
-
       <div className="auth-container">
         <header className="auth-header">
           <Link to="/" className="auth-brand">
@@ -93,15 +91,14 @@ export default function ResetPassword() {
         <div className="auth-standalone">
           <div className="auth-card">
             {authLoading ? (
-              <div className="upload-progress">
-                <div
-                  className="upload-progress-spinner"
-                  aria-hidden="true"
-                />
-
-                <div className="upload-progress-text">
-                  Checking your reset link…
-                </div>
+              <div
+                className="auth-skeleton"
+                role="status"
+                aria-label="Checking your reset link"
+              >
+                <Skeleton width="180px" height="20px" />
+                <SkeletonLines lines={2} />
+                <Skeleton width="100%" height="36px" />
               </div>
             ) : !user ? (
               <>

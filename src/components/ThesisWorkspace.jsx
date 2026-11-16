@@ -49,6 +49,106 @@ function PValue({ value, formatted }) {
   return <>{formatted || (value == null ? "—" : number(value, 4))}</>;
 }
 
+// Compact form of the same checks Chapter 4 reports, so the researcher can
+// see assumptions before exporting rather than only afterwards.
+function assumptionChecks(result) {
+  const assumptions = result?.assumptions;
+  if (!assumptions) return [];
+
+  const checks = [];
+  const describe = (value) =>
+    typeof value === "object"
+      ? JSON.stringify(value)
+      : String(value);
+
+  if (assumptions.normality !== undefined) {
+    checks.push({
+      label: "Normality",
+      result: describe(assumptions.normality),
+      met: null,
+    });
+  }
+
+  if (assumptions.variance !== undefined) {
+    checks.push({
+      label: "Equal variance",
+      result: describe(assumptions.variance),
+      met: null,
+    });
+  }
+
+  if (assumptions.shapiro_min_p !== undefined) {
+    checks.push({
+      label: "Normality",
+      result: `p = ${number(assumptions.shapiro_min_p, 4)}`,
+      met:
+        assumptions.shapiro_min_p === null
+          ? null
+          : Number(assumptions.shapiro_min_p) > 0.05,
+    });
+  }
+
+  if (assumptions.levene_p !== undefined) {
+    checks.push({
+      label: "Equal variance",
+      result: `p = ${number(assumptions.levene_p, 4)}`,
+      met:
+        assumptions.levene_p === null
+          ? null
+          : Number(assumptions.levene_p) > 0.05,
+    });
+  }
+
+  return checks;
+}
+
+function AssumptionList({ result }) {
+  const checks = assumptionChecks(result);
+  if (checks.length === 0) return null;
+
+  return (
+    <div className="assumption-list">
+      <span className="assumption-list-title">
+        Assumption checks
+      </span>
+
+      <ul>
+        {checks.map((check, index) => (
+          <li key={`${check.label}-${index}`}>
+            <span
+              className={`assumption-mark ${
+                check.met === true
+                  ? "met"
+                  : check.met === false
+                  ? "not-met"
+                  : "unknown"
+              }`}
+              aria-hidden="true"
+            >
+              {check.met === true
+                ? "✓"
+                : check.met === false
+                ? "⚠"
+                : "·"}
+            </span>
+
+            <span>{check.label}</span>
+
+            <span className="assumption-value">
+              {check.result}
+              {check.met === true
+                ? " · met"
+                : check.met === false
+                ? " · not met"
+                : ""}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function QuantitativeResult({ result }) {
   const test = result?.test;
   if (test === "frequency") {
@@ -188,7 +288,7 @@ function QualitativeDataSelector({ detectedColumns, selectedColumns, columnObjec
   return (
     <section className="objective-analysis-section qualitative-data-selector">
       <div className="objective-heading">
-        <span>QUALITATIVE DATA</span>
+        <span>Qualitative data</span>
         <h2>Which open-ended responses should Adanse analyse?</h2>
       </div>
       <p className="analysis-reasoning">
@@ -262,7 +362,7 @@ function QualitativeAnalysisSection({ qualitativeResults, conversationId, onQual
   return (
     <section className="objective-analysis-section">
       <div className="objective-heading">
-        <span>QUALITATIVE ANALYSIS</span>
+        <span>Qualitative analysis</span>
         <h2>Thematic analysis of your selected open-ended responses</h2>
       </div>
       <div className="analysis-list">
@@ -270,7 +370,7 @@ function QualitativeAnalysisSection({ qualitativeResults, conversationId, onQual
           <article className="analysis-result-card" key={entry.column}>
             <div className="analysis-result-top">
               <div>
-                <div className="analysis-result-kicker">{entry.status === "complete" ? "ANALYSIS RESULT" : "PLANNED ANALYSIS"}</div>
+                <div className="analysis-result-kicker">{entry.status === "complete" ? "Analysis result" : "Planned analysis"}</div>
                 <h4>Thematic analysis — {columnLabel(entry.column)}</h4>
               </div>
               <span className={`analysis-status ${entry.status === "complete" ? "complete" : "review"}`}>
@@ -302,7 +402,7 @@ function HypothesisPlan({ plan, analysis }) {
   return (
     <section className="objective-analysis-section hypothesis-plan">
       <div className="objective-heading">
-        <span>HYPOTHESES</span>
+        <span>Hypotheses</span>
         <h2>How each hypothesis will be tested</h2>
       </div>
       <div className="analysis-list">
@@ -364,15 +464,22 @@ function AnalysisCard({ item, objectiveId, numericColumns, categoricalColumns, o
     <article className={`analysis-result-card ${complete ? "" : "planned"}`}>
       <div className="analysis-result-top">
         <div>
-          <div className="analysis-result-kicker">{complete ? "ANALYSIS RESULT" : "PLANNED ANALYSIS"}</div>
+          <div className="analysis-result-kicker">{complete ? "Analysis result" : "Planned analysis"}</div>
           <h4>{name}</h4>
         </div>
         <span className={`analysis-status ${status.tone}`}>{status.label}</span>
       </div>
       {columns.length > 0 && <div className="analysis-variable-pair">{columnPairLabel(columns)}</div>}
       {!needsQualitativeReview && (
-        <p className="analysis-reasoning">{item?.reasoning || item?.error || "Selected from the structure of the uploaded dataset."}</p>
+        <p className="analysis-reasoning">
+          <span className="analysis-why-label">
+            Why this test:{" "}
+          </span>
+          {item?.reasoning || item?.error || "Selected from the structure of the uploaded dataset."}
+        </p>
       )}
+
+      {complete && <AssumptionList result={result} />}
       {lowConfidence && (
         <div className="analysis-warning">
           <strong>Low confidence</strong>
@@ -620,13 +727,12 @@ export default function ThesisWorkspace({ project, upload, plan, analysis, onBui
 
   return (
     <section>
-      <div className="workspace-intro">
-        <div>
-          <div className="section-kicker">03 · ANALYSIS</div>
-          <h1>Let the dataset tell us how to analyse it.</h1>
-          <p>Adanse first identifies numeric, categorical and open-text data. Your research objectives then determine which supported analyses are relevant.</p>
-        </div>
-      </div>
+      <header className="page-head">
+        <h1 className="page-title">Analysis</h1>
+        <p className="page-help">
+          Adanse first identifies numeric, categorical and open-text data. Your research objectives then determine which supported analyses are relevant.
+        </p>
+      </header>
 
       {plan ? (
         <div className="dataset-analysis-summary">
@@ -640,8 +746,8 @@ export default function ThesisWorkspace({ project, upload, plan, analysis, onBui
 
       {!plan && (
         <div className="analysis-empty-state">
-          <h2>Ready to understand your dataset.</h2>
-          <p>Build the analysis plan. No discipline or fixed research template is assumed; the uploaded columns are inspected first.</p>
+          <h2>Build the analysis plan</h2>
+          <p>Adanse inspects the uploaded columns first. No discipline or fixed research template is assumed.</p>
           <button className="btn btn-primary" onClick={onBuildPlan} disabled={buildButton.disabled}>{buildButtonLabel(buildButton)}</button>
         </div>
       )}
@@ -651,7 +757,7 @@ export default function ThesisWorkspace({ project, upload, plan, analysis, onBui
         return (
           <section className="objective-analysis-section" key={objective.id}>
             <div className="objective-heading">
-              <span>OBJECTIVE {objective.id}</span>
+              <span>Objective {objective.id}</span>
               <h2>{objective.objective}</h2>
               {objective.status && (
                 <span className={`analysis-status ${needsReview ? "review" : "complete"}`}>
@@ -705,6 +811,11 @@ export default function ThesisWorkspace({ project, upload, plan, analysis, onBui
                 ? "Confirm your qualitative data sources above before running analysis."
                 : "Quantitative and qualitative methods can coexist when the CSV supports both."}
             </span>
+            {runButton.loading && (
+              <span className="task-status" role="status">
+                Running analysis. This can take a moment.
+              </span>
+            )}
           </div>
           <CreditActionButton
             label="Run analysis →"
@@ -732,7 +843,7 @@ export default function ThesisWorkspace({ project, upload, plan, analysis, onBui
 
       {hasResults && (analysis?.objective_results || []).map((objective) => (
         <section className="objective-analysis-section" key={objective.id}>
-          <div className="objective-heading"><span>OBJECTIVE {objective.id}</span><h2>{objective.objective}</h2></div>
+          <div className="objective-heading"><span>Objective {objective.id}</span><h2>{objective.objective}</h2></div>
           <div className="analysis-list">
             {(objective.analyses || []).map((item) => (
               <AnalysisCard

@@ -448,7 +448,7 @@ export default function DatasetReview({
 
       <div className="dataset-quality">
         <div className="dataset-quality-heading">
-          <span>VERSION STATUS</span>
+          <span>Version status</span>
           <p>
             {active
               ? "This is the active dataset version. Analysis uses this data."

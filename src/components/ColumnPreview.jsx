@@ -92,11 +92,11 @@ export default function ColumnPreview({
       <div className="dataset-profile-header">
         <div>
           <div className="dataset-profile-kicker">
-            DATASET OVERVIEW
+            Dataset overview
           </div>
 
           <h2>
-            Your data at a glance.
+            Your dataset
           </h2>
 
           <p>
@@ -125,12 +125,12 @@ export default function ColumnPreview({
       </div>
 
       {/* =====================================================
-          DATA QUALITY
+          Data quality
           ===================================================== */}
 
       <div className="dataset-quality">
         <div className="dataset-quality-heading">
-          <span>DATA QUALITY</span>
+          <span>Data quality</span>
 
           <p>
             A quick look at what Adanse found in
@@ -228,7 +228,7 @@ export default function ColumnPreview({
       </div>
 
       {/* =====================================================
-          VARIABLES
+          Variables
           ===================================================== */}
 
       <div className="dataset-variables">
@@ -236,11 +236,11 @@ export default function ColumnPreview({
         <div className="dataset-variables-heading">
           <div>
             <div className="dataset-profile-kicker">
-              VARIABLES
+              Dataset
             </div>
 
             <h3>
-              What is in your dataset?
+              Variables
             </h3>
           </div>
 
