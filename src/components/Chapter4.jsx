@@ -1360,7 +1360,7 @@ export default function Chapter4({
                             <div className="chapter-analysis-meta">
                               <div>
                                 <span>
-                                  VARIABLE
+                                  Variable
                                 </span>
 
                                 <strong>
@@ -1375,7 +1375,7 @@ export default function Chapter4({
 
                               <div>
                                 <span>
-                                  GROUP / VARIABLE
+                                  Group / variable
                                 </span>
 
                                 <strong>
@@ -1390,7 +1390,7 @@ export default function Chapter4({
 
                               <div>
                                 <span>
-                                  METHOD
+                                  Method
                                 </span>
 
                                 <strong>

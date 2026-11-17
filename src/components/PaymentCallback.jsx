@@ -118,7 +118,7 @@ export default function PaymentCallback() {
     <div style={styles.page}>
       <div style={styles.card}>
         <div className="section-kicker">
-          PAYSTACK PAYMENT
+          Paystack payment
         </div>
 
         {status === "missing-reference" && (

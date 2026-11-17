@@ -198,6 +198,40 @@ export function conversationStatus(conversation) {
   };
 }
 
+export function withConversationProgress(
+  conversation,
+  {
+    datasetUploaded = false,
+    analysisReady = false,
+    chapter4Ready = false,
+  } = {}
+) {
+  const dataset_uploaded = Boolean(
+    conversation?.dataset_uploaded || datasetUploaded
+  );
+  const analysis_ready = Boolean(
+    conversation?.analysis_ready || analysisReady
+  );
+  const chapter4_ready = Boolean(
+    conversation?.chapter4_ready || chapter4Ready
+  );
+
+  if (
+    dataset_uploaded === Boolean(conversation?.dataset_uploaded) &&
+    analysis_ready === Boolean(conversation?.analysis_ready) &&
+    chapter4_ready === Boolean(conversation?.chapter4_ready)
+  ) {
+    return conversation;
+  }
+
+  return {
+    ...conversation,
+    dataset_uploaded,
+    analysis_ready,
+    chapter4_ready,
+  };
+}
+
 // Returns a new list with one conversation's pinned_at replaced. Touches
 // nothing else on it (in particular not updated_at), so the item keeps its
 // place in its date group when unpinned.

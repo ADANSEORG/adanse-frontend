@@ -8,6 +8,7 @@ import {
   groupConversations,
   isPinned,
   pinErrorMessage,
+  withConversationProgress,
   withPinnedAt,
 } from "./sidebarGroups.js";
 
@@ -182,4 +183,45 @@ test("status tags follow the most advanced completed stage", () => {
     conversationStatus({ analysis_ready: true, chapter4_ready: true }).key,
     "chapter4"
   );
+});
+
+test("conversation progress only moves forward", () => {
+  const draft = { id: "a", title: "Old project" };
+
+  const finished = withConversationProgress(draft, {
+    datasetUploaded: true,
+    analysisReady: true,
+    chapter4Ready: true,
+  });
+
+  assert.notEqual(finished, draft);
+  assert.equal(conversationStatus(finished).key, "chapter4");
+
+  const afterNewChat = withConversationProgress(finished, {});
+
+  assert.equal(afterNewChat, finished);
+  assert.equal(conversationStatus(afterNewChat).key, "chapter4");
+
+  const afterNavigatingBack = withConversationProgress(finished, {
+    datasetUploaded: true,
+    analysisReady: true,
+    chapter4Ready: false,
+  });
+
+  assert.equal(conversationStatus(afterNavigatingBack).key, "chapter4");
+});
+
+test("conversation progress fills in only the stage that was reached", () => {
+  const withDataset = withConversationProgress(
+    { id: "a" },
+    { datasetUploaded: true }
+  );
+
+  assert.equal(conversationStatus(withDataset).key, "dataset");
+
+  const withAnalysis = withConversationProgress(withDataset, {
+    analysisReady: true,
+  });
+
+  assert.equal(conversationStatus(withAnalysis).key, "analysis");
 });

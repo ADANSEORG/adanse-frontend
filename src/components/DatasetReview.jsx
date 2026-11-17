@@ -38,7 +38,8 @@ function formatVariableName(name) {
 
 function formatRuleLabel(rule) {
   if (!rule) return "Review item";
-  return formatVariableName(rule);
+  const label = String(rule).replace(/_/g, " ").trim();
+  return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
 /*
@@ -417,7 +418,7 @@ export default function DatasetReview({
       <div className="dataset-profile-header">
         <div>
           <div className="dataset-profile-kicker">
-            DATASET REVIEW
+            Cleaning report
           </div>
 
           <h2>Review the cleaned dataset before analysis.</h2>
@@ -534,7 +535,7 @@ export default function DatasetReview({
           <div className="dataset-variables-heading">
             <div>
               <div className="dataset-profile-kicker">
-                APPLIED AUTOMATICALLY
+                Applied automatically
               </div>
               <h3>What Adanse already fixed</h3>
             </div>
@@ -666,7 +667,7 @@ export default function DatasetReview({
           <div className="dataset-variables-heading">
             <div>
               <div className="dataset-profile-kicker">
-                LEFT FOR YOU TO REVIEW
+                Left for you to review
               </div>
               <h3>Adanse did not change these automatically</h3>
             </div>
@@ -704,7 +705,7 @@ export default function DatasetReview({
       )}
 
       {/* =====================================================
-          PERSONAL DATA. Columns that look like personal data (email,
+          Personal data. Columns that look like personal data (email,
           name, phone, ID...) are left out of analysis and Chapter 4 by
           default. Listed here with the reason, and the researcher can
           include one that was flagged by mistake (a new dataset
@@ -716,7 +717,7 @@ export default function DatasetReview({
           <div className="dataset-variables-heading">
             <div>
               <div className="dataset-profile-kicker">
-                PERSONAL DATA
+                Personal data
               </div>
               <h3>{personalDataHeadline(personalFlags)}</h3>
             </div>
@@ -808,7 +809,7 @@ export default function DatasetReview({
       )}
 
       {/* =====================================================
-          POSSIBLE GROUPINGS (suggestion only — nothing here is
+          Possible groupings (suggestion only — nothing here is
           applied until the researcher checks a group and clicks
           "Apply checked groupings"). Renders nothing at all when
           there are no suggestions, so a clean column never shows
@@ -820,7 +821,7 @@ export default function DatasetReview({
           <div className="dataset-variables-heading">
             <div>
               <div className="dataset-profile-kicker">
-                POSSIBLE GROUPINGS
+                Possible groupings
               </div>
               <h3>Adanse noticed values that might be the same category</h3>
             </div>
@@ -897,7 +898,7 @@ export default function DatasetReview({
       )}
 
       {/* =====================================================
-          CATEGORY ORDER (display only — never affects analysis
+          Category order (display only — never affects analysis
           results, only how Chapter 4 orders each column's
           categories). Renders nothing when no column has a
           compact enough (2-12) category count to reorder by hand.
@@ -910,11 +911,14 @@ export default function DatasetReview({
             <div className="dataset-variables-heading">
               <div>
                 <div className="dataset-profile-kicker">
-                  CATEGORY ORDER
+                  Category order
                 </div>
                 <h3>Set the order categories appear in</h3>
               </div>
-              <span>{categoryOrderColumns.length} columns</span>
+              <span>
+                {categoryOrderColumns.length}{" "}
+                {categoryOrderColumns.length === 1 ? "column" : "columns"}
+              </span>
             </div>
 
             <p className="dataset-grouping-note">

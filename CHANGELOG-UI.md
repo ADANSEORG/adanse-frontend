@@ -61,10 +61,55 @@ calls, routing, data models or workflow rules were changed.
   eyebrow. The decorative particle canvas and marketing hero were removed;
   the sign-in form is now the whole screen. Reset-link and payment checks use
   skeletons instead of spinners.
+- **Settings and payment pages**: inline styles were brought onto the same
+  tokens (3px radius, no shadows/letter-spacing/uppercase, 22px page titles,
+  body sans for headings), so Account, Credits and the payment return match
+  the reduced visual language.
+
+## Alignment and copy pass
+
+- Page headings now use a normal block layout, so the helper text starts
+  under the title instead of being pushed sideways by a flex row. Chapter 4
+  keeps its inline dataset pill.
+- Research details uses the full content width; the objectives, questions
+  and hypotheses rows no longer render as nested bordered boxes. The
+  Chapter 1 comparison panel is a compact solid-border block.
+- Dataset review was tightened: smaller profile heading and kickers,
+  readable quality status cards, natural-height file card, sentence-case
+  rule labels (`Trim whitespace`, `Out of range`), and correct singular /
+  plural category-order counts.
+- Analysis result cards use a wrapping detail grid, so a result with an odd
+  number of values no longer leaves a blank cell. The five-cell summary
+  wraps below 650px instead of clipping a value.
+- Chapter 4 has tighter section spacing, a three-column analysis meta strip,
+  softer table rules, and sentence-case meta labels (`Variable`,
+  `Group / variable`, `Method`).
+- The top-bar project title now uses the available space on wider screens;
+  it still truncates deliberately when the stepper or the Analysis action
+  needs the room.
+- Visible settings labels and payment status copy use sentence case, and
+  the raw rule names shown in review are humanised without title-casing
+  every word.
+
+## Auth redesign
+
+- Sign-in, sign-up, password reset and the verification card now share one
+  editorial layout: a dark ink panel with a serif "From dataset to defence."
+  headline and a four-step research workflow, next to a white form card with
+  a gold top rule.
+- The auth header is a simple logo-and-wordmark lockup; the repeated
+  workspace note and decorative eyebrow labels were removed.
+- Forms use 48px controls, serif card headings, gold-underlined text links,
+  and sentence-case legal copy. Sign-up shows the terms line above the
+  submit button; the redundant account disclaimer is sign-in only.
+- Below 1100px the marketing panel is removed and the form is centred. Below
+  760px the card uses the full mobile gutter, and the footer wraps cleanly.
+- Sign-out and account-session UI were deliberately left unchanged.
 
 ## Files touched
 
 - `src/styles.css`, `src/chapter4-preview.css`, `src/theme.css`
+- `src/components/AuthScreen.jsx`
 - `src/main.jsx`, `src/App.jsx`
 - `src/components/Stepper.jsx` (new), `src/components/Skeleton.jsx` (new)
 - `src/hooks/useDelayedLoading.js` (new)
@@ -73,6 +118,8 @@ calls, routing, data models or workflow rules were changed.
 - `src/components/UploadZone.jsx`, `src/components/ColumnPreview.jsx`,
   `src/components/DatasetReview.jsx`
 - `src/components/ThesisWorkspace.jsx`, `src/components/Chapter4.jsx`
+- `src/components/Account.jsx`, `src/components/Credits.jsx`,
+  `src/components/PaymentCallback.jsx`
 - `src/sidebarGroups.test.js`
 
 ## Spec items adapted or not implemented
@@ -96,8 +143,9 @@ calls, routing, data models or workflow rules were changed.
   would be new functionality, so it is omitted; the export action remains.
 - **Sidebar status tags**: the conversations endpoint does not include
   workflow state. Conventionally named status fields are honoured when
-  present, the active row is filled from the live project state, and
-  everything else reads "Draft".
+  present, the active row is filled from the live project state, and the
+  furthest stage reached is remembered on that conversation for the session,
+  so switching to a new chat does not reset a finished project to "Draft".
 - **Hypothesis H0/H1 labels**: the data model stores hypotheses as plain
   strings, so no per-row label is added.
 - **Stepper navigation**: only transitions the existing workflow exposes are

@@ -41,7 +41,10 @@ import {
   isPendingReviewVersion,
 } from "../datasetContinue.js";
 import { finalizeConfirmationMessage } from "../qualitativeFinalizePolling.js";
-import { withPinnedAt } from "../sidebarGroups.js";
+import {
+  withConversationProgress,
+  withPinnedAt,
+} from "../sidebarGroups.js";
 import { chapter4Gate } from "../chapter4Gate.js";
 import {
   pathForSettingsView,
@@ -356,6 +359,42 @@ export function useThesisWorkflow({ user, authLoading }) {
   }, [
     user?.id,
     authLoading,
+  ]);
+
+  useEffect(() => {
+    const id = active?.id;
+
+    if (!id) return;
+
+    const progress = {
+      datasetUploaded: Boolean(upload),
+      analysisReady: Boolean(analysis),
+      chapter4Ready: step === "chapter4",
+    };
+
+    setConversations((list) => {
+      let changed = false;
+
+      const next = list.map((conversation) => {
+        if (conversation.id !== id) return conversation;
+
+        const updated = withConversationProgress(
+          conversation,
+          progress
+        );
+
+        if (updated !== conversation) changed = true;
+
+        return updated;
+      });
+
+      return changed ? next : list;
+    });
+  }, [
+    active?.id,
+    upload,
+    analysis,
+    step,
   ]);
 
   /*

@@ -21,6 +21,7 @@ import Skeleton, {
 } from "./components/Skeleton.jsx";
 import { useDelayedLoading } from "./hooks/useDelayedLoading.js";
 import { chapter4Gate } from "./chapter4Gate.js";
+import { withConversationProgress } from "./sidebarGroups.js";
 
 export default function App() {
   const {
@@ -293,12 +294,14 @@ export default function App() {
   const sidebarConversations = conversations.map(
     (conversation) =>
       conversation.id === active?.id
-        ? {
-            ...conversation,
-            dataset_uploaded: Boolean(upload),
-            analysis_ready: Boolean(analysis),
-            chapter4_ready: isChapter4,
-          }
+        ? withConversationProgress(
+            conversation,
+            {
+              datasetUploaded: Boolean(upload),
+              analysisReady: Boolean(analysis),
+              chapter4Ready: isChapter4,
+            }
+          )
         : conversation
   );
 

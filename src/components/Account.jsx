@@ -103,7 +103,7 @@ export default function Account({
       {/* INTRO */}
       <div style={styles.intro}>
         <div className="section-kicker">
-          ACCOUNT
+          Account
         </div>
 
         <h1 style={styles.title}>
@@ -116,7 +116,7 @@ export default function Account({
         </p>
       </div>
 
-      {/* ACCOUNT CARD */}
+      {/* Account CARD */}
       <div style={styles.profileCard}>
         <div style={styles.profileTop}>
           <div style={styles.avatar}>
@@ -139,7 +139,7 @@ export default function Account({
         <div style={styles.infoGrid}>
           <div style={styles.infoItem}>
             <span style={styles.infoLabel}>
-              FULL NAME
+              Full name
             </span>
 
             <strong style={styles.infoValue}>
@@ -149,7 +149,7 @@ export default function Account({
 
           <div style={styles.infoItem}>
             <span style={styles.infoLabel}>
-              EMAIL
+              Email
             </span>
 
             <strong style={styles.infoValue}>
@@ -159,7 +159,7 @@ export default function Account({
 
           <div style={styles.infoItem}>
             <span style={styles.infoLabel}>
-              MEMBER SINCE
+              Member since
             </span>
 
             <strong style={styles.infoValue}>
@@ -169,7 +169,7 @@ export default function Account({
 
           <div style={styles.infoItem}>
             <span style={styles.infoLabel}>
-              ACCOUNT STATUS
+              Account status
             </span>
 
             <strong
@@ -184,10 +184,10 @@ export default function Account({
         </div>
       </div>
 
-      {/* SECURITY */}
+      {/* Security */}
       <div style={styles.section}>
         <div className="section-kicker">
-          SECURITY
+          Security
         </div>
 
         <div style={styles.passwordCard}>
@@ -276,10 +276,10 @@ export default function Account({
         </div>
       </div>
 
-      {/* SESSION */}
+      {/* Session */}
       <div style={styles.section}>
         <div className="section-kicker">
-          SESSION
+          Session
         </div>
 
         <div style={styles.dangerCard}>
@@ -368,7 +368,7 @@ const styles = {
 
   name: {
     margin: 0,
-    font: "600 25px var(--display)",
+    font: "600 18px var(--body)",
   },
 
   email: {

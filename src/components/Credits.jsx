@@ -112,7 +112,7 @@ export default function Credits({
 
       <div style={styles.intro}>
         <div className="section-kicker">
-          CREDITS
+          Credits
         </div>
 
         <h1 style={styles.title}>
@@ -155,7 +155,7 @@ export default function Credits({
 
         <div>
           <span style={styles.balanceLabel}>
-            AVAILABLE BALANCE
+            Available balance
           </span>
 
           <div style={styles.balanceRow}>
@@ -172,11 +172,11 @@ export default function Credits({
         </div>
       </div>
 
-      {/* BUY CREDITS */}
+      {/* BUY Credits */}
 
       <div style={styles.section}>
         <div className="section-kicker">
-          BUY CREDITS
+              Buy credits
         </div>
 
         {loading && packages.length === 0 ? (
@@ -288,11 +288,11 @@ export default function Credits({
         </p>
       </div>
 
-      {/* HOW IT WORKS */}
+      {/* How it works */}
 
       <div style={styles.section}>
         <div className="section-kicker">
-          HOW IT WORKS
+          How it works
         </div>
 
         <div style={styles.infoCard}>
@@ -369,11 +369,11 @@ export default function Credits({
         </div>
       </div>
 
-      {/* TRANSACTION HISTORY */}
+      {/* Transaction history */}
 
       <div style={styles.section}>
         <div className="section-kicker">
-          TRANSACTION HISTORY
+          Transaction history
         </div>
 
         {loading &&
@@ -727,7 +727,7 @@ const styles = {
   },
 
   price: {
-    font: "600 32px var(--display)",
+    font: "600 22px var(--body)",
   },
 
   buyButton: {

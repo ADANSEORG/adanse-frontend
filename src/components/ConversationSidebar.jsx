@@ -405,7 +405,7 @@ export default function ConversationSidebar({
         <div className="sidebar-brand">
           <img
             className="sidebar-logo"
-            src="/logo.svg"
+            src="/favicon.png"
             alt=""
             width="26"
             height="26"
