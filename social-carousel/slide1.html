@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Adanse — Slide 1</title>
+<style>
+  @font-face {
+    font-family: 'Space Grotesk';
+    font-weight: 500 700;
+    font-style: normal;
+    src: url('assets/fonts/spacegrotesk-variable.woff2') format('woff2');
+  }
+  @font-face {
+    font-family: 'DM Sans';
+    font-weight: 400 700;
+    font-style: normal;
+    src: url('assets/fonts/dmsans-variable.woff2') format('woff2');
+  }
+  :root {
+    --near-black: #0a0906;
+    --cream-bg: #faf5e9;
+    --cream-surface: #fffdf8;
+    --ink: #211b16;
+    --muted: #74695e;
+    --line: #e4d8c3;
+    --gold: #dda622;
+    --gold-soft: #f5e7bf;
+    --green: #245b42;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 1080px; height: 1440px;
+    background: var(--near-black);
+    font-family: 'DM Sans', sans-serif;
+    overflow: hidden;
+  }
+  #canvas {
+    position: relative;
+    width: 1080px; height: 1440px;
+    background: var(--near-black);
+  }
+  .glow {
+    position: absolute;
+    left: 50%; top: 320px;
+    width: 1300px; height: 1300px;
+    margin: -650px 0 0 -650px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(221,166,34,0.17), rgba(10,9,6,0) 58%);
+  }
+  /* collage fragments */
+  .frag {
+    position: absolute;
+    z-index: 2;
+    background: var(--cream-surface);
+    border-radius: 16px;
+    box-shadow: 0 24px 50px rgba(0,0,0,0.45);
+    padding: 24px 26px;
+    color: var(--ink);
+  }
+  .frag-label {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 9px;
+  }
+  .grid-frag table { border-collapse: collapse; }
+  .grid-frag th, .grid-frag td {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    padding: 5px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .grid-frag th { font-weight: 700; color: var(--muted); font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; }
+
+  .csv-chip {
+    display: flex; align-items: center; gap: 13px;
+    background: var(--gold-soft);
+    border-radius: 999px;
+    padding: 14px 24px 14px 14px;
+    box-shadow: 0 20px 40px rgba(221,166,34,0.25);
+  }
+  .csv-icon {
+    width: 38px; height: 38px; border-radius: 9px;
+    background: var(--gold);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 12px; color: var(--ink);
+  }
+  .csv-name { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 16px; color: var(--ink); }
+
+  .quote-frag {
+    font-family: 'DM Sans', sans-serif;
+    font-style: italic;
+    font-size: 17px;
+    line-height: 1.45;
+    color: var(--muted);
+    max-width: 330px;
+  }
+  .quote-frag .who { font-style: normal; font-weight: 700; color: var(--ink); font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 7px; display: block; }
+
+  .stat-frag { display: flex; gap: 24px; }
+  .stat-frag div { text-align: center; }
+  .stat-frag .v { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 23px; color: var(--ink); }
+  .stat-frag .k { font-family: 'DM Sans', sans-serif; font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 3px; }
+
+  .tabs-frag { display: flex; gap: 5px; align-items: center; }
+  .tab-pill { width: 48px; height: 30px; border-radius: 7px; background: var(--cream-bg); border: 1.5px solid var(--line); }
+  .tab-count { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; color: var(--muted); margin-left: 7px; }
+
+  .note-frag {
+    background: var(--gold-soft);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    color: #7a4f10;
+    max-width: 250px;
+  }
+
+  .scatter-frag svg { display: block; }
+
+  /* text zone */
+  .fade-floor {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 760px; z-index: 1;
+    background: linear-gradient(to bottom, rgba(10,9,6,0) 0%, rgba(10,9,6,0.6) 26%, var(--near-black) 56%);
+  }
+  .textzone {
+    position: absolute; left: 0; right: 0; top: 900px; z-index: 2;
+    padding: 0 64px;
+    text-align: center;
+  }
+  .headline {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 640;
+    font-size: 92px;
+    line-height: 1.03;
+    letter-spacing: -0.025em;
+    color: var(--cream-surface);
+  }
+  .support {
+    margin-top: 32px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    font-size: 33px;
+    color: var(--gold-soft);
+  }
+</style>
+</head>
+<body>
+<div id="canvas">
+  <div class="glow"></div>
+
+  <!-- collage fragments, chaotic but composed -->
+  <div class="frag grid-frag" style="left:52px; top:70px; width:390px; transform:rotate(-7deg);">
+    <div class="frag-label">respondents.xlsx</div>
+    <table>
+      <tr><th>Age</th><th>GPA</th><th>Hrs</th></tr>
+      <tr><td>21</td><td>3.42</td><td>14</td></tr>
+      <tr><td>19</td><td>2.88</td><td>9</td></tr>
+      <tr><td>23</td><td>3.71</td><td>21</td></tr>
+    </table>
+  </div>
+
+  <div class="frag csv-chip" style="left:590px; top:50px; transform:rotate(6deg);">
+    <div class="csv-icon">CSV</div>
+    <div class="csv-name">survey_final_v3_edited.csv</div>
+  </div>
+
+  <div class="frag scatter-frag" style="left:650px; top:250px; transform:rotate(-4deg);">
+    <div class="frag-label">Scatter</div>
+    <svg width="210" height="130" viewBox="0 0 230 150">
+      <g fill="#dda622" opacity="0.85">
+        <circle cx="20" cy="120" r="5"/><circle cx="45" cy="95" r="5"/><circle cx="60" cy="110" r="5"/>
+        <circle cx="90" cy="70" r="5"/><circle cx="110" cy="88" r="5"/><circle cx="130" cy="55" r="5"/>
+        <circle cx="150" cy="60" r="5"/><circle cx="170" cy="35" r="5"/><circle cx="195" cy="42" r="5"/>
+        <circle cx="205" cy="20" r="5"/><circle cx="75" cy="100" r="5"/><circle cx="140" cy="80" r="5"/>
+      </g>
+      <line x1="10" y1="140" x2="220" y2="140" stroke="#e4d8c3" stroke-width="2"/>
+      <line x1="10" y1="140" x2="10" y2="10" stroke="#e4d8c3" stroke-width="2"/>
+    </svg>
+  </div>
+
+  <div class="frag quote-frag" style="left:60px; top:355px; transform:rotate(4deg);">
+    <span class="who">Respondent 04</span>
+    “…honestly the biggest challenge was just finding time to even open the survey between—”
+  </div>
+
+  <div class="frag stat-frag" style="left:520px; top:470px; transform:rotate(-3deg);">
+    <div><div class="v">.0043</div><div class="k">p</div></div>
+    <div><div class="v">12.88</div><div class="k">χ²</div></div>
+    <div><div class="v">3</div><div class="k">df</div></div>
+  </div>
+
+  <div class="frag tabs-frag" style="left:66px; top:600px; transform:rotate(-2deg);">
+    <div class="tab-pill"></div><div class="tab-pill"></div><div class="tab-pill"></div><div class="tab-pill"></div>
+    <span class="tab-count">14 of 27 tabs</span>
+  </div>
+
+  <div class="frag note-frag" style="left:610px; top:640px; transform:rotate(5deg); padding:20px 24px;">
+    note to self — recheck outliers before Chapter 4
+  </div>
+
+  <div class="fade-floor"></div>
+  <div class="textzone">
+    <div class="headline">Research data shouldn't feel like this.</div>
+    <div class="support">Too much data. Too little time.</div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext.jsx";
-import ParticleField from "./ParticleField.jsx";
 import {
   cleanOtpCode,
   otpDigitAt,
@@ -450,42 +449,40 @@ export default function AuthScreen() {
 
   return (
     <main className="auth-page">
-      <ParticleField />
 
-      <div className="auth-container">
-
-        <header className="auth-header">
+      <header className="site-header">
+        <div className="site-header-inner">
           <div className="auth-brand">
-            Adanse
+            <img
+              className="auth-logo"
+              src="/favicon.png"
+              alt=""
+              width="34"
+              height="34"
+            />
+            <span className="auth-brand-name">Adanse</span>
           </div>
+        </div>
+      </header>
 
-          <div className="auth-tagline">
-            thesis data analysis
-          </div>
-        </header>
+      <div className="auth-split">
+        <section className="panel-left">
+          <div className="panel-left-inner">
+            <p className="landing-kicker">
+              Thesis analysis workspace
+            </p>
 
-        <section className="auth-layout">
-
-          <div className="auth-intro">
-            <div className="auth-eyebrow">
-              THESIS DATA ANALYSIS
-            </div>
-
-            <h1>
-              Turn your data into
-              <br />
-              a thesis you can explain.
+            <h1 className="landing-title">
+              From dataset to defence.
             </h1>
 
-            <p className="auth-description">
-              Upload your dataset, ask your research
-              question, and let Adanse guide you
-              toward an appropriate statistical
-              analysis.
+            <p className="landing-lede">
+              Prepare your dataset, choose defensible tests,
+              and draft Chapter 4 with every analysis decision
+              accounted for.
             </p>
 
             <div className="auth-features">
-
               <div className="auth-feature">
                 <span className="auth-feature-number">
                   01
@@ -493,12 +490,12 @@ export default function AuthScreen() {
 
                 <div>
                   <strong>
-                    Ask naturally
+                    Frame the study
                   </strong>
 
                   <p>
-                    Describe what you want to
-                    understand.
+                    Research context, objectives and
+                    hypotheses.
                   </p>
                 </div>
               </div>
@@ -510,12 +507,12 @@ export default function AuthScreen() {
 
                 <div>
                   <strong>
-                    Analyse with confidence
+                    Review the dataset
                   </strong>
 
                   <p>
-                    Get a statistically appropriate
-                    path.
+                    Cleaning decisions, variables and
+                    assumptions.
                   </p>
                 </div>
               </div>
@@ -527,35 +524,48 @@ export default function AuthScreen() {
 
                 <div>
                   <strong>
-                    Understand the result
+                    Analyse with evidence
                   </strong>
 
                   <p>
-                    See what the numbers actually
-                    mean.
+                    Tests chosen for the questions you
+                    actually asked.
                   </p>
                 </div>
               </div>
 
+              <div className="auth-feature">
+                <span className="auth-feature-number">
+                  04
+                </span>
+
+                <div>
+                  <strong>
+                    Draft Chapter 4
+                  </strong>
+
+                  <p>
+                    Results written into a structured
+                    results chapter.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
+        </section>
 
-          <div className="auth-card">
+        <section className="panel-right">
+          <div className="auth-card signin-card">
 
             {isVerifying ? (
               <>
-                <div className="auth-card-top">
-                  Confirm your email
-                </div>
-
                 <div className="auth-card-heading">
-                  <h2>Enter your code</h2>
+                  <h2>Confirm your email</h2>
 
                   <p>
-                    We sent a confirmation code to{" "}
-                    <strong>{pendingEmail}</strong>.
-                    Enter it below to finish creating
-                    your account.
+                    Enter the 8-digit code sent to{" "}
+                    <strong>{pendingEmail}</strong>{" "}
+                    to finish creating your account.
                   </p>
                 </div>
 
@@ -638,16 +648,13 @@ export default function AuthScreen() {
               </>
             ) : isForgot ? (
               <>
-                <div className="auth-card-top">
-                  Reset password
-                </div>
-
                 <div className="auth-card-heading">
-                  <h2>Forgot your password?</h2>
+                  <h2>Reset your password</h2>
 
                   <p>
                     Enter your email and we'll send
-                    you a link to reset it.
+                    you a secure link to choose a new
+                    password.
                   </p>
                 </div>
 
@@ -716,12 +723,6 @@ export default function AuthScreen() {
               </>
             ) : (
               <>
-                <div className="auth-card-top">
-                  {isSignup
-                    ? "Get started"
-                    : "Welcome back"}
-                </div>
-
                 <div className="auth-card-heading">
                   <h2>
                     {isSignup
@@ -731,8 +732,8 @@ export default function AuthScreen() {
 
                   <p>
                     {isSignup
-                      ? "Start analysing your research data."
-                      : "Continue where you left off with your research."}
+                      ? "Set up your workspace and begin your analysis."
+                      : "Continue your thesis analysis where you left off."}
                   </p>
                 </div>
 
@@ -918,7 +919,7 @@ export default function AuthScreen() {
                   <span>
                     {isSignup
                       ? "Already have an account?"
-                      : "Don't have an account?"}
+                      : "New to Adanse?"}
                   </span>
 
                   <button
@@ -929,36 +930,28 @@ export default function AuthScreen() {
                   >
                     {isSignup
                       ? "Sign in"
-                      : "Create one"}
+                      : "Create an account"}
                   </button>
                 </div>
 
-                <p className="auth-disclaimer">
-                  Your research is associated with your
-                  account.
-                </p>
+                {!isSignup && (
+                  <p className="auth-disclaimer">
+                    Your research stays linked to your
+                    account.
+                  </p>
+                )}
               </>
             )}
 
           </div>
 
         </section>
-
-        <footer className="auth-footer">
-          <div className="auth-footer-brand">
-            <span>Adanse</span>
-            <span>
-              Research, made clearer.
-            </span>
-          </div>
-
-          <nav className="auth-footer-links">
-            <Link to="/privacy">Privacy Policy</Link>
-            <Link to="/terms">Terms of Service</Link>
-          </nav>
-        </footer>
-
       </div>
+
+      <footer className="site-footer">
+        <div className="site-footer-left"><span>Adanse</span><span>Research, made clearer.</span></div>
+        <nav className="site-footer-right"><Link to="/privacy">Privacy Policy</Link><Link to="/terms">Terms of Service</Link></nav>
+      </footer>
     </main>
   );
 }

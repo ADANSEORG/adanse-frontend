@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Adanse — Slide 3</title>
+<style>
+  @font-face {
+    font-family: 'Space Grotesk';
+    font-weight: 500 700;
+    font-style: normal;
+    src: url('assets/fonts/spacegrotesk-variable.woff2') format('woff2');
+  }
+  @font-face {
+    font-family: 'DM Sans';
+    font-weight: 400 700;
+    font-style: normal;
+    src: url('assets/fonts/dmsans-variable.woff2') format('woff2');
+  }
+  :root {
+    --near-black: #0a0906;
+    --cream-bg: #faf5e9;
+    --cream-surface: #fffdf8;
+    --ink: #211b16;
+    --muted: #74695e;
+    --line: #e4d8c3;
+    --gold: #dda622;
+    --gold-soft: #f5e7bf;
+    --green: #245b42;
+    --green-soft: #e9f0eb;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 1080px; height: 1440px;
+    background: var(--cream-bg);
+    font-family: 'DM Sans', sans-serif;
+    overflow: hidden;
+  }
+  #canvas {
+    position: relative;
+    width: 1080px; height: 1440px;
+    background: var(--cream-bg);
+  }
+
+  .kicker {
+    position: absolute; left: 0; right: 0; top: 54px;
+    text-align: center;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    font-size: 17px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .headline {
+    position: absolute; left: 0; right: 0; top: 96px;
+    text-align: center;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 640;
+    font-size: 76px;
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+    color: var(--ink);
+    padding: 0 54px;
+  }
+
+  /* split panels */
+  .split-wrap {
+    position: absolute;
+    left: 44px; right: 44px; top: 340px;
+    display: flex;
+    align-items: stretch;
+    gap: 44px;
+  }
+  .panel {
+    position: relative;
+    flex: 1;
+    border-radius: 32px;
+    padding: 40px 36px 44px;
+  }
+  .panel.qual { background: var(--gold-soft); }
+  .panel.quant { background: var(--green-soft); }
+
+  .panel-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 650;
+    font-size: 32px;
+    letter-spacing: -0.01em;
+  }
+  .panel.qual .panel-label { color: #7a4f10; }
+  .panel.quant .panel-label { color: var(--green); }
+
+  .panel-flow {
+    margin-top: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    letter-spacing: 0.02em;
+  }
+  .panel.qual .panel-flow { color: #9c6c1e; }
+  .panel.quant .panel-flow { color: #3f7d61; }
+
+  .panel-card {
+    margin-top: 22px;
+    background: var(--cream-surface);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 18px 40px rgba(33,23,12,0.10);
+  }
+  .panel-card img { display: block; width: 100%; height: auto; }
+
+  .theme-pills {
+    margin-top: 20px;
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+  .pill {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: var(--cream-surface);
+    color: #7a4f10;
+  }
+
+  .mini-bars {
+    margin-top: 22px;
+    display: flex; align-items: flex-end; gap: 12px;
+    height: 260px;
+    background: var(--cream-surface);
+    border-radius: 16px;
+    padding: 26px 22px 18px;
+    box-shadow: 0 18px 40px rgba(33,23,12,0.10);
+  }
+  .bar { flex: 1; border-radius: 8px 8px 0 0; background: var(--green); position: relative; }
+  .bar-val {
+    position: absolute; top: -28px; left: 0; right: 0; text-align: center;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 650; font-size: 14px; color: var(--ink);
+  }
+
+  .arrow-label {
+    margin-top: 20px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .panel.qual .arrow-label { color: #9c6c1e; }
+  .panel.quant .arrow-label { color: #3f7d61; }
+
+  /* center seam */
+  .seam-mark {
+    position: absolute; left: 50%; top: 50%;
+    width: 88px; height: 88px;
+    margin-left: -44px; margin-top: -44px;
+    color: var(--ink);
+    background: var(--cream-bg);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 0 13px var(--cream-bg);
+    z-index: 3;
+  }
+  .seam-mark svg { width: 56px; height: 56px; }
+
+  .center-line {
+    position: absolute; left: 50%; top: 0; bottom: 0;
+    width: 2px; margin-left: -1px;
+    background: var(--line);
+  }
+
+  .footer-wrap {
+    position: absolute; left: 0; right: 0; top: 960px;
+    text-align: center;
+  }
+  .bottom-mark {
+    position: absolute; left: 0; right: 0; top: 1140px;
+    text-align: center;
+  }
+  .bottom-rule {
+    width: 90px; height: 2px; margin: 0 auto 24px;
+    background: var(--gold);
+    opacity: 0.7;
+  }
+  .site {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 22px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .center-message {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 640;
+    font-size: 42px;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .center-support {
+    margin-top: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    font-size: 23px;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+<div id="canvas">
+  <div class="kicker">ONE RESEARCH ANALYSIS PLATFORM</div>
+  <div class="headline">Qualitative. Quantitative. One place.</div>
+
+  <div class="split-wrap">
+    <div class="center-line"></div>
+
+    <div class="panel qual">
+      <div class="panel-label">QUALITATIVE</div>
+      <div class="panel-flow">Responses → Themes → Insight</div>
+      <div class="panel-card"><img src="assets/screens/qual-theme-card.png" alt="" /></div>
+      <div class="theme-pills">
+        <span class="pill">Scheduling conflicts</span>
+        <span class="pill">Financial strain</span>
+        <span class="pill">Support network</span>
+      </div>
+      <div class="arrow-label">AI-assisted thematic analysis</div>
+    </div>
+
+    <div class="panel quant">
+      <div class="panel-label">QUANTITATIVE</div>
+      <div class="panel-flow">Data → Statistics → Insight</div>
+      <div class="panel-card"><img src="assets/screens/quant-stats.png" alt="" /></div>
+      <div class="mini-bars">
+        <div class="bar" style="height:30%"></div>
+        <div class="bar" style="height:55%"></div>
+        <div class="bar" style="height:40%"></div>
+        <div class="bar" style="height:80%"><span class="bar-val">3.42</span></div>
+        <div class="bar" style="height:62%"></div>
+        <div class="bar" style="height:46%"></div>
+      </div>
+      <div class="arrow-label">Descriptive &amp; inferential statistics</div>
+    </div>
+
+    <div class="seam-mark">
+      <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M50,50 C38,38 38,18 50,18 C62,18 62,38 50,50 C62,62 62,82 50,82 C38,82 38,62 50,50 Z" />
+        <path d="M50,50 C38,38 18,38 18,50 C18,62 38,62 50,50 C62,38 82,38 82,50 C82,62 62,62 50,50 Z" />
+      </svg>
+    </div>
+  </div>
+
+  <div class="footer-wrap">
+    <div class="center-message">One platform. Both sides.</div>
+    <div class="center-support">No switching tools. No losing context.</div>
+  </div>
+
+  <div class="bottom-mark">
+    <div class="bottom-rule"></div>
+    <div class="site">WWW.ADANSE.APP</div>
+  </div>
+</div>
+</body>
+</html>

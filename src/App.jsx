@@ -2,7 +2,6 @@ import { useRef, useState } from "react";
 
 import { useAuth } from "./AuthContext.jsx";
 import { useThesisWorkflow } from "./hooks/useThesisWorkflow.js";
-import { chapter4Gate } from "./chapter4Gate.js";
 
 import AuthScreen from "./components/AuthScreen.jsx";
 import WelcomeModal from "./components/WelcomeModal.jsx";
@@ -16,6 +15,13 @@ import DatasetReview from "./components/DatasetReview.jsx";
 import Account from "./components/Account.jsx";
 import Credits from "./components/Credits.jsx";
 import Chapter1Compare from "./components/Chapter1Compare.jsx";
+import Stepper from "./components/Stepper.jsx";
+import Skeleton, {
+  SkeletonLines,
+} from "./components/Skeleton.jsx";
+import { useDelayedLoading } from "./hooks/useDelayedLoading.js";
+import { chapter4Gate } from "./chapter4Gate.js";
+import { withConversationProgress } from "./sidebarGroups.js";
 
 export default function App() {
   const {
@@ -99,7 +105,6 @@ export default function App() {
     goToChapter4,
     backToAnalysis,
     backToSetup,
-    backFromReview,
     backFromAnalysis,
     settingsView,
     leaveSettings,
@@ -112,6 +117,11 @@ export default function App() {
 
   const replaceInputRef =
     useRef(null);
+
+  const showUploadSkeleton =
+    useDelayedLoading(
+      step === "upload" && loading
+    );
 
   // Signing out from Account (or the sidebar menu) must not leave /account in
   // the address bar, or the next person to sign in would land on it.
@@ -130,8 +140,18 @@ export default function App() {
     return (
       // Only while a sign-in or reset link in the URL is processed (see
       // sessionBootstrap.js); otherwise the app or sign-in screen shows at once.
-      <div className="loading-screen" role="status" aria-label="Loading">
-        <span className="loading-screen-spinner" aria-hidden="true" />
+      <div
+        className="loading-screen"
+        role="status"
+        aria-label="Loading"
+      >
+        <div className="auth-skeleton">
+          <Skeleton width="180px" height="22px" />
+          <SkeletonLines lines={2} />
+          <Skeleton width="100%" height="36px" />
+          <Skeleton width="100%" height="36px" />
+          <Skeleton width="120px" height="34px" />
+        </div>
       </div>
     );
   }
@@ -161,12 +181,6 @@ export default function App() {
   const isChapter4 =
     step === "chapter4";
 
-  // One rule for every way into Chapter 4 (this header link and the action bar
-  // under the findings): not while a qualitative finalize is running or a
-  // source is unfinalized, and not while results are out of date.
-  const chapter4Access =
-    chapter4Gate(analysis);
-
   // Account and Credits are decided by the URL (/account, /credits), not by
   // `step`; see useThesisWorkflow.
   const isAccount =
@@ -178,6 +192,119 @@ export default function App() {
   const isSettingsPage =
     isAccount || isCredits;
 
+  const chapter4Access = chapter4Gate(analysis);
+
+  const currentStepIndex = isChapter4
+    ? 3
+    : isAnalysis
+    ? 2
+    : isDataset || isReview
+    ? 1
+    : 0;
+
+  const goToResearchStep = () => {
+    if (!active) return;
+
+    backToSetup();
+  };
+
+  const goToDatasetStep = () => {
+    if (!active) return;
+
+    if (isAnalysis) {
+      backFromAnalysis();
+    }
+  };
+
+  const goToAnalysisStep = () => {
+    if (!active) return;
+
+    if (isChapter4) {
+      backToAnalysis();
+    }
+  };
+
+  const steps = [
+    {
+      key: "research",
+      label: "Research",
+      available: Boolean(active),
+    },
+    {
+      key: "dataset",
+      label: "Dataset",
+      available:
+        Boolean(active) && isAnalysis,
+      lockedReason:
+        isChapter4
+          ? "Go back to Analysis to revisit the dataset."
+          : "Add a dataset to unlock this step.",
+    },
+    {
+      key: "analysis",
+      label: "Analysis",
+      available:
+        Boolean(active) && isChapter4,
+      lockedReason:
+        "Run the analysis to unlock this step.",
+    },
+    {
+      key: "chapter4",
+      label: "Chapter 4",
+      available: false,
+      lockedReason:
+        "Complete the analysis to unlock Chapter 4.",
+    },
+  ];
+
+  const stepHandlers = {
+    research: goToResearchStep,
+    dataset: goToDatasetStep,
+    analysis: goToAnalysisStep,
+  };
+
+  const handleStepClick = (key) => {
+    stepHandlers[key]?.();
+  };
+
+  const studyStatus = isChapter4
+    ? "Chapter 4 ready"
+    : isAnalysis
+    ? analysis
+      ? "Analysed"
+      : "Dataset added"
+    : isReview
+    ? "Dataset added"
+    : isDataset
+    ? upload
+      ? "Dataset added"
+      : "Draft"
+    : "Draft";
+
+  const projectTitle = isSettingsPage
+    ? isAccount
+      ? "Account"
+      : "Credits"
+    : project?.title ||
+      active?.title ||
+      "New analysis";
+
+  // The conversations endpoint does not carry workflow state, so the active
+  // row takes its status tag from the screen the researcher is on.
+  const sidebarConversations = conversations.map(
+    (conversation) =>
+      conversation.id === active?.id
+        ? withConversationProgress(
+            conversation,
+            {
+              datasetUploaded: Boolean(upload),
+              analysisReady: Boolean(analysis),
+              chapter4Ready: isChapter4,
+            }
+          )
+        : conversation
+  );
+
   return (
     <div className="app-layout">
       {showWelcome && (
@@ -186,12 +313,12 @@ export default function App() {
 
       <ConversationSidebar
         conversations={
-          conversations
+          sidebarConversations
         }
         activeId={
           active?.id
         }
-        loading={false}
+        loading={loading}
         error={null}
         creating={creating}
         onNewChat={newChat}
@@ -222,161 +349,68 @@ export default function App() {
 
       <main className="app-main">
         {/* =====================================================
-            HEADER
+            TOP BAR
         ===================================================== */}
 
-        <header className="header">
-          <div>
-            <button
-              className="sidebar-toggle"
-              onClick={() =>
-                setSidebarOpen(
-                  true
-                )
-              }
-              type="button"
-            >
-              Chats
-            </button>
-
-            <div className="logo">
-              Adanse
-            </div>
-
-            <div className="tagline">
-              {project?.title ||
-                (isAccount
-                  ? "account"
-                  : isCredits
-                  ? "credits"
-                  : "thesis data analysis")}
-            </div>
-          </div>
-        </header>
-
-        {/* =====================================================
-            TOP NAVIGATION
-            Hidden on Account / Credits.
-        ===================================================== */}
-
-        {active &&
-          !isSettingsPage && (
-            <div className="flow-navigation">
+        <header className="topbar">
+          <div className="topbar-inner">
+            <div className="topbar-project">
               <button
-                type="button"
-                className="flow-back"
-                onClick={() => {
-                  if (
-                    isChapter4
-                  ) {
-                    backToAnalysis();
-                  } else if (
-                    isAnalysis
-                  ) {
-                    backFromAnalysis();
-                  } else if (
-                    isReview
-                  ) {
-                    backFromReview();
-                  } else if (
-                    isDataset
-                  ) {
-                    backToSetup();
-                  }
-                }}
-                disabled={
-                  isResearch
+                className="sidebar-toggle"
+                onClick={() =>
+                  setSidebarOpen(
+                    true
+                  )
                 }
+                type="button"
               >
-                <span>←</span>
-                <span>Back</span>
+                Menu
               </button>
 
-              {isAnalysis &&
-              analysis ? (
-                <button
-                  type="button"
-                  className="flow-continue"
-                  onClick={
-                    goToChapter4
-                  }
-                  disabled={
-                    chapter4Access.blocked
-                  }
-                  title={
-                    chapter4Access.blocked
-                      ? chapter4Access.message
-                      : undefined
-                  }
-                >
-                  <span>
-                    Continue to
-                  </span>
+              <div className="topbar-copy">
+                <span className="topbar-title">
+                  {projectTitle}
+                </span>
 
-                  <span>
-                    Chapter 4 →
+                {!isSettingsPage && (
+                  <span className="topbar-subtitle">
+                    {active
+                      ? studyStatus
+                      : "Draft"}
                   </span>
-                </button>
-              ) : isChapter4 ? (
-                <div className="flow-current">
-                  Chapter 4
-                </div>
-              ) : null}
+                )}
+              </div>
             </div>
-          )}
 
-        {/* =====================================================
-            PROGRESS
-            Hidden on Account / Credits.
-        ===================================================== */}
+            {!isSettingsPage && (
+              <div className="topbar-actions">
+                <Stepper
+                  steps={steps}
+                  current={currentStepIndex}
+                  onNavigate={handleStepClick}
+                />
 
-        {!isSettingsPage && (
-          <div className="progress-steps">
-            <span
-              className={
-                isResearch
-                  ? "active"
-                  : "done"
-              }
-            >
-              Research
-            </span>
-
-            <span
-              className={
-                isDataset || isReview
-                  ? "active"
-                  : isAnalysis || isChapter4
-                  ? "done"
-                  : ""
-              }
-            >
-              Dataset
-            </span>
-
-            <span
-              className={
-                isAnalysis
-                  ? "active"
-                  : isChapter4
-                  ? "done"
-                  : ""
-              }
-            >
-              Analysis
-            </span>
-
-            <span
-              className={
-                isChapter4
-                  ? "active"
-                  : ""
-              }
-            >
-              Chapter 4
-            </span>
+                {isAnalysis && analysis && (
+                  <button
+                    type="button"
+                    className="flow-continue"
+                    onClick={goToChapter4}
+                    disabled={
+                      chapter4Access.blocked
+                    }
+                    title={
+                      chapter4Access.blocked
+                        ? chapter4Access.message
+                        : undefined
+                    }
+                  >
+                    Continue to Chapter 4
+                  </button>
+                )}
+              </div>
+            )}
           </div>
-        )}
+        </header>
 
         {/* =====================================================
             CONTENT
@@ -482,44 +516,26 @@ export default function App() {
             active &&
             isDataset && (
               <section>
-                <div className="workspace-intro">
-                  <div>
-                    <div className="section-kicker">
-                      02 · DATASET
-                    </div>
+                <header className="page-head">
+                  <h1 className="page-title">
+                    Dataset
+                  </h1>
 
-                    <h1>
-                      Bring your research data.
-                    </h1>
-
-                    <p>
-                      Upload the CSV or Excel file
-                      behind your thesis. Adanse will
-                      profile it before choosing any
-                      analysis.
-                    </p>
-                  </div>
-                </div>
+                  <p className="page-help">
+                    Upload the CSV or Excel file
+                    behind your thesis. Adanse profiles
+                    it before choosing any analysis.
+                  </p>
+                </header>
 
                 {loading ? (
                   /*
                    * Covers both the first upload and a "Replace
-                   * dataset" re-upload. Shown for the whole
-                   * upload -> profile -> version-fetch sequence
-                   * (loading only clears once every step,
-                   * including the step change, has already
-                   * happened -- see file() in
-                   * useThesisWorkflow.js), so the user never sees
-                   * a flash of the just-uploaded dataset card
-                   * moments before the screen jumps to Dataset
-                   * Review.
+                   * dataset" re-upload. The status line shows at
+                   * once; the preview skeleton only appears if the
+                   * wait passes 200ms (useDelayedLoading).
                    */
                   <div className="upload-progress">
-                    <div
-                      className="upload-progress-spinner"
-                      aria-hidden="true"
-                    />
-
                     <div className="upload-progress-text">
                       Uploading your dataset…
                     </div>
@@ -528,6 +544,28 @@ export default function App() {
                       This can take a moment for larger
                       files.
                     </div>
+
+                    {showUploadSkeleton && (
+                      <div
+                        className="dataset-skeleton"
+                        role="status"
+                        aria-label="Preparing dataset preview"
+                      >
+                        {Array.from(
+                          { length: 8 },
+                          (_, index) => (
+                            <div
+                              className="dataset-skeleton-row"
+                              key={index}
+                            >
+                              <Skeleton width="18%" />
+                              <Skeleton width="32%" />
+                              <Skeleton width="24%" />
+                            </div>
+                          )
+                        )}
+                      </div>
+                    )}
                   </div>
                 ) : !upload ? (
                   <UploadZone
@@ -542,7 +580,7 @@ export default function App() {
                   <div className="current-dataset-card">
                     <div className="current-dataset-copy">
                       <div className="current-dataset-label">
-                        CURRENT DATASET
+                        Current dataset
                       </div>
 
                       <div className="current-dataset-name">
@@ -636,24 +674,18 @@ export default function App() {
             active &&
             isReview && (
               <section>
-                <div className="workspace-intro">
-                  <div>
-                    <div className="section-kicker">
-                      02 · DATASET REVIEW
-                    </div>
+                <header className="page-head">
+                  <h1 className="page-title">
+                    Dataset review
+                  </h1>
 
-                    <h1>
-                      Check the cleanup before you analyse.
-                    </h1>
-
-                    <p>
-                      Adanse only applies conservative,
-                      automatic cleaning steps. Validate the
-                      report below, then activate this
-                      version to unlock the analysis plan.
-                    </p>
-                  </div>
-                </div>
+                  <p className="page-help">
+                    Adanse only applies conservative,
+                    automatic cleaning steps. Validate the
+                    report below, then activate this
+                    version to unlock the analysis plan.
+                  </p>
+                </header>
 
                 <DatasetReview
                   version={datasetVersion}

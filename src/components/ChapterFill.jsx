@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { FileUp } from "lucide-react";
 
 import { extractChapterDocument } from "../api.js";
 import { friendly } from "../errors.js";
@@ -26,21 +27,23 @@ export default function ChapterFill({ current, onApply, onFileRead, disabled = f
   const [review, setReview] = useState(null);
   const [ticked, setTicked] = useState(() => new Set());
   const [addedNote, setAddedNote] = useState("");
+  const [dragging, setDragging] = useState(false);
 
   const count = review ? tickedCount(review, ticked) : 0;
   const nothingFound = review && review.every((entry) => !entry.found);
 
-  async function choose(event) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
+  async function readFile(file) {
+    if (!file || reading || disabled) return;
+
     if (!isDocxFile(file)) {
       setError(NOT_A_DOCX_MESSAGE);
       return;
     }
+
     setReading(true);
     setError("");
     setAddedNote("");
+
     try {
       const next = fillReview(await extractChapterDocument(file));
       setReview(next);
@@ -60,6 +63,21 @@ export default function ChapterFill({ current, onApply, onFileRead, disabled = f
     } finally {
       setReading(false);
     }
+  }
+
+  function choose(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    readFile(file);
+  }
+
+  function drop(event) {
+    event.preventDefault();
+    setDragging(false);
+
+    if (locked) return;
+
+    readFile(event.dataTransfer.files?.[0]);
   }
 
   function toggle(key) {
@@ -87,15 +105,60 @@ export default function ChapterFill({ current, onApply, onFileRead, disabled = f
 
   return (
     <section className="chapter-fill">
-      <div className="current-dataset-label">Optional · Fill in from my chapters</div>
-
-      <p className="chapter1-compare-lead">
-        Upload your Chapter 1–3 Word document (.docx) and Adanse will find
-        your objectives, research questions, hypotheses and planned sample
-        size. You choose what to add.
+      <p className="field-label">
+        Import from Chapters 1–3
+        <span className="field-optional">
+          Optional
+        </span>
       </p>
 
-      <p className="chapter1-compare-consent">{FILL_CONSENT_NOTICE}</p>
+      <div
+        className={`import-row${
+          dragging ? " dragging" : ""
+        }${locked ? " disabled" : ""}`}
+        onDragOver={(event) => {
+          event.preventDefault();
+
+          if (!locked) setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={drop}
+      >
+        <FileUp
+          size={18}
+          strokeWidth={1.8}
+          className="import-row-icon"
+          aria-hidden="true"
+        />
+
+        <div className="import-row-copy">
+          <strong>
+            Upload Chapters 1–3 (.docx)
+          </strong>
+
+          <span>
+            Adanse can fill these fields
+            automatically. You choose what to add.
+          </span>
+        </div>
+
+        <button
+          className="btn btn-secondary"
+          type="button"
+          disabled={locked}
+          onClick={() => inputRef.current?.click()}
+        >
+          {reading
+            ? "Reading…"
+            : review
+            ? "Use a different file"
+            : "Choose file"}
+        </button>
+      </div>
+
+      <p className="chapter1-compare-consent">
+        {FILL_CONSENT_NOTICE}
+      </p>
 
       <input
         ref={inputRef}
@@ -159,32 +222,31 @@ export default function ChapterFill({ current, onApply, onFileRead, disabled = f
       {addedNote && <p className="chapter-fill-added" role="status">{addedNote}</p>}
       {error && <div className="chapter1-compare-error" role="alert">{error}</div>}
 
-      <div className="chapter1-compare-actions">
-        <button
-          className="btn btn-secondary"
-          type="button"
-          disabled={locked}
-          onClick={() => inputRef.current?.click()}
-        >
-          {reading
-            ? "Reading your chapters…"
-            : review
-            ? "Use a different document"
-            : "Fill in from my chapters (.docx)"}
-        </button>
+      {review && (
+        <div className="chapter1-compare-actions">
+          {!nothingFound && (
+            <button
+              className="btn btn-primary"
+              type="button"
+              disabled={locked || count === 0}
+              onClick={add}
+            >
+              {count
+                ? `Add selected (${count})`
+                : "Tick items to add"}
+            </button>
+          )}
 
-        {review && !nothingFound && (
-          <button className="btn btn-primary" type="button" disabled={locked || count === 0} onClick={add}>
-            {count ? `Add ${count} ticked item${count === 1 ? "" : "s"}` : "Tick items to add"}
-          </button>
-        )}
-
-        {review && (
-          <button className="btn btn-secondary" type="button" disabled={locked} onClick={() => setReview(null)}>
+          <button
+            className="btn btn-secondary"
+            type="button"
+            disabled={locked}
+            onClick={() => setReview(null)}
+          >
             Cancel
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </section>
   );
 }

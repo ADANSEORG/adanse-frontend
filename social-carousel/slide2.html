@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Adanse — Slide 2</title>
+<style>
+  @font-face {
+    font-family: 'Space Grotesk';
+    font-weight: 500 700;
+    font-style: normal;
+    src: url('assets/fonts/spacegrotesk-variable.woff2') format('woff2');
+  }
+  @font-face {
+    font-family: 'DM Sans';
+    font-weight: 400 700;
+    font-style: normal;
+    src: url('assets/fonts/dmsans-variable.woff2') format('woff2');
+  }
+  :root {
+    --near-black: #0a0906;
+    --cream-bg: #faf5e9;
+    --cream-surface: #fffdf8;
+    --ink: #211b16;
+    --muted: #74695e;
+    --line: #e4d8c3;
+    --gold: #dda622;
+    --gold-soft: #f5e7bf;
+    --green: #245b42;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 1080px; height: 1440px;
+    background: var(--cream-bg);
+    font-family: 'DM Sans', sans-serif;
+    overflow: hidden;
+  }
+  #canvas {
+    position: relative;
+    width: 1080px; height: 1440px;
+    background: var(--cream-bg);
+  }
+  .glow {
+    position: absolute;
+    left: 50%; top: 380px;
+    width: 1400px; height: 1400px;
+    margin: -700px 0 0 -700px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(221,166,34,0.32), rgba(221,166,34,0) 58%);
+  }
+
+  .ghost {
+    position: absolute;
+    background: var(--cream-surface);
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    box-shadow: 0 16px 30px rgba(33,23,12,0.08);
+    padding: 14px 16px;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .lockup {
+    position: absolute; left: 0; right: 0; top: 56px;
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+  }
+  .lockup svg { width: 44px; height: 44px; color: var(--ink); }
+  .lockup .word {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 620;
+    font-size: 44px;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+  }
+
+  .headline {
+    position: absolute; left: 0; right: 0; top: 160px;
+    text-align: center;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 650;
+    font-size: 100px;
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+    padding: 0 70px;
+  }
+  .support {
+    position: absolute; left: 0; right: 0; top: 340px;
+    text-align: center;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    font-size: 32px;
+    color: var(--muted);
+  }
+
+  .arrow-col {
+    position: absolute; left: 50%; top: 430px;
+    width: 2px; height: 110px;
+    margin-left: -1px;
+    background: linear-gradient(to bottom, rgba(221,166,34,0.6), rgba(221,166,34,0.15));
+  }
+
+  .resolved-label {
+    position: absolute; left: 0; right: 0; top: 560px;
+    text-align: center;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--green);
+  }
+
+  .resolved-card {
+    position: absolute; left: 90px; right: 90px; top: 610px;
+    background: var(--cream-surface);
+    border: 2px solid var(--line);
+    border-radius: 24px;
+    box-shadow: 0 30px 70px rgba(33,23,12,0.14);
+    overflow: hidden;
+  }
+  .resolved-card img { display: block; width: 100%; height: auto; }
+
+  .footer {
+    position: absolute; left: 0; right: 0; top: 1090px;
+    text-align: center;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 27px;
+    letter-spacing: 0.01em;
+    color: var(--muted);
+    padding: 0 100px;
+  }
+
+  .bottom-rule {
+    position: absolute; left: 50%; top: 1220px;
+    width: 90px; height: 2px; margin-left: -45px;
+    background: var(--gold);
+    opacity: 0.7;
+  }
+  .site {
+    position: absolute; left: 0; right: 0; top: 1260px;
+    text-align: center;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 22px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+<div id="canvas">
+  <div class="glow"></div>
+
+  <div class="ghost" style="left:60px; top:60px; transform:rotate(-6deg); opacity:0.5; width:190px;">respondents.xlsx</div>
+  <div class="ghost" style="left:815px; top:50px; transform:rotate(5deg); opacity:0.45; width:190px;">“…finding time to—”</div>
+
+  <div class="lockup">
+    <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M50,50 C38,38 38,18 50,18 C62,18 62,38 50,50 C62,62 62,82 50,82 C38,82 38,62 50,50 Z" />
+      <path d="M50,50 C38,38 18,38 18,50 C18,62 38,62 50,50 C62,38 82,38 82,50 C82,62 62,62 50,50 Z" />
+    </svg>
+    <div class="word">Adanse</div>
+  </div>
+
+  <div class="headline">Meet Adanse.</div>
+  <div class="support">Your AI research analysis assistant.</div>
+
+  <div class="arrow-col"></div>
+  <div class="resolved-label">Resolved</div>
+  <div class="resolved-card">
+    <img src="assets/screens/dataset-card-tall.png" alt="" />
+  </div>
+
+  <div class="footer">This is where research analysis gets easier.</div>
+
+  <div class="bottom-rule"></div>
+  <div class="site">WWW.ADANSE.APP</div>
+</div>
+</body>
+</html>

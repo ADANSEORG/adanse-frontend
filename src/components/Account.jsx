@@ -103,7 +103,7 @@ export default function Account({
       {/* INTRO */}
       <div style={styles.intro}>
         <div className="section-kicker">
-          ACCOUNT
+          Account
         </div>
 
         <h1 style={styles.title}>
@@ -116,7 +116,7 @@ export default function Account({
         </p>
       </div>
 
-      {/* ACCOUNT CARD */}
+      {/* Account CARD */}
       <div style={styles.profileCard}>
         <div style={styles.profileTop}>
           <div style={styles.avatar}>
@@ -139,7 +139,7 @@ export default function Account({
         <div style={styles.infoGrid}>
           <div style={styles.infoItem}>
             <span style={styles.infoLabel}>
-              FULL NAME
+              Full name
             </span>
 
             <strong style={styles.infoValue}>
@@ -149,7 +149,7 @@ export default function Account({
 
           <div style={styles.infoItem}>
             <span style={styles.infoLabel}>
-              EMAIL
+              Email
             </span>
 
             <strong style={styles.infoValue}>
@@ -159,7 +159,7 @@ export default function Account({
 
           <div style={styles.infoItem}>
             <span style={styles.infoLabel}>
-              MEMBER SINCE
+              Member since
             </span>
 
             <strong style={styles.infoValue}>
@@ -169,7 +169,7 @@ export default function Account({
 
           <div style={styles.infoItem}>
             <span style={styles.infoLabel}>
-              ACCOUNT STATUS
+              Account status
             </span>
 
             <strong
@@ -184,10 +184,10 @@ export default function Account({
         </div>
       </div>
 
-      {/* SECURITY */}
+      {/* Security */}
       <div style={styles.section}>
         <div className="section-kicker">
-          SECURITY
+          Security
         </div>
 
         <div style={styles.passwordCard}>
@@ -276,10 +276,10 @@ export default function Account({
         </div>
       </div>
 
-      {/* SESSION */}
+      {/* Session */}
       <div style={styles.section}>
         <div className="section-kicker">
-          SESSION
+          Session
         </div>
 
         <div style={styles.dangerCard}>
@@ -324,9 +324,8 @@ const styles = {
   },
 
   title: {
-    font: "600 clamp(40px, 5vw, 58px) / 1.02 var(--display)",
-    letterSpacing: "-0.055em",
-    margin: "0 0 14px",
+    font: "600 22px / 1.3 var(--body)",
+    margin: "0 0 8px",
   },
 
   lead: {
@@ -340,9 +339,8 @@ const styles = {
   profileCard: {
     background: "var(--surface)",
     border: "1px solid var(--line)",
-    borderRadius: "20px",
+    borderRadius: "3px",
     padding: "30px",
-    boxShadow: "var(--shadow)",
   },
 
   profileTop: {
@@ -361,7 +359,7 @@ const styles = {
     background: "var(--gold)",
     color: "var(--ink)",
     fontSize: "18px",
-    fontWeight: 800,
+    fontWeight: 600,
   },
 
   profileIdentity: {
@@ -370,8 +368,7 @@ const styles = {
 
   name: {
     margin: 0,
-    font: "600 25px var(--display)",
-    letterSpacing: "-0.03em",
+    font: "600 18px var(--body)",
   },
 
   email: {
@@ -402,7 +399,6 @@ const styles = {
     color: "var(--muted)",
     fontSize: "10px",
     fontWeight: 700,
-    letterSpacing: "0.1em",
     marginBottom: "7px",
   },
 
@@ -439,7 +435,7 @@ const styles = {
     padding: "22px",
     background: "var(--surface)",
     border: "1px solid #ead5cf",
-    borderRadius: "16px",
+    borderRadius: "3px",
   },
 
   signOutButton: {
@@ -452,7 +448,7 @@ const styles = {
     padding: "22px",
     background: "var(--surface)",
     border: "1px solid var(--line)",
-    borderRadius: "16px",
+    borderRadius: "3px",
   },
 
   passwordForm: {

@@ -94,7 +94,7 @@ function computeLayout(acceptedCodes, themes, membership) {
         width: 220,
         background: `${color}1a`,
         border: `2px solid ${color}`,
-        borderRadius: 12,
+        borderRadius: 3,
         fontWeight: 700,
         padding: 8,
         fontSize: 13,
