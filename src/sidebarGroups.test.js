@@ -2,9 +2,13 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  conversationDate,
+  conversationDisplayTitle,
+  conversationStatus,
   groupConversations,
   isPinned,
   pinErrorMessage,
+  withConversationProgress,
   withPinnedAt,
 } from "./sidebarGroups.js";
 
@@ -103,4 +107,121 @@ test("other failures get a generic message rather than a raw error", () => {
 test("empty and undefined lists don't throw", () => {
   assert.deepEqual(groupConversations([], NOW), []);
   assert.deepEqual(groupConversations(undefined, NOW), []);
+});
+
+// ---------------------------------------------------------------------------
+// Sidebar presentation helpers
+// ---------------------------------------------------------------------------
+
+test("a real title is shown unchanged", () => {
+  assert.equal(
+    conversationDisplayTitle({ title: "AI tools and GPA" }, NOW),
+    "AI tools and GPA"
+  );
+});
+
+test("a generic or missing title is replaced by a stable dated label", () => {
+  const conversation = {
+    title: "New Analysis",
+    updated_at: new Date(2026, 8, 3, 9, 5).toISOString(),
+  };
+
+  assert.equal(
+    conversationDisplayTitle(conversation, NOW),
+    "Untitled analysis · 3 Sep, 09:05"
+  );
+  assert.equal(
+    conversationDisplayTitle({ ...conversation, title: "" }, NOW),
+    "Untitled analysis · 3 Sep, 09:05"
+  );
+  assert.equal(
+    conversationDisplayTitle({ title: "Untitled analysis" }, NOW),
+    "Untitled analysis · 24 Sep, 12:00"
+  );
+});
+
+test("the dated fallback keeps a clock time so two drafts never collide", () => {
+  const a = conversationDisplayTitle(
+    { title: "", updated_at: new Date(2026, 8, 3, 9, 5).toISOString() },
+    NOW
+  );
+  const b = conversationDisplayTitle(
+    { title: "", updated_at: new Date(2026, 8, 3, 9, 6).toISOString() },
+    NOW
+  );
+
+  assert.notEqual(a, b);
+});
+
+test("the sidebar date is Today, Yesterday, or a short calendar date", () => {
+  assert.equal(conversationDate({ updated_at: day(0) }, NOW), "Today");
+  assert.equal(conversationDate({ updated_at: day(-1) }, NOW), "Yesterday");
+  assert.equal(conversationDate({ updated_at: day(-5) }, NOW), "19 Sep");
+  assert.equal(
+    conversationDate({ updated_at: new Date(2025, 0, 2, 9).toISOString() }, NOW),
+    "2 Jan 2025"
+  );
+  assert.equal(conversationDate({}, NOW), "");
+});
+
+test("status tags follow the most advanced completed stage", () => {
+  assert.deepEqual(conversationStatus({}), {
+    key: "draft",
+    label: "Draft",
+    tone: "draft",
+  });
+
+  assert.equal(conversationStatus({ dataset_uploaded: true }).key, "dataset");
+  assert.equal(conversationStatus({ has_dataset: true }).key, "dataset");
+
+  assert.equal(
+    conversationStatus({ has_dataset: true, analysis_ready: true }).key,
+    "analysis"
+  );
+
+  assert.equal(
+    conversationStatus({ analysis_ready: true, chapter4_ready: true }).key,
+    "chapter4"
+  );
+});
+
+test("conversation progress only moves forward", () => {
+  const draft = { id: "a", title: "Old project" };
+
+  const finished = withConversationProgress(draft, {
+    datasetUploaded: true,
+    analysisReady: true,
+    chapter4Ready: true,
+  });
+
+  assert.notEqual(finished, draft);
+  assert.equal(conversationStatus(finished).key, "chapter4");
+
+  const afterNewChat = withConversationProgress(finished, {});
+
+  assert.equal(afterNewChat, finished);
+  assert.equal(conversationStatus(afterNewChat).key, "chapter4");
+
+  const afterNavigatingBack = withConversationProgress(finished, {
+    datasetUploaded: true,
+    analysisReady: true,
+    chapter4Ready: false,
+  });
+
+  assert.equal(conversationStatus(afterNavigatingBack).key, "chapter4");
+});
+
+test("conversation progress fills in only the stage that was reached", () => {
+  const withDataset = withConversationProgress(
+    { id: "a" },
+    { datasetUploaded: true }
+  );
+
+  assert.equal(conversationStatus(withDataset).key, "dataset");
+
+  const withAnalysis = withConversationProgress(withDataset, {
+    analysisReady: true,
+  });
+
+  assert.equal(conversationStatus(withAnalysis).key, "analysis");
 });

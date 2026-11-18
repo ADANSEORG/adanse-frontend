@@ -1,4 +1,7 @@
 import { useRef, useState } from "react";
+import { FileUp } from "lucide-react";
+
+import { MAX_UPLOAD_MB } from "../uploadLimits.js";
 
 export default function UploadZone({
   onFileSelected,
@@ -55,7 +58,7 @@ export default function UploadZone({
       <div className="current-dataset-card">
         <div className="current-dataset-copy">
           <div className="current-dataset-label">
-            CURRENT DATASET
+            Current dataset
           </div>
 
           <div className="current-dataset-name">
@@ -122,22 +125,9 @@ export default function UploadZone({
 
   return (
     <div
-      className={`dropzone ${
+      className={`upload-row ${
         dragging ? "dragging" : ""
       } ${disabled ? "disabled" : ""}`}
-      role="button"
-      tabIndex={disabled ? -1 : 0}
-      aria-label="Choose a dataset file"
-      onClick={openFilePicker}
-      onKeyDown={(e) => {
-        if (
-          !disabled &&
-          (e.key === "Enter" || e.key === " ")
-        ) {
-          e.preventDefault();
-          openFilePicker();
-        }
-      }}
       onDragOver={(e) => {
         e.preventDefault();
 
@@ -155,35 +145,35 @@ export default function UploadZone({
         handleFiles(e.dataTransfer.files);
       }}
     >
-      <div
-        className="dropzone-icon"
+      <FileUp
+        size={18}
+        strokeWidth={1.8}
+        className="import-row-icon"
         aria-hidden="true"
+      />
+
+      <div className="import-row-copy">
+        <strong>
+          {disabled
+            ? "Uploading your dataset…"
+            : "Upload dataset (.csv, .xls, .xlsx)"}
+        </strong>
+
+        <span>
+          {disabled
+            ? "This can take a moment for larger files."
+            : `Drop a file here or choose one. Up to ${MAX_UPLOAD_MB} MB.`}
+        </span>
+      </div>
+
+      <button
+        className="btn btn-secondary"
+        type="button"
+        onClick={openFilePicker}
+        disabled={disabled}
       >
-        {disabled ? "…" : "↑"}
-      </div>
-
-      <div className="dropzone-title">
-        {disabled
-          ? "Uploading your dataset…"
-          : "Drop your dataset here"}
-      </div>
-
-      <div className="dropzone-sub">
-        {disabled ? (
-          "This can take a moment for larger files."
-        ) : (
-          <>
-            or <span>choose a file</span> from your
-            computer
-          </>
-        )}
-      </div>
-
-      {!disabled && (
-        <div className="dropzone-meta">
-          CSV, XLS or XLSX · up to 25 MB
-        </div>
-      )}
+        {disabled ? "Uploading…" : "Choose file"}
+      </button>
 
       {/* Hidden native input */}
       <input

@@ -112,7 +112,7 @@ export default function Credits({
 
       <div style={styles.intro}>
         <div className="section-kicker">
-          CREDITS
+          Credits
         </div>
 
         <h1 style={styles.title}>
@@ -155,7 +155,7 @@ export default function Credits({
 
         <div>
           <span style={styles.balanceLabel}>
-            AVAILABLE BALANCE
+            Available balance
           </span>
 
           <div style={styles.balanceRow}>
@@ -172,11 +172,11 @@ export default function Credits({
         </div>
       </div>
 
-      {/* BUY CREDITS */}
+      {/* BUY Credits */}
 
       <div style={styles.section}>
         <div className="section-kicker">
-          BUY CREDITS
+              Buy credits
         </div>
 
         {loading && packages.length === 0 ? (
@@ -288,11 +288,11 @@ export default function Credits({
         </p>
       </div>
 
-      {/* HOW IT WORKS */}
+      {/* How it works */}
 
       <div style={styles.section}>
         <div className="section-kicker">
-          HOW IT WORKS
+          How it works
         </div>
 
         <div style={styles.infoCard}>
@@ -369,11 +369,11 @@ export default function Credits({
         </div>
       </div>
 
-      {/* TRANSACTION HISTORY */}
+      {/* Transaction history */}
 
       <div style={styles.section}>
         <div className="section-kicker">
-          TRANSACTION HISTORY
+          Transaction history
         </div>
 
         {loading &&
@@ -529,9 +529,8 @@ const styles = {
   },
 
   title: {
-    font: "600 clamp(40px, 5vw, 58px) / 1.02 var(--display)",
-    letterSpacing: "-0.055em",
-    margin: "0 0 14px",
+    font: "600 22px / 1.3 var(--body)",
+    margin: "0 0 8px",
   },
 
   lead: {
@@ -545,7 +544,7 @@ const styles = {
   alertError: {
     marginBottom: "20px",
     padding: "14px 16px",
-    borderRadius: "12px",
+    borderRadius: "3px",
     background:
       "rgba(180, 55, 55, 0.08)",
     border:
@@ -558,7 +557,7 @@ const styles = {
   alertSuccess: {
     marginBottom: "20px",
     padding: "14px 16px",
-    borderRadius: "12px",
+    borderRadius: "3px",
     background:
       "rgba(44, 126, 82, 0.08)",
     border:
@@ -575,8 +574,6 @@ const styles = {
     borderRadius: "50%",
     background: "var(--gold)",
     boxSizing: "border-box",
-    boxShadow:
-      "inset 0 -2px 0 rgba(0, 0, 0, 0.10)",
   },
 
   coinInner: {
@@ -592,8 +589,7 @@ const styles = {
     gap: "20px",
     padding: "26px 30px",
     background: "var(--green)",
-    borderRadius: "20px",
-    boxShadow: "var(--shadow)",
+    borderRadius: "3px",
   },
 
   balanceCoin: {
@@ -606,7 +602,6 @@ const styles = {
       "rgba(255, 255, 255, 0.72)",
     fontSize: "10px",
     fontWeight: 700,
-    letterSpacing: "0.1em",
     marginBottom: "5px",
   },
 
@@ -618,8 +613,7 @@ const styles = {
 
   balanceNumber: {
     color: "#fff",
-    font: "600 44px var(--display)",
-    letterSpacing: "-0.04em",
+    font: "600 32px var(--body)",
     lineHeight: 1,
   },
 
@@ -647,7 +641,7 @@ const styles = {
     fontSize: "14px",
     background: "var(--surface)",
     border: "1px solid var(--line)",
-    borderRadius: "20px",
+    borderRadius: "3px",
   },
 
   packageCard: {
@@ -655,9 +649,8 @@ const styles = {
     background: "var(--surface)",
     border:
       "1px solid var(--line)",
-    borderRadius: "20px",
+    borderRadius: "3px",
     padding: "25px",
-    boxShadow: "var(--shadow)",
   },
 
   featuredPackage: {
@@ -674,7 +667,7 @@ const styles = {
     top: "18px",
     right: "18px",
     padding: "6px 9px",
-    borderRadius: "999px",
+    borderRadius: "3px",
     background: "var(--gold-soft)",
     color: "var(--ink)",
     fontSize: "10px",
@@ -693,16 +686,13 @@ const styles = {
     display: "block",
     fontSize: "11px",
     fontWeight: 700,
-    letterSpacing: "0.1em",
-    textTransform: "uppercase",
     color: "var(--muted)",
     marginBottom: "4px",
   },
 
   packageTitle: {
     margin: 0,
-    font: "600 21px var(--display)",
-    letterSpacing: "-0.025em",
+    font: "600 16px var(--body)",
   },
 
   packageDescription: {
@@ -737,8 +727,7 @@ const styles = {
   },
 
   price: {
-    font: "600 32px var(--display)",
-    letterSpacing: "-0.04em",
+    font: "600 22px var(--body)",
   },
 
   buyButton: {
@@ -756,8 +745,7 @@ const styles = {
     background: "var(--surface)",
     border:
       "1px solid var(--line)",
-    borderRadius: "20px",
-    boxShadow: "var(--shadow)",
+    borderRadius: "3px",
   },
 
   infoRow: {
@@ -769,11 +757,10 @@ const styles = {
   },
 
   infoNumber: {
-    color: "var(--gold)",
-    fontSize: "11px",
-    fontWeight: 800,
-    letterSpacing: "0.08em",
-    paddingTop: "3px",
+    color: "var(--text-muted)",
+    fontSize: "12px",
+    fontWeight: 600,
+    paddingTop: "2px",
     minWidth: "25px",
   },
 
@@ -801,8 +788,7 @@ const styles = {
     background: "var(--surface)",
     border:
       "1px solid var(--line)",
-    borderRadius: "20px",
-    boxShadow: "var(--shadow)",
+    borderRadius: "3px",
   },
 
   transactionIcon: {
@@ -812,8 +798,7 @@ const styles = {
 
   emptyTitle: {
     margin: 0,
-    font: "600 20px var(--display)",
-    letterSpacing: "-0.025em",
+    font: "600 16px var(--body)",
   },
 
   emptyDescription: {
@@ -829,8 +814,7 @@ const styles = {
     background: "var(--surface)",
     border:
       "1px solid var(--line)",
-    borderRadius: "20px",
-    boxShadow: "var(--shadow)",
+    borderRadius: "3px",
     overflow: "hidden",
   },
 

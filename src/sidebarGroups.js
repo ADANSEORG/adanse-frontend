@@ -78,6 +78,160 @@ export function pinErrorMessage(error) {
   return "Couldn't update that project's pin. Please try again.";
 }
 
+/*
+ * Sidebar presentation helpers. They never change a conversation: they only
+ * choose the title, date and status tag shown for one. Keeping them here means
+ * the "never two identical Untitled analysis rows" rule is testable without a
+ * browser.
+ */
+
+const GENERIC_TITLES = new Set([
+  "",
+  "new analysis",
+  "untitled analysis",
+  "untitled research",
+]);
+
+const MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+function validDate(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+export function conversationDisplayTitle(conversation, now = new Date()) {
+  const title = String(conversation?.title || "").trim();
+
+  if (title && !GENERIC_TITLES.has(title.toLowerCase())) {
+    return title;
+  }
+
+  const date = validDate(
+    conversation?.updated_at || conversation?.created_at || now
+  );
+
+  if (!date) {
+    return "Untitled analysis";
+  }
+
+  const time = `${String(date.getHours()).padStart(2, "0")}:${String(
+    date.getMinutes()
+  ).padStart(2, "0")}`;
+
+  return `Untitled analysis · ${date.getDate()} ${
+    MONTHS[date.getMonth()]
+  }, ${time}`;
+}
+
+export function conversationDate(conversation, now = new Date()) {
+  const date = validDate(
+    conversation?.updated_at || conversation?.created_at
+  );
+
+  if (!date) {
+    return "";
+  }
+
+  const today = startOfLocalDay(now);
+  const stamp = startOfLocalDay(date);
+
+  if (stamp === today) {
+    return "Today";
+  }
+
+  if (stamp === today - 24 * 60 * 60 * 1000) {
+    return "Yesterday";
+  }
+
+  const sameYear = date.getFullYear() === now.getFullYear();
+
+  return `${date.getDate()} ${MONTHS[date.getMonth()]}${
+    sameYear ? "" : ` ${date.getFullYear()}`
+  }`;
+}
+
+export function conversationStatus(conversation) {
+  if (
+    conversation?.chapter4_ready ||
+    conversation?.chapter4_generated_at
+  ) {
+    return {
+      key: "chapter4",
+      label: "Chapter 4 ready",
+      tone: "complete",
+    };
+  }
+
+  if (
+    conversation?.analysis_ready ||
+    conversation?.analysis_completed_at ||
+    conversation?.has_analysis
+  ) {
+    return {
+      key: "analysis",
+      label: "Analysed",
+      tone: "complete",
+    };
+  }
+
+  if (
+    conversation?.dataset_uploaded ||
+    conversation?.has_dataset ||
+    conversation?.dataset_version_id ||
+    conversation?.dataset_filename ||
+    conversation?.dataset_path
+  ) {
+    return {
+      key: "dataset",
+      label: "Dataset added",
+      tone: "progress",
+    };
+  }
+
+  return {
+    key: "draft",
+    label: "Draft",
+    tone: "draft",
+  };
+}
+
+export function withConversationProgress(
+  conversation,
+  {
+    datasetUploaded = false,
+    analysisReady = false,
+    chapter4Ready = false,
+  } = {}
+) {
+  const dataset_uploaded = Boolean(
+    conversation?.dataset_uploaded || datasetUploaded
+  );
+  const analysis_ready = Boolean(
+    conversation?.analysis_ready || analysisReady
+  );
+  const chapter4_ready = Boolean(
+    conversation?.chapter4_ready || chapter4Ready
+  );
+
+  if (
+    dataset_uploaded === Boolean(conversation?.dataset_uploaded) &&
+    analysis_ready === Boolean(conversation?.analysis_ready) &&
+    chapter4_ready === Boolean(conversation?.chapter4_ready)
+  ) {
+    return conversation;
+  }
+
+  return {
+    ...conversation,
+    dataset_uploaded,
+    analysis_ready,
+    chapter4_ready,
+  };
+}
+
 // Returns a new list with one conversation's pinned_at replaced. Touches
 // nothing else on it (in particular not updated_at), so the item keeps its
 // place in its date group when unpinned.

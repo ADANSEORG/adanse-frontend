@@ -56,6 +56,21 @@ export function defaultProjectStep(project, { hasPendingReviewVersion } = {}) {
   return "setup";
 }
 
+export function canReuseProjectStep(
+  step,
+  {
+    hasPendingReviewVersion = false,
+    analysisAllowed = false,
+    chapter4Allowed = false,
+  } = {}
+) {
+  if (step === "setup" || step === "dataset") return true;
+  if (step === "review") return hasPendingReviewVersion;
+  if (step === "analysis") return analysisAllowed;
+  if (step === "chapter4") return chapter4Allowed;
+  return false;
+}
+
 /*
  * ---------------------------------------------------------
  * RESOLVE AN EXPLICIT STEP

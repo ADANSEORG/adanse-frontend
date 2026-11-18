@@ -5,14 +5,19 @@ import {
   Pin,
   PinOff,
   Settings,
+  X,
 } from "lucide-react";
 
 import {
+  conversationDate,
+  conversationDisplayTitle,
+  conversationStatus,
   groupConversations,
   isPinned,
   pinErrorMessage,
 } from "../sidebarGroups.js";
 import { marqueeShift } from "../sidebarMarquee.js";
+import { SidebarSkeleton } from "./Skeleton.jsx";
 
 /*
  * A sidebar title that only moves when it has to. A title that fits is plain
@@ -229,8 +234,6 @@ export function CreditCoinIcon() {
         border:
           "1px solid rgba(0, 0, 0, 0.08)",
         boxSizing: "border-box",
-        boxShadow:
-          "inset 0 -1px 0 rgba(0, 0, 0, 0.12)",
       }}
     >
       <Coins
@@ -399,6 +402,18 @@ export default function ConversationSidebar({
           open ? "open" : ""
         }`}
       >
+        <div className="sidebar-brand">
+          <img
+            className="sidebar-logo"
+            src="/favicon.png"
+            alt=""
+            width="26"
+            height="26"
+          />
+
+          <span>Adanse</span>
+        </div>
+
         <div className="sidebar-top">
           <button
             className="btn btn-primary sidebar-new"
@@ -410,7 +425,7 @@ export default function ConversationSidebar({
           >
             {creating
               ? "Creating…"
-              : "+ New analysis"}
+              : "New analysis"}
           </button>
         </div>
 
@@ -430,11 +445,7 @@ export default function ConversationSidebar({
             </div>
           )}
 
-          {loading && (
-            <p className="sidebar-status">
-              Loading conversations…
-            </p>
-          )}
+          {loading && <SidebarSkeleton />}
 
           {error && (
             <p className="sidebar-error">
@@ -475,10 +486,27 @@ export default function ConversationSidebar({
                 {group.label}
               </div>
 
-              {group.items.map(
-                (conversation) =>
+              {group.items.map((conversation) => {
+                const title =
+                  conversationDisplayTitle(
+                    conversation
+                  );
+
+                const dateLabel =
+                  conversationDate(
+                    conversation
+                  );
+
+                const status =
+                  conversationStatus(
+                    conversation
+                  );
+
+                if (
                   confirmDeleteId ===
-                  conversation.id ? (
+                  conversation.id
+                ) {
+                  return (
                     <div
                       key={conversation.id}
                       className="sidebar-item-confirm"
@@ -522,7 +550,10 @@ export default function ConversationSidebar({
                         </button>
                       </div>
                     </div>
-                  ) : (
+                  );
+                }
+
+                return (
                   <div
                     key={conversation.id}
                     className={`sidebar-item ${
@@ -567,10 +598,7 @@ export default function ConversationSidebar({
                       }
                     >
                       <MarqueeTitle
-                        text={
-                          conversation.title ||
-                          "New Analysis"
-                        }
+                        text={title}
                         active={
                           hoverId ===
                             conversation.id ||
@@ -578,6 +606,18 @@ export default function ConversationSidebar({
                             conversation.id
                         }
                       />
+
+                      <span className="sidebar-item-meta">
+                        <span className="sidebar-item-date">
+                          {dateLabel}
+                        </span>
+
+                        <span
+                          className={`status-tag ${status.tone}`}
+                        >
+                          {status.label}
+                        </span>
+                      </span>
                     </button>
 
                     <button
@@ -591,10 +631,7 @@ export default function ConversationSidebar({
                         isPinned(conversation)
                           ? "Unpin"
                           : "Pin"
-                      } ${
-                        conversation.title ||
-                        "conversation"
-                      }`}
+                      } ${title}`}
                       title={
                         isPinned(conversation)
                           ? "Unpin"
@@ -626,10 +663,7 @@ export default function ConversationSidebar({
                     <button
                       type="button"
                       className="sidebar-item-delete"
-                      aria-label={`Delete ${
-                        conversation.title ||
-                        "conversation"
-                      }`}
+                      aria-label={`Delete ${title}`}
                       onClick={() => {
                         // The row is about to be replaced by the confirm, so
                         // its mouse-leave will never fire: clear the title's
@@ -641,11 +675,14 @@ export default function ConversationSidebar({
                         );
                       }}
                     >
-                      ×
+                      <X
+                        size={15}
+                        aria-hidden="true"
+                      />
                     </button>
                   </div>
-                  )
-              )}
+                );
+              })}
             </div>
           ))}
         </div>

@@ -698,21 +698,16 @@ export default function Chapter4({
           HERO
           ================================================= */}
 
-      <div className="chapter4-hero">
+      <header className="page-head chapter4-head">
         <div>
-          <div className="section-kicker">
-            04 · CHAPTER 4
-          </div>
-
-          <h1>
-            Your Results chapter.
+          <h1 className="page-title">
+            Chapter 4
           </h1>
 
-          <p>
-            Adanse has turned your completed
-            quantitative and qualitative analyses into
-            a structured Chapter 4 built around your
-            research objectives and findings.
+          <p className="page-help">
+            Your completed analyses, written as a
+            structured results chapter. Review the
+            document, then export it as a .docx file.
           </p>
         </div>
 
@@ -729,7 +724,7 @@ export default function Chapter4({
                 upload.rows ||
                 0
               ).toLocaleString()}{" "}
-              observations ·{" "}
+              rows ·{" "}
               {(
                 upload.dataset_columns ||
                 upload.columns ||
@@ -739,7 +734,7 @@ export default function Chapter4({
             </span>
           </div>
         )}
-      </div>
+      </header>
 
       {/* =================================================
           EXPORT ACTION
@@ -748,7 +743,7 @@ export default function Chapter4({
       <div className="chapter4-action">
         <div>
           <div className="chapter4-action-label">
-            {resultsAreStale ? "RESULTS OUT OF DATE" : "READY TO EXPORT"}
+            {resultsAreStale ? "Results out of date" : "Ready to export"}
           </div>
 
           {resultsAreStale ? (
@@ -798,8 +793,8 @@ export default function Chapter4({
         </div>
 
         <CreditActionButton
-          label="Download Chapter 4 .docx"
-          confirmLabel="Confirm — download Chapter 4 .docx"
+          label="Export .docx"
+          confirmLabel="Confirm — export .docx"
           loadingLabel="Preparing document…"
           cost={costs?.chapter4}
           balance={credits}
@@ -824,7 +819,7 @@ export default function Chapter4({
         <aside className="chapter4-nav">
 
           <div className="chapter4-nav-title">
-            CHAPTER 4
+            Sections
           </div>
 
           <button
@@ -983,21 +978,21 @@ export default function Chapter4({
           >
             <div className="chapter-document-header">
               <span>
-                CHAPTER FOUR
+                Chapter Four
               </span>
 
               <span>
-                RESULTS AND FINDINGS
+                Results and Findings
               </span>
             </div>
 
             <div className="chapter-title-page">
               <h2>
-                CHAPTER FOUR
+                Chapter Four
               </h2>
 
               <h3>
-                RESULTS AND FINDINGS
+                Results and Findings
               </h3>
             </div>
 
@@ -1365,7 +1360,7 @@ export default function Chapter4({
                             <div className="chapter-analysis-meta">
                               <div>
                                 <span>
-                                  VARIABLE
+                                  Variable
                                 </span>
 
                                 <strong>
@@ -1380,7 +1375,7 @@ export default function Chapter4({
 
                               <div>
                                 <span>
-                                  GROUP / VARIABLE
+                                  Group / variable
                                 </span>
 
                                 <strong>
@@ -1395,7 +1390,7 @@ export default function Chapter4({
 
                               <div>
                                 <span>
-                                  METHOD
+                                  Method
                                 </span>
 
                                 <strong>
@@ -2163,7 +2158,7 @@ export default function Chapter4({
 
         <CreditActionButton
           label="Download editable Chapter 4 .docx"
-          confirmLabel="Confirm — download Chapter 4 .docx"
+          confirmLabel="Confirm — export .docx"
           loadingLabel="Preparing document…"
           cost={costs?.chapter4}
           balance={credits}

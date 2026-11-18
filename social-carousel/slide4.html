@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Adanse — Slide 4</title>
+<style>
+  @font-face {
+    font-family: 'Space Grotesk';
+    font-weight: 500 700;
+    font-style: normal;
+    src: url('assets/fonts/spacegrotesk-variable.woff2') format('woff2');
+  }
+  @font-face {
+    font-family: 'DM Sans';
+    font-weight: 400 700;
+    font-style: normal;
+    src: url('assets/fonts/dmsans-variable.woff2') format('woff2');
+  }
+  :root {
+    --near-black: #0a0906;
+    --cream-bg: #faf5e9;
+    --cream-surface: #fffdf8;
+    --ink: #211b16;
+    --muted: #74695e;
+    --line: #e4d8c3;
+    --gold: #dda622;
+    --gold-soft: #f5e7bf;
+    --green: #245b42;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 1080px; height: 1440px;
+    background: var(--near-black);
+    font-family: 'DM Sans', sans-serif;
+    overflow: hidden;
+  }
+  #canvas {
+    position: relative;
+    width: 1080px; height: 1440px;
+    background: var(--near-black);
+  }
+  .glow {
+    position: absolute;
+    left: 50%; top: 340px;
+    width: 1500px; height: 1500px;
+    margin: -750px 0 0 -750px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(221,166,34,0.26), rgba(10,9,6,0) 56%);
+  }
+
+  .lockup {
+    position: absolute; left: 0; right: 0; top: 56px;
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+  }
+  .lockup svg { width: 42px; height: 42px; color: var(--gold); }
+  .lockup .word {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 620;
+    font-size: 42px;
+    letter-spacing: -0.03em;
+    color: var(--cream-surface);
+  }
+
+  .eyebrow {
+    position: absolute; left: 0; right: 0; top: 150px;
+    text-align: center;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-style: italic;
+    font-size: 25px;
+    color: var(--gold-soft);
+    padding: 0 110px;
+  }
+
+  .headline {
+    position: absolute; left: 0; right: 0; top: 210px;
+    text-align: center;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 660;
+    font-size: 108px;
+    line-height: 1.0;
+    letter-spacing: -0.03em;
+    color: var(--cream-surface);
+    padding: 0 40px;
+  }
+
+  .offer-pill {
+    position: absolute; left: 50%; top: 400px;
+    transform: translateX(-50%);
+    display: inline-flex; align-items: center; gap: 15px;
+    background: var(--gold);
+    border-radius: 999px;
+    padding: 18px 36px 18px 20px;
+    white-space: nowrap;
+  }
+  .offer-icon {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--near-black);
+    color: var(--gold);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .offer-icon svg { width: 21px; height: 21px; }
+  .offer-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 650;
+    font-size: 25px;
+    color: var(--near-black);
+    letter-spacing: -0.005em;
+  }
+
+  .cta-line {
+    position: absolute; left: 0; right: 0; top: 500px;
+    text-align: center;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    font-size: 28px;
+    color: #b7ac9c;
+  }
+
+  .proof-card {
+    position: absolute; left: 60px; right: 60px; top: 610px;
+    border-radius: 26px;
+    overflow: hidden;
+    border: 1px solid rgba(245,231,191,0.18);
+    box-shadow: 0 40px 100px rgba(0,0,0,0.55);
+  }
+  .proof-card img { display: block; width: 100%; height: auto; }
+
+  .bottom-rule {
+    position: absolute; left: 50%; top: 1130px;
+    width: 90px; height: 2px; margin-left: -45px;
+    background: var(--gold);
+    opacity: 0.75;
+  }
+  .site {
+    position: absolute; left: 0; right: 0; top: 1170px;
+    text-align: center;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 22px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #b7ac9c;
+  }
+</style>
+</head>
+<body>
+<div id="canvas">
+  <div class="glow"></div>
+
+  <div class="lockup">
+    <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M50,50 C38,38 38,18 50,18 C62,18 62,38 50,50 C62,62 62,82 50,82 C38,82 38,62 50,50 Z" />
+      <path d="M50,50 C38,38 18,38 18,50 C18,62 38,62 50,50 C62,38 82,38 82,50 C82,62 62,62 50,50 Z" />
+    </svg>
+    <div class="word">Adanse</div>
+  </div>
+
+  <div class="eyebrow">Your thesis deserves better than spreadsheets.</div>
+  <div class="headline">Now in beta.</div>
+
+  <div class="offer-pill">
+    <div class="offer-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 L14.5 9 L22 9 L16 13.5 L18 21 L12 16.5 L6 21 L8 13.5 L2 9 L9.5 9 Z"/></svg>
+    </div>
+    <div class="offer-text">Sign up — get 100 free credits</div>
+  </div>
+
+  <div class="cta-line">Analyze your research smarter.</div>
+
+  <div class="proof-card"><img src="assets/screens/chapter4-hero.png" alt="" /></div>
+
+  <div class="bottom-rule"></div>
+  <div class="site">WWW.ADANSE.APP</div>
+</div>
+</body>
+</html>
