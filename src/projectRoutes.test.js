@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 
 import {
   PROJECT_STEPS,
+  canReuseProjectStep,
   defaultProjectStep,
   historyBackTarget,
   historyIndex,
@@ -222,6 +223,47 @@ test("resolving is idempotent -- re-resolving the output step changes nothing fu
       assert.equal(twice.step, once.step, `${requested} on ${JSON.stringify(project)}`);
       assert.equal(twice.redirected, false);
     }
+  }
+});
+
+test("setup and dataset are always safe to reuse once the same project is loaded", () => {
+  assert.equal(canReuseProjectStep("setup"), true);
+  assert.equal(canReuseProjectStep("dataset"), true);
+});
+
+test("review is reused only when the pending version is already in memory", () => {
+  assert.equal(canReuseProjectStep("review", { hasPendingReviewVersion: true }), true);
+  assert.equal(canReuseProjectStep("review", { hasPendingReviewVersion: false }), false);
+  assert.equal(canReuseProjectStep("review"), false);
+});
+
+test("analysis is reused only when the loaded project supports it, exactly like resolveProjectStep", () => {
+  for (const project of [
+    { active_dataset_version_id: "v1" },
+    { analysis_plan: {} },
+    { analysis_results: {} },
+  ]) {
+    const analysisAllowed =
+      Boolean(project.active_dataset_version_id) ||
+      Boolean(project.analysis_plan) ||
+      Boolean(project.analysis_results);
+
+    assert.equal(canReuseProjectStep("analysis", { analysisAllowed }), true);
+  }
+
+  assert.equal(canReuseProjectStep("analysis", { analysisAllowed: false }), false);
+  assert.equal(canReuseProjectStep("analysis"), false);
+});
+
+test("chapter4 is reused only when its gate is open on data already in memory", () => {
+  assert.equal(canReuseProjectStep("chapter4", { chapter4Allowed: true }), true);
+  assert.equal(canReuseProjectStep("chapter4", { chapter4Allowed: false }), false);
+  assert.equal(canReuseProjectStep("chapter4"), false);
+});
+
+test("an unrecognised or missing step is never reused", () => {
+  for (const bad of ["workspace", "upload", "", null, undefined, 42]) {
+    assert.equal(canReuseProjectStep(bad), false, JSON.stringify(bad));
   }
 });
 

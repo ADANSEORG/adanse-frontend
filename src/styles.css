@@ -5712,3 +5712,10 @@ button {
   color: var(--green);
   font-size: 13px;
 }
+
+.auth-google-wrap {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  min-height: 44px;
+}
