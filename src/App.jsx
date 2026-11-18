@@ -60,6 +60,7 @@ export default function App() {
 
   const {
     conversations,
+    conversationsLoading,
     active,
     project,
     upload,
@@ -318,7 +319,7 @@ export default function App() {
         activeId={
           active?.id
         }
-        loading={loading}
+        loading={conversationsLoading}
         error={null}
         creating={creating}
         onNewChat={newChat}

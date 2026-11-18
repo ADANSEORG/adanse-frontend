@@ -1,6 +1,8 @@
 import { useRef, useState } from "react";
 import { FileUp } from "lucide-react";
 
+import { MAX_UPLOAD_MB } from "../uploadLimits.js";
+
 export default function UploadZone({
   onFileSelected,
   disabled,
@@ -160,7 +162,7 @@ export default function UploadZone({
         <span>
           {disabled
             ? "This can take a moment for larger files."
-            : "Drop a file here or choose one. Up to 25 MB."}
+            : `Drop a file here or choose one. Up to ${MAX_UPLOAD_MB} MB.`}
         </span>
       </div>
 

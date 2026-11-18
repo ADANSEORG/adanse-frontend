@@ -59,15 +59,23 @@ test("the Supabase client keeps its default (implicit) flow, so password-reset l
   assert.doesNotMatch(read("./supabaseClient.js"), /flowType/);
 });
 
-test("the sign-in and sign-up screens show Continue with Google after the form, and read an OAuth error on arrival", () => {
+test("the sign-in and sign-up screens show the Google button after the form, and read an OAuth error on arrival", () => {
   const screen = read("./components/AuthScreen.jsx");
   const form = screen.indexOf("onSubmit={handleSubmit}");
-  const google = screen.indexOf('className="auth-google"');
+  const google = screen.indexOf("<GoogleSignInButton");
   assert.ok(form > 0 && google > form, "the Google button follows the email/password form");
-  assert.match(screen, /onClick=\{handleGoogle\}/);
-  assert.match(screen, /"Continue with Google"/);
+  assert.match(screen, /import GoogleSignInButton from "\.\/GoogleSignInButton\.jsx"/);
+  assert.match(screen, /<GoogleSignInButton onError=\{setError\} \/>/);
   assert.match(screen, /oauthErrorMessage\(location\.search, location\.hash\)/);
   // One shared block renders both modes, so the button appears on sign-in and sign-up alike --
   // but not on the forgot-password or code-entry screens, which return earlier branches.
-  assert.equal((screen.match(/className="auth-google"/g) || []).length, 1);
+  assert.equal((screen.match(/<GoogleSignInButton/g) || []).length, 1);
+});
+
+test("the Google button signs in with Google's ID token, so users never see the Supabase URL", () => {
+  const button = read("./components/GoogleSignInButton.jsx");
+  assert.match(button, /signInWithIdToken\(\{\s*provider: "google"/);
+  assert.match(button, /VITE_GOOGLE_CLIENT_ID/);
+  assert.match(button, /text: "continue_with"/);
+  assert.doesNotMatch(button, /signInWithOAuth/);
 });

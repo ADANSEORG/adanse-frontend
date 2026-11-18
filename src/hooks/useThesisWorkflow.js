@@ -8,7 +8,6 @@ import {
   pinConversation,
   unpinConversation,
   getConversation,
-  listMessages,
   addMessage,
   updateConversation,
   createThesisProject,
@@ -35,6 +34,7 @@ import {
 } from "../api.js";
 
 import { friendly } from "../errors.js";
+import { uploadSizeError } from "../uploadLimits.js";
 import { objectivesWithDocumentWording } from "../chapter1Compare.js";
 import {
   datasetContinueTarget,
@@ -52,6 +52,7 @@ import {
   settingsViewForPath,
 } from "../viewRoutes.js";
 import {
+  canReuseProjectStep,
   defaultProjectStep,
   historyBackTarget,
   stepPushState,
@@ -177,11 +178,6 @@ export function useThesisWorkflow({ user, authLoading }) {
   ] = useState(null);
 
   const [
-    messages,
-    setMessages,
-  ] = useState([]);
-
-  const [
     project,
     setProject,
   ] = useState(null);
@@ -292,6 +288,11 @@ export function useThesisWorkflow({ user, authLoading }) {
     setCreating,
   ] = useState(false);
 
+  const [
+    conversationsLoading,
+    setConversationsLoading,
+  ] = useState(false);
+
   /*
    * ---------------------------------------------------------
    * LOAD CONVERSATIONS + CREDITS
@@ -299,15 +300,18 @@ export function useThesisWorkflow({ user, authLoading }) {
    */
 
   useEffect(() => {
-    if (authLoading) return;
+    if (authLoading) return undefined;
 
     if (!user) {
       setConversations([]);
       setActive(null);
       setCredits(0);
       setCosts({});
-      return;
+      setConversationsLoading(false);
+      return undefined;
     }
+
+    setConversationsLoading(true);
 
     // Loaded independently: one failing (after api.js's quiet retries)
     // must not throw away the other's result.
@@ -355,7 +359,9 @@ export function useThesisWorkflow({ user, authLoading }) {
           );
         }
       }
-    );
+    ).finally(() => {
+      setConversationsLoading(false);
+    });
   }, [
     user?.id,
     authLoading,
@@ -414,7 +420,7 @@ export function useThesisWorkflow({ user, authLoading }) {
       action: async () => {
         const c = await createConversation();
 
-        await createThesisProject({
+        const freshProject = await createThesisProject({
           conversation_id: c.id,
           title: "Untitled research",
           objectives: [],
@@ -424,13 +430,13 @@ export function useThesisWorkflow({ user, authLoading }) {
         });
 
         setConversations((x) => [c, ...x]);
+        setProject(freshProject);
         setActive(c);
-        setProject(await getThesisProject(c.id));
 
-        setMessages([]);
         setUpload(null);
         setPlan(null);
         setAnalysis(null);
+        setDatasetVersion(null);
 
         setStep("setup");
         setSidebarOpen(false);
@@ -468,33 +474,50 @@ export function useThesisWorkflow({ user, authLoading }) {
       pendingChapterFileRef.current = null;
     }
 
+    if (!requestedStep && active?.id === c?.id) {
+      setSidebarOpen(false);
+
+      const targetPath = projectPath(
+        active.id,
+        ROUTE_STEP_OF[step] || "setup"
+      );
+
+      if (location.pathname !== targetPath) {
+        navigate(targetPath, { replace: true });
+      }
+
+      return;
+    }
+
     await runAction({
       setBusy: setLoading,
       setError,
       action: async () => {
         /*
          * getThesisProject(c.id) needs only c.id -- already known before
-         * this function starts -- so it has no reason to wait for
-         * getConversation/listMessages to resolve first. It used to (a
-         * plain `await` after their Promise.all), which on a reload/deep
-         * link serialises the single slowest of the three calls after
-         * the other two instead of overlapping it with them; measured on
-         * a production trace, that tail alone was the dominant cost of
-         * the reload's blank-page time.
+         * this function starts -- so it has no reason to wait for the
+         * conversation lookup to resolve first. It used to (a plain
+         * `await` after their Promise.all), which on a reload/deep link
+         * serialises the single slowest of the two calls after the other
+         * instead of overlapping it with it; measured on a production
+         * trace, that tail alone was the dominant cost of the reload's
+         * blank-page time.
          *
          * Its expected failure (the project doesn't exist yet, 404) is
          * resolved to a sentinel here rather than left to throw, so it
          * doesn't fail the whole Promise.all group the way an unhandled
          * rejection would -- the same outcome the old try/catch produced,
-         * just without forcing this call to run alone, after the others,
+         * just without forcing this call to run alone, after the other,
          * to get it. Any OTHER error still rejects (unchanged: it was
          * already rethrown here before, and still propagates to
-         * runAction's onError exactly as getConversation/listMessages'
-         * own failures always have).
+         * runAction's onError exactly as the conversation lookup's own
+         * failure always has).
          */
-        const [fresh, msg, projectOutcome] = await Promise.all([
-          getConversation(c.id),
-          listMessages(c.id),
+        const knownConversation =
+          c && typeof c === "object" && "title" in c;
+
+        const [fresh, projectOutcome] = await Promise.all([
+          knownConversation ? c : getConversation(c.id),
           getThesisProject(c.id).then(
             (project) => ({ project }),
             (error) => {
@@ -519,7 +542,6 @@ export function useThesisWorkflow({ user, authLoading }) {
           : projectOutcome.project;
 
         setActive(fresh);
-        setMessages(msg.messages || []);
         setProject(p);
         setPlan(p.analysis_plan || null);
         setAnalysis(p.analysis_results || null);
@@ -605,9 +627,9 @@ export function useThesisWorkflow({ user, authLoading }) {
           routeStep = defaultProjectStep(p, { hasPendingReviewVersion });
         }
 
-        if (routeStep === "review" && pendingVersion) {
-          setDatasetVersion(pendingVersion);
-        }
+        setDatasetVersion(
+          routeStep === "review" ? pendingVersion : null
+        );
 
         setStep(INTERNAL_STEP_OF[routeStep]);
 
@@ -647,7 +669,6 @@ export function useThesisWorkflow({ user, authLoading }) {
           setUpload(null);
           setPlan(null);
           setAnalysis(null);
-          setMessages([]);
           setDatasetVersion(null);
           setStep("setup");
 
@@ -709,11 +730,36 @@ export function useThesisWorkflow({ user, authLoading }) {
     }
 
     const id = parsed.id.toLowerCase();
+    const nextStep = parsed.step
+      ? INTERNAL_STEP_OF[parsed.step]
+      : null;
     const alreadyThere =
       active?.id === id &&
-      (!parsed.step || INTERNAL_STEP_OF[parsed.step] === step);
+      (!parsed.step || nextStep === step);
 
     if (alreadyThere) return;
+
+    if (active?.id === id && nextStep) {
+      const analysisAllowed =
+        Boolean(project?.active_dataset_version_id) ||
+        Boolean(project?.analysis_plan) ||
+        Boolean(project?.analysis_results);
+
+      const canReuse = canReuseProjectStep(parsed.step, {
+        hasPendingReviewVersion: Boolean(datasetVersion),
+        analysisAllowed,
+        chapter4Allowed:
+          Boolean(analysis) && !chapter4Gate(analysis).blocked,
+      });
+
+      if (canReuse) {
+        setError("");
+        setStep(nextStep);
+        setLastVisited(user.id, id, parsed.step);
+        setSidebarOpen(false);
+        return;
+      }
+    }
 
     select({ id }, { push: false, requestedStep: parsed.step });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -750,6 +796,7 @@ export function useThesisWorkflow({ user, authLoading }) {
       setError,
       action: async () => {
         let c = active;
+        let p;
 
         if (!c) {
           c = await createConversation(data.title.slice(0, 80));
@@ -757,12 +804,12 @@ export function useThesisWorkflow({ user, authLoading }) {
           setActive(c);
           setConversations((x) => [c, ...x]);
 
-          await createThesisProject({
+          p = await createThesisProject({
             conversation_id: c.id,
             ...data,
           });
         } else {
-          await updateThesisProject(c.id, data);
+          p = await updateThesisProject(c.id, data);
 
           if (
             c.title === "New Analysis" ||
@@ -780,8 +827,6 @@ export function useThesisWorkflow({ user, authLoading }) {
             );
           }
         }
-
-        let p = await getThesisProject(c.id);
 
         if (chapterFile) {
           // Best effort: if it fails, the Dataset step just offers the upload
@@ -814,6 +859,13 @@ export function useThesisWorkflow({ user, authLoading }) {
    */
 
   const file = async (f) => {
+    const sizeError = uploadSizeError(f);
+
+    if (sizeError) {
+      setError(sizeError);
+      return;
+    }
+
     await runAction({
       setBusy: setLoading,
       setError,
@@ -1236,7 +1288,11 @@ export function useThesisWorkflow({ user, authLoading }) {
         const p = await buildAnalysisPlan(active.id);
 
         setPlan(p);
-        setProject(await getThesisProject(active.id));
+        setProject((prev) => ({
+          ...(prev || {}),
+          analysis_plan: p,
+          analysis_results: null,
+        }));
         setStep("workspace");
         setLastVisited(user.id, active.id, "analysis");
         pushStep(projectPath(active.id, "analysis"));
@@ -1346,7 +1402,10 @@ export function useThesisWorkflow({ user, authLoading }) {
           setCredits(Number(a.credits_remaining));
         }
 
-        setProject(await getThesisProject(active.id));
+        setProject((prev) => ({
+          ...(prev || {}),
+          analysis_results: a,
+        }));
 
         /*
          * STAY ON ANALYSIS.
@@ -1608,34 +1667,7 @@ export function useThesisWorkflow({ user, authLoading }) {
     backFromSettings;
 
   const openCredits =
-    async () => {
-      /*
-       * Refresh the balance before
-       * opening Credits so the page
-       * is never unnecessarily stale.
-       */
-      try {
-        const data =
-          await getCredits();
-
-        setCredits(
-          Number(
-            data?.balance || 0
-          )
-        );
-      } catch (e) {
-        /*
-         * Do not block opening the
-         * Credits page if refresh
-         * fails. Credits.jsx will
-         * try again itself.
-         */
-        console.error(
-          "Could not refresh credits:",
-          e
-        );
-      }
-
+    () => {
       openSettings("credits");
     };
 
@@ -1663,7 +1695,6 @@ export function useThesisWorkflow({ user, authLoading }) {
           setUpload(null);
           setPlan(null);
           setAnalysis(null);
-          setMessages([]);
           setDatasetVersion(null);
           setStep("setup");
 
@@ -1745,6 +1776,7 @@ export function useThesisWorkflow({ user, authLoading }) {
 
   return {
     conversations,
+    conversationsLoading,
     active,
     project,
     upload,

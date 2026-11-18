@@ -1,5 +1,6 @@
 import { supabase } from "./supabaseClient.js";
 import { fetchWithRetry, isNetworkError } from "./transientRetry.js";
+import { assertUploadSize } from "./uploadLimits.js";
 
 const API_BASE = (
   import.meta.env.VITE_API_BASE ||
@@ -318,6 +319,8 @@ export const uploadThesisDataset = (
   id,
   file
 ) => {
+  assertUploadSize(file);
+
   const form = new FormData();
 
   form.append("file", file);
@@ -346,6 +349,8 @@ export const uploadChapter1Document = (
   id,
   file
 ) => {
+  assertUploadSize(file);
+
   const form = new FormData();
 
   form.append("file", file);
@@ -367,6 +372,8 @@ export const uploadChapter1Document = (
  * never retried automatically (one AI call, daily cap per user).
  */
 export const extractChapterDocument = (file) => {
+  assertUploadSize(file);
+
   const form = new FormData();
 
   form.append("file", file);
