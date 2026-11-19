@@ -13,7 +13,7 @@
  * shows an item that didn't come back as a verified, found string.
  */
 
-import { normalizeForMatch } from "./chapter1Compare.js";
+import { normalizeForMatch } from "./docxFile.js";
 
 export const FILL_CONSENT_NOTICE =
   "Adanse sends only the parts of your chapters that state these items to its AI reading assistant, and doesn't store your file. Nothing is added until you choose.";

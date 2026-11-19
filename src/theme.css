@@ -1020,20 +1020,75 @@
   flex: none;
 }
 
-.chapter1-compare {
-  margin-top: 16px;
-  padding: 16px;
-  border: 1px solid var(--border);
+/* Dataset upload: a large drop area, the main thing on the page. */
+.upload-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 280px;
+  padding: 40px 24px;
+  border: 1.5px dashed var(--border);
   border-radius: var(--radius);
-  background: var(--surface);
+  background: var(--bg);
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color 0.12s ease,
+    background-color 0.12s ease;
 }
 
-.chapter1-compare-lead {
-  font-size: 13px;
+.upload-zone:hover {
+  border-color: var(--text-muted);
+}
+
+.upload-zone.dragging {
+  border-color: var(--link);
+  border-style: solid;
+  background: color-mix(in srgb, var(--link) 6%, var(--bg));
+}
+
+.upload-zone.disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.upload-zone-icon {
+  color: var(--text-muted);
+}
+
+.upload-zone.dragging .upload-zone-icon {
+  color: var(--link);
+}
+
+.upload-zone-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 420px;
+}
+
+.upload-zone-copy strong {
+  color: var(--text);
+  font-size: 16px;
   font-weight: 600;
 }
 
-.chapter1-compare-consent {
+.upload-zone-copy span {
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .upload-zone {
+    min-height: 200px;
+    padding: 28px 16px;
+  }
+}
+
+.chapter-fill-consent {
   margin: 6px 0 0;
   color: var(--text-muted);
   font-size: 11px;
@@ -1081,12 +1136,12 @@
   font-size: 12px;
 }
 
-.chapter1-compare-actions {
+.chapter-fill-actions {
   margin-top: 12px;
 }
 
-.chapter1-compare-empty,
-.chapter1-compare-error {
+.chapter-fill-empty,
+.chapter-fill-error {
   border-radius: var(--radius);
   font-size: 12px;
 }
@@ -1470,6 +1525,14 @@
   min-width: 0;
   padding: 10px 12px;
   background: var(--surface);
+}
+
+/* Why the engine chose this exact test (e.g. Mann-Whitney instead of t). */
+.analysis-method-reason {
+  display: block;
+  margin-top: 8px;
+  color: var(--text-muted, inherit);
+  line-height: 1.45;
 }
 
 .analysis-detail-grid span {
@@ -1950,7 +2013,7 @@
   font-size: 12px;
 }
 
-.chapter1-compare-error {
+.chapter-fill-error {
   border-left: 3px solid var(--danger);
 }
 

@@ -3,7 +3,7 @@ import { FileUp } from "lucide-react";
 
 import { extractChapterDocument } from "../api.js";
 import { friendly } from "../errors.js";
-import { NOT_A_DOCX_MESSAGE, isDocxFile } from "../chapter1Compare.js";
+import { NOT_A_DOCX_MESSAGE, isDocxFile } from "../docxFile.js";
 import {
   FILL_CONSENT_NOTICE,
   FILL_DAILY_LIMIT_MESSAGE,
@@ -20,7 +20,7 @@ import {
  * .docx, and add only what they tick to the form. Nothing is saved until
  * they save the form. See chapterFill.js.
  */
-export default function ChapterFill({ current, onApply, onFileRead, disabled = false }) {
+export default function ChapterFill({ current, onApply, disabled = false }) {
   const inputRef = useRef(null);
   const [reading, setReading] = useState(false);
   const [error, setError] = useState("");
@@ -48,9 +48,6 @@ export default function ChapterFill({ current, onApply, onFileRead, disabled = f
       const next = fillReview(await extractChapterDocument(file));
       setReview(next);
       setTicked(defaultTicks(next));
-      // Kept in memory so saving Research Context can attach it to the
-      // Chapter 1 comparison (the Dataset step won't ask for it again).
-      onFileRead?.(file);
     } catch (e) {
       setReview(null);
       setError(
@@ -156,7 +153,7 @@ export default function ChapterFill({ current, onApply, onFileRead, disabled = f
         </button>
       </div>
 
-      <p className="chapter1-compare-consent">
+      <p className="chapter-fill-consent">
         {FILL_CONSENT_NOTICE}
       </p>
 
@@ -172,7 +169,7 @@ export default function ChapterFill({ current, onApply, onFileRead, disabled = f
       {review && (
         <div className="chapter-fill-review">
           {nothingFound && (
-            <p className="chapter1-compare-empty">
+            <p className="chapter-fill-empty">
               <strong>Adanse didn't find anything it could copy word for word from your chapters.</strong>{" "}
               You can type your research context in below.
             </p>
@@ -192,7 +189,7 @@ export default function ChapterFill({ current, onApply, onFileRead, disabled = f
               </legend>
 
               {entry.field === "title" && titleWouldReplace(current, review) && (
-                <p className="chapter1-compare-note">Ticking this replaces the title you've typed.</p>
+                <p className="chapter-fill-note">Ticking this replaces the title you've typed.</p>
               )}
 
               {entry.found ? (
@@ -207,12 +204,12 @@ export default function ChapterFill({ current, onApply, onFileRead, disabled = f
                   </label>
                 ))
               ) : (
-                <p className="chapter1-compare-note">{entry.message}</p>
+                <p className="chapter-fill-note">{entry.message}</p>
               )}
             </fieldset>
           ))}
 
-          <p className="chapter1-compare-note">
+          <p className="chapter-fill-note">
             Every item is copied word for word from your document. Untick
             anything you don't want.
           </p>
@@ -220,10 +217,10 @@ export default function ChapterFill({ current, onApply, onFileRead, disabled = f
       )}
 
       {addedNote && <p className="chapter-fill-added" role="status">{addedNote}</p>}
-      {error && <div className="chapter1-compare-error" role="alert">{error}</div>}
+      {error && <div className="chapter-fill-error" role="alert">{error}</div>}
 
       {review && (
-        <div className="chapter1-compare-actions">
+        <div className="chapter-fill-actions">
           {!nothingFound && (
             <button
               className="btn btn-primary"

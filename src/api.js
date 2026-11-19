@@ -211,12 +211,15 @@ async function request(
 export const listConversations = () =>
   request("/conversations");
 
-export const createConversation = (title) =>
+// `id` (optional): a UUID chosen by the client so the UI can open the new
+// conversation before this request returns. Retrying with the same id is safe.
+export const createConversation = (title, id) =>
   request("/conversations", {
     method: "POST",
-    body: title
-      ? { title }
-      : {},
+    body: {
+      ...(title ? { title } : {}),
+      ...(id ? { id } : {}),
+    },
   });
 
 export const getConversation = (id) =>
@@ -336,36 +339,6 @@ export const uploadThesisDataset = (
 };
 
 /*
- * ---------------------------------------------------------
- * CHAPTER 1 OBJECTIVES (OPTIONAL .DOCX, COMPARISON ONLY)
- * ---------------------------------------------------------
- *
- * The document is read and discarded by the backend; only the
- * objectives it finds (word for word, or none) are saved on the
- * project as `chapter1_objectives`.
- */
-
-export const uploadChapter1Document = (
-  id,
-  file
-) => {
-  assertUploadSize(file);
-
-  const form = new FormData();
-
-  form.append("file", file);
-
-  return request(
-    `/thesis/projects/${encodeURIComponent(id)}/chapter1-document`,
-    {
-      method: "POST",
-      body: form,
-      formData: true,
-    }
-  );
-};
-
-/*
  * "Fill in from my chapters" (Research Context): objectives, research
  * questions, hypotheses and planned sample size read word for word from the
  * student's own .docx. Needs no project and stores nothing. POST, so it is
@@ -385,15 +358,6 @@ export const extractChapterDocument = (file) => {
   });
 };
 
-export const removeChapter1Document = (
-  id
-) =>
-  request(
-    `/thesis/projects/${encodeURIComponent(id)}/chapter1-document`,
-    {
-      method: "DELETE",
-    }
-  );
 
 /*
  * ---------------------------------------------------------

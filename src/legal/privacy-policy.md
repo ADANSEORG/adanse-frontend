@@ -1,6 +1,6 @@
 # Adanse Privacy Policy
 
-**Last updated: September 30, 2026**
+**Last updated: November 19, 2026**
 
 Adanse ("Adanse", "we", "us", or "our") provides a research and thesis
 analysis platform that helps students and researchers organize research
@@ -34,8 +34,8 @@ When you use Adanse, you may provide:
 -   Survey or interview data
 -   Documents and files
 -   Your Chapter 1–3 document, if you choose to upload it to fill in
-    your Research Context or to compare objectives (see "Optional
-    Chapter 1–3 Document" in section 3)
+    your Research Context (see "Optional Chapter 1–3 Document" in
+    section 3)
 -   Other information you choose to include in a research project
 
 You are responsible for ensuring that you have the appropriate rights
@@ -90,25 +90,17 @@ identifiable information from datasets before uploading them.
 
 ### Optional Chapter 1–3 Document
 
-You can choose to upload your own Chapter 1–3 document (a Word .docx
-file) in two places. Both are optional; everything else in Adanse works
-without them.
-
--   On **Research Context**, "Fill in from my chapters" finds your thesis
-    title, research objectives, research questions, hypotheses and planned
-    sample size, for you to tick and add.
--   On the **Dataset** step, the Chapter 1 comparison shows the objectives
-    stated in your Chapter 1 next to the objectives you entered.
+On **Research Context**, you can choose to upload your own Chapter 1–3
+document (a Word .docx file) and use "Fill in from my chapters" to find
+your thesis title, research objectives, research questions, hypotheses and
+planned sample size, for you to tick and add. This is optional; everything
+else in Adanse works without it.
 
 **What happens to the file**
 
 -   **The file itself is not stored.** It is read on our server only long
     enough to find these items, and is then discarded. We do not keep the
     file or its file name.
--   If you use "Fill in from my chapters", your browser keeps the file only
-    while the page is open, so that saving your Research Context can also
-    attach it to the Chapter 1 comparison without asking you to upload it
-    again.
 
 **What is sent to our AI service**
 
@@ -125,8 +117,8 @@ without them.
     "BY" line, so your name and the details after it are not read into the
     result. Your declaration, acknowledgements and abstract are never sent
     or kept.
--   The Chapter 1 comparison on the Dataset step does not use AI. It finds
-    your objectives using fixed rules.
+-   Your objectives are first looked for using fixed rules on our
+    server, without AI; when that finds them, its result is used.
 -   Every item shown to you must match your document word for word;
     anything that does not is not shown.
 
@@ -137,23 +129,12 @@ without them.
     is treated like anything you type yourself, including being used as
     background context when Adanse analyses open-ended responses with AI
     assistance.
--   So that the Chapter 1 comparison can show the same objectives, the
-    objectives found are held **for up to one hour** together with your
-    account and a fingerprint of the file (a SHA-256 hash, which cannot be
-    turned back into the document), and are then deleted.
--   For the Chapter 1 comparison, **only the objectives found are saved**
-    with your project, together with the heading they appear under, the
-    file's fingerprint and the date it was checked. If no clear list of
-    objectives is found, no text from the document is saved.
--   **Email addresses and phone numbers** in any saved text are replaced
-    with placeholders before it is saved.
--   **Nothing in your project changes unless you ask.** If you choose
-    "Use this wording" for an objective in the comparison, that wording is
-    copied into your Research Context and is then treated like any
-    objective you type yourself.
--   **You can remove the comparison at any time** by choosing Remove on
-    the Dataset step, which deletes the saved objectives. They are also
-    deleted when you delete the project or your account.
+-   **Nothing else from your document is kept**, on our servers or in
+    your browser, once the items have been shown to you.
+-   An earlier version of Adanse offered a Chapter 1 comparison on the
+    Dataset step, which saved the objectives it found with your project.
+    That feature has been removed, and the objectives it saved have been
+    deleted.
 
 We do not record the text of your document in our logs. If our AI service
 returns an error, the short error message it sends back may be recorded

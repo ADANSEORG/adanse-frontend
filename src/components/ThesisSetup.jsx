@@ -138,7 +138,6 @@ export default function ThesisSetup({
   initial,
   onSave,
   loading,
-  onChapterFile,
 }) {
   const [title, setTitle] = useState(
     initial?.title || ""
@@ -202,7 +201,7 @@ export default function ThesisSetup({
 
       <div className="research-layout">
         <div className="research-form">
-          <ChapterFill current={{title,objectives,research_questions:questions,hypotheses}} onApply={applyChapterFill} onFileRead={onChapterFile} disabled={loading} />
+          <ChapterFill current={{title,objectives,research_questions:questions,hypotheses}} onApply={applyChapterFill} disabled={loading} />
 
           <form onSubmit={submit}>
             <div className="field-block">

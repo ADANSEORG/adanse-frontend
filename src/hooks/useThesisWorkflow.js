@@ -14,8 +14,6 @@ import {
   getThesisProject,
   updateThesisProject,
   uploadThesisDataset,
-  uploadChapter1Document,
-  removeChapter1Document,
   listDatasetVersions,
   getDatasetVersion,
   validateDatasetVersion,
@@ -35,16 +33,27 @@ import {
 
 import { friendly } from "../errors.js";
 import { uploadSizeError } from "../uploadLimits.js";
-import { objectivesWithDocumentWording } from "../chapter1Compare.js";
 import {
   datasetContinueTarget,
   isPendingReviewVersion,
 } from "../datasetContinue.js";
 import { finalizeConfirmationMessage } from "../qualitativeFinalizePolling.js";
 import {
+  conversationDisplayTitle,
+  isPinned,
   withConversationProgress,
   withPinnedAt,
 } from "../sidebarGroups.js";
+import {
+  NEW_PROJECT_FIELDS,
+  draftConversation,
+  draftProject,
+  mergeServerConversation,
+  newConversationId,
+  pinLimitError,
+  pinLimitReached,
+  restoreConversation,
+} from "../optimisticConversations.js";
 import { chapter4Gate } from "../chapter4Gate.js";
 import {
   pathForSettingsView,
@@ -177,6 +186,25 @@ export function useThesisWorkflow({ user, authLoading }) {
     setActive,
   ] = useState(null);
 
+  // The active conversation as of the latest render, for background request
+  // callbacks that finish after the user may have moved on.
+  const activeRef = useRef(active);
+  activeRef.current = active;
+
+  // New conversations whose create request is still in flight (id -> promise).
+  // The UI opens a new project immediately (see newChat); anything that needs
+  // the server's copy -- saving setup, uploading, deleting, pinning -- waits
+  // for it with whenCreated() first.
+  const pendingCreatesRef = useRef(new Map());
+  const whenCreated = (id) =>
+    pendingCreatesRef.current.get(id) || Promise.resolve();
+
+  // Bumped by every project switch (select, newChat). A select whose requests
+  // finish after the user has already moved on (e.g. clicked a project, then
+  // "New analysis" straight away) drops its result instead of overwriting
+  // the newer screen.
+  const navigationSeqRef = useRef(0);
+
   const [
     project,
     setProject,
@@ -185,20 +213,6 @@ export function useThesisWorkflow({ user, authLoading }) {
   // One busy flag per independent action (see actionBusy.js), so one
   // action's loading label never shows on another action's button.
   const [busyActions, setBusyActions] = useState({});
-
-  // The .docx read by "Fill in from my chapters" on Research Context, kept in
-  // memory for this visit only (never stored on the server), with the
-  // project it was read for (null = a project not created yet). Saving
-  // Research Context attaches it to that project's Chapter 1 comparison, so
-  // the Dataset step doesn't ask for it again. Opening another project or
-  // starting a new one forgets it.
-  const pendingChapterFileRef = useRef(null);
-
-  const rememberChapterFile = (file) => {
-    pendingChapterFileRef.current = file
-      ? { file, conversationId: active?.id ?? null }
-      : null;
-  };
 
   const busyFor = (action) => (value) =>
     setBusyActions((prev) => ({ ...prev, [action]: value }));
@@ -281,11 +295,6 @@ export function useThesisWorkflow({ user, authLoading }) {
   const [
     sidebarOpen,
     setSidebarOpen,
-  ] = useState(false);
-
-  const [
-    creating,
-    setCreating,
   ] = useState(false);
 
   const [
@@ -409,44 +418,79 @@ export function useThesisWorkflow({ user, authLoading }) {
    * ---------------------------------------------------------
    */
 
+  // Opens the new project immediately with a client-chosen id and creates it
+  // on the server in the background (the backend accepts the id). If that
+  // fails, the project is removed again and the user is told.
   const newChat = async () => {
-    if (creating) return;
+    setError("");
+    navigationSeqRef.current += 1;
 
-    pendingChapterFileRef.current = null;
+    const id = newConversationId();
+    const draft = draftConversation(id);
 
-    await runAction({
-      setBusy: setCreating,
-      setError,
-      action: async () => {
-        const c = await createConversation();
+    setConversations((x) => [draft, ...x]);
+    setProject(draftProject(id));
+    setActive(draft);
 
-        const freshProject = await createThesisProject({
-          conversation_id: c.id,
-          title: "Untitled research",
-          objectives: [],
-          research_questions: [],
-          hypotheses: [],
-          methodology: "",
-        });
+    setUpload(null);
+    setPlan(null);
+    setAnalysis(null);
+    setDatasetVersion(null);
 
-        setConversations((x) => [c, ...x]);
-        setProject(freshProject);
-        setActive(c);
+    setStep("setup");
+    setSidebarOpen(false);
+    leaveSettings();
 
-        setUpload(null);
-        setPlan(null);
-        setAnalysis(null);
-        setDatasetVersion(null);
+    // "New analysis | push /project/:newId/setup" -- a genuinely new
+    // history entry, since this is a fresh, user-initiated navigation.
+    pushStep(projectPath(id, "setup"));
 
-        setStep("setup");
-        setSidebarOpen(false);
-        leaveSettings();
+    const creation = (async () => {
+      const conversation = await createConversation(undefined, id);
+      const freshProject = await createThesisProject({
+        conversation_id: id,
+        ...NEW_PROJECT_FIELDS,
+      });
+      return { conversation, freshProject };
+    })();
 
-        // "New analysis | push /project/:newId/setup" -- a genuinely new
-        // history entry, since this is a fresh, user-initiated navigation.
-        pushStep(projectPath(c.id, "setup"));
-      },
-    });
+    pendingCreatesRef.current.set(id, creation);
+
+    creation
+      .then(
+        ({ conversation, freshProject }) => {
+          setConversations((list) =>
+            mergeServerConversation(list, conversation)
+          );
+          setActive((current) =>
+            current?.id === id ? { ...current, ...conversation } : current
+          );
+          // Replace the placeholder only if nothing newer (e.g. a saved
+          // Research Context) has replaced it already.
+          setProject((current) =>
+            current?.draft && current.conversation_id === id
+              ? freshProject
+              : current
+          );
+        },
+        () => {
+          setConversations((list) => list.filter((v) => v.id !== id));
+
+          if (activeRef.current?.id === id) {
+            setActive(null);
+            setProject(null);
+            setStep("setup");
+            navigate("/", { replace: true });
+          }
+
+          setError("Couldn't start a new analysis. Please try again.");
+
+          // The conversation may exist without its project; don't leave it
+          // behind as an empty entry.
+          deleteConversation(id).catch(() => {});
+        }
+      )
+      .finally(() => pendingCreatesRef.current.delete(id));
   };
 
   /*
@@ -470,10 +514,6 @@ export function useThesisWorkflow({ user, authLoading }) {
    */
 
   const select = async (c, { push = true, requestedStep = null } = {}) => {
-    if (c?.id !== pendingChapterFileRef.current?.conversationId) {
-      pendingChapterFileRef.current = null;
-    }
-
     if (!requestedStep && active?.id === c?.id) {
       setSidebarOpen(false);
 
@@ -488,6 +528,8 @@ export function useThesisWorkflow({ user, authLoading }) {
 
       return;
     }
+
+    const seq = ++navigationSeqRef.current;
 
     await runAction({
       setBusy: setLoading,
@@ -513,6 +555,9 @@ export function useThesisWorkflow({ user, authLoading }) {
          * runAction's onError exactly as the conversation lookup's own
          * failure always has).
          */
+        // Opening a project that is still being created: wait for it.
+        await whenCreated(c.id);
+
         const knownConversation =
           c && typeof c === "object" && "title" in c;
 
@@ -540,6 +585,9 @@ export function useThesisWorkflow({ user, authLoading }) {
               methodology: "",
             })
           : projectOutcome.project;
+
+        // The user moved on while this loaded: leave their newer screen alone.
+        if (navigationSeqRef.current !== seq) return;
 
         setActive(fresh);
         setProject(p);
@@ -784,13 +832,6 @@ export function useThesisWorkflow({ user, authLoading }) {
    */
 
   const saveSetup = async (data) => {
-    // Only a file read for THIS project (or for the new one being created).
-    const pending = pendingChapterFileRef.current;
-    const chapterFile =
-      pending && pending.conversationId === (active?.id ?? null)
-        ? pending.file
-        : null;
-
     await runAction({
       setBusy: setLoading,
       setError,
@@ -809,6 +850,7 @@ export function useThesisWorkflow({ user, authLoading }) {
             ...data,
           });
         } else {
+          await whenCreated(c.id);
           p = await updateThesisProject(c.id, data);
 
           if (
@@ -826,18 +868,6 @@ export function useThesisWorkflow({ user, authLoading }) {
               x.map((v) => (v.id === updated.id ? updated : v))
             );
           }
-        }
-
-        if (chapterFile) {
-          // Best effort: if it fails, the Dataset step just offers the upload
-          // as before. Code-only reading; no AI call, no daily limit.
-          try {
-            const attached = await uploadChapter1Document(c.id, chapterFile);
-            p = { ...p, chapter1_objectives: attached.chapter1_objectives };
-          } catch {
-            // leave the comparison as it was
-          }
-          pendingChapterFileRef.current = null;
         }
 
         setProject(p);
@@ -893,6 +923,7 @@ export function useThesisWorkflow({ user, authLoading }) {
         }
 
         const id = conversation.id;
+        await whenCreated(id);
         const d = await uploadThesisDataset(id, f);
 
         setUpload(d);
@@ -1136,54 +1167,6 @@ export function useThesisWorkflow({ user, authLoading }) {
         setDatasetVersion(result.version);
       },
     });
-  };
-
-  /*
-   * ---------------------------------------------------------
-   * CHAPTER 1 OBJECTIVES (OPTIONAL, COMPARISON ONLY)
-   * ---------------------------------------------------------
-   *
-   * Errors are thrown to the caller (Chapter1Compare shows them next
-   * to its own button) instead of the screen-wide error banner.
-   */
-
-  const setChapter1Objectives = (value) =>
-    setProject((prev) =>
-      prev ? { ...prev, chapter1_objectives: value } : prev
-    );
-
-  const uploadChapter1 = async (docFile) => {
-    if (!active) return;
-
-    const result = await uploadChapter1Document(active.id, docFile);
-
-    setChapter1Objectives(result.chapter1_objectives);
-  };
-
-  const removeChapter1 = async () => {
-    if (!active) return;
-
-    await removeChapter1Document(active.id);
-
-    setChapter1Objectives(null);
-  };
-
-  // "Use this wording" on an unmatched document objective: saved through the
-  // same project PATCH Research Context uses (saveSetup), but without
-  // saveSetup's step change or screen-wide loading -- the researcher stays on
-  // the Dataset step and the panel re-checks matches from the saved project.
-  const adoptChapter1Wording = async (position, wording) => {
-    if (!active) return;
-
-    const objectives = objectivesWithDocumentWording(
-      project?.objectives,
-      position,
-      wording
-    );
-
-    const updated = await updateThesisProject(active.id, { objectives });
-
-    setProject((prev) => ({ ...(prev || {}), ...(updated || {}), objectives }));
   };
 
   /*
@@ -1680,31 +1663,46 @@ export function useThesisWorkflow({ user, authLoading }) {
    * ---------------------------------------------------------
    */
 
+  // The row disappears (and the project closes, if open) as soon as the user
+  // confirms; the request runs in the background. If the server refuses, the
+  // row comes back where it was, with an error.
   const deleteChat = async (c) => {
-    await runAction({
-      setBusy: () => {},
-      setError,
-      action: async () => {
-        await deleteConversation(c.id);
+    const index = conversations.findIndex((v) => v.id === c.id);
 
-        setConversations((x) => x.filter((v) => v.id !== c.id));
+    setError("");
+    setConversations((x) => x.filter((v) => v.id !== c.id));
 
-        if (active?.id === c.id) {
-          setActive(null);
-          setProject(null);
-          setUpload(null);
-          setPlan(null);
-          setAnalysis(null);
-          setDatasetVersion(null);
-          setStep("setup");
+    if (active?.id === c.id) {
+      setActive(null);
+      setProject(null);
+      setUpload(null);
+      setPlan(null);
+      setAnalysis(null);
+      setDatasetVersion(null);
+      setStep("setup");
 
-          clearLastVisited(user.id);
-          // "Delete the active project | replace /" -- the resource this
-          // entry named is gone.
-          navigate("/", { replace: true });
-        }
-      },
-    });
+      clearLastVisited(user.id);
+      // "Delete the active project | replace /" -- the resource this
+      // entry named is gone.
+      navigate("/", { replace: true });
+    }
+
+    try {
+      await whenCreated(c.id);
+    } catch {
+      return; // never created on the server: nothing to delete
+    }
+
+    try {
+      await deleteConversation(c.id);
+    } catch (error) {
+      if (error?.status === 404) return; // already gone
+
+      setConversations((x) => restoreConversation(x, c, index));
+      setError(
+        `Couldn't delete "${conversationDisplayTitle(c)}". It's back in your list. Please try again.`
+      );
+    }
   };
 
   /*
@@ -1720,14 +1718,41 @@ export function useThesisWorkflow({ user, authLoading }) {
    * its normal date group.
    */
 
+  //
+  // Both are optimistic: the pin moves on screen at once and is put back if
+  // the request fails (the error still rejects, for the sidebar's notice).
   const pinChat = async (c) => {
-    const updated = await pinConversation(c.id);
-    setConversations((list) => withPinnedAt(list, c.id, updated?.pinned_at));
+    if (!isPinned(c) && pinLimitReached(conversations)) {
+      throw pinLimitError();
+    }
+
+    const previous = c.pinned_at ?? null;
+    const optimistic = new Date().toISOString();
+    setConversations((list) => withPinnedAt(list, c.id, optimistic));
+
+    try {
+      await whenCreated(c.id);
+      const updated = await pinConversation(c.id);
+      setConversations((list) =>
+        withPinnedAt(list, c.id, updated?.pinned_at ?? optimistic)
+      );
+    } catch (error) {
+      setConversations((list) => withPinnedAt(list, c.id, previous));
+      throw error;
+    }
   };
 
   const unpinChat = async (c) => {
-    await unpinConversation(c.id);
+    const previous = c.pinned_at ?? null;
     setConversations((list) => withPinnedAt(list, c.id, null));
+
+    try {
+      await whenCreated(c.id);
+      await unpinConversation(c.id);
+    } catch (error) {
+      setConversations((list) => withPinnedAt(list, c.id, previous));
+      throw error;
+    }
   };
 
   /*
@@ -1794,7 +1819,6 @@ export function useThesisWorkflow({ user, authLoading }) {
     setError,
     sidebarOpen,
     setSidebarOpen,
-    creating,
 
     newChat,
     select,
@@ -1810,10 +1834,6 @@ export function useThesisWorkflow({ user, authLoading }) {
     reverseScores,
     saveColumnCategoryOrder,
     clearColumnCategoryOrder,
-    uploadChapter1,
-    removeChapter1,
-    adoptChapter1Wording,
-    rememberChapterFile,
     activateDataset,
     build,
     confirmQualitativeColumns,

@@ -44,7 +44,7 @@ test("every upload path is guarded and the UI states the real limit", () => {
     "utf8"
   );
 
-  assert.equal((api.match(/assertUploadSize\(file\);/g) || []).length, 3);
+  assert.equal((api.match(/assertUploadSize\(file\);/g) || []).length, 2);
   assert.match(
     hook,
     /const sizeError = uploadSizeError\(f\);[\s\S]*?if \(sizeError\) \{[\s\S]*?return;[\s\S]*?\}[\s\S]*?await runAction/
