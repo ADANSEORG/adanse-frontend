@@ -16,14 +16,54 @@ const bodyOf = (name) => {
   return workflow.slice(start, start + end);
 };
 
-test("a new chat uses the created project before switching the active id", () => {
+test("a new chat opens immediately and creates the project in the background", () => {
   const body = bodyOf("newChat");
-  const projectLoad = body.indexOf("const freshProject = await createThesisProject(");
-  const setActive = body.indexOf("setActive(c)");
 
-  assert.ok(projectLoad > 0, "newChat must keep the created project");
-  assert.ok(setActive > projectLoad, "setActive(c) must come after the project create");
-  assert.match(body, /setProject\(freshProject\)/);
+  // The placeholder project is set before the active id switches, so the
+  // setup screen never renders a new conversation with the previous project.
+  const draft = body.indexOf("setProject(draftProject(id))");
+  const switchActive = body.indexOf("setActive(draft)");
+  assert.ok(draft > 0 && switchActive > draft, "draft project before setActive(draft)");
+
+  // Nothing is awaited before the screen switches.
+  const navigate = body.indexOf("pushStep(projectPath(id, \"setup\"))");
+  assert.ok(navigate > 0);
+  assert.doesNotMatch(body.slice(0, navigate), /await /);
+
+  // The server copy uses the same client-chosen id, and the real project
+  // replaces only the untouched placeholder.
+  assert.match(body, /createConversation\(undefined, id\)/);
+  assert.match(
+    body,
+    /current\?\.draft && current\.conversation_id === id\s*\?\s*freshProject/
+  );
+
+  // Anything needing the server copy waits for it.
+  assert.match(body, /pendingCreatesRef\.current\.set\(id, creation\)/);
+  assert.match(bodyOf("saveSetup"), /await whenCreated\(c\.id\);\s*p = await updateThesisProject/);
+  assert.match(bodyOf("deleteChat"), /await whenCreated\(c\.id\)/);
+});
+
+test("a project that loads after the user moved on doesn't overwrite the screen", () => {
+  assert.match(bodyOf("newChat"), /navigationSeqRef\.current \+= 1/);
+  assert.match(bodyOf("select"), /if \(navigationSeqRef\.current !== seq\) return;/);
+});
+
+test("delete and pin update the sidebar before their requests and undo on failure", () => {
+  const del = bodyOf("deleteChat");
+  assert.ok(
+    del.indexOf("setConversations((x) => x.filter(") <
+      del.indexOf("await deleteConversation(c.id)")
+  );
+  assert.match(del, /restoreConversation\(x, c, index\)/);
+
+  const pin = bodyOf("pinChat");
+  assert.ok(pin.indexOf("withPinnedAt(list, c.id, optimistic)") < pin.indexOf("await pinConversation("));
+  assert.match(pin, /withPinnedAt\(list, c\.id, previous\)/);
+
+  const unpin = bodyOf("unpinChat");
+  assert.ok(unpin.indexOf("withPinnedAt(list, c.id, null)") < unpin.indexOf("await unpinConversation("));
+  assert.match(unpin, /withPinnedAt\(list, c\.id, previous\)/);
 });
 
 test("opening a project does not fetch message history the app never renders", () => {

@@ -17,6 +17,7 @@ import {
   orderStatusLabel,
 } from "../categoryOrder.js";
 import { appliedSteps, stepLabel } from "../cleaningSteps.js";
+import { excelSourceNote } from "../excelSource.js";
 import { actionButton, anyBusy } from "../actionBusy.js";
 import {
   canReverse,
@@ -313,6 +314,9 @@ export default function DatasetReview({
 
   const summary = cleaningReport.summary || {};
 
+  // Which sheet / header row of an Excel upload was read, when not obvious.
+  const sourceNote = excelSourceNote(cleaningReport);
+
   const canValidate =
     status === "cleaned" && !loading;
 
@@ -440,6 +444,8 @@ export default function DatasetReview({
             ).toLocaleString()}{" "}
             rows · {version.column_count ?? 0} columns
           </span>
+
+          {sourceNote && <span>{sourceNote}</span>}
         </div>
       </div>
 

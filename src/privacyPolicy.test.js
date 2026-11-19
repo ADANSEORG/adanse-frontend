@@ -14,12 +14,13 @@ test("the policy states what goes to the AI and what never does", () => {
   assert.match(policy, /sends \*\*short excerpts\*\* of your document to an AI model/);
   assert.match(policy, /Email addresses and phone numbers in these excerpts are replaced with placeholders before they are sent/);
   assert.match(policy, /\*\*Your title page is never sent\.\*\*/);
-  assert.match(policy, /The Chapter 1 comparison on the Dataset step does not use AI/);
+  assert.match(policy, /Your objectives are first looked for using fixed rules on our server, without AI/);
 });
 
 test("the policy states what is kept, and for how long", () => {
   assert.match(policy, /\*\*The file itself is not stored\.\*\*/);
-  assert.match(policy, /held \*\*for up to one hour\*\*/);
+  assert.match(policy, /\*\*Nothing else from your document is kept\*\*/);
+  assert.doesNotMatch(policy, /Chapter 1 comparison (shows|can show)|Use this wording|choosing Remove on the Dataset step/);
   assert.match(policy, /Nothing from "Fill in from my chapters" is saved to your project unless you add it/);
   assert.match(policy, /Your planned sample size, if you give one/);
 });

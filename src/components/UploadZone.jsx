@@ -125,9 +125,11 @@ export default function UploadZone({
 
   return (
     <div
-      className={`upload-row ${
+      className={`upload-zone ${
         dragging ? "dragging" : ""
       } ${disabled ? "disabled" : ""}`}
+      // The whole area opens the file picker, not just the button.
+      onClick={openFilePicker}
       onDragOver={(e) => {
         e.preventDefault();
 
@@ -135,8 +137,12 @@ export default function UploadZone({
           setDragging(true);
         }
       }}
-      onDragLeave={() => {
-        setDragging(false);
+      onDragLeave={(e) => {
+        // Moving over the icon or text inside fires dragleave on the
+        // area itself; only clear the highlight when the drag leaves it.
+        if (!e.currentTarget.contains(e.relatedTarget)) {
+          setDragging(false);
+        }
       }}
       onDrop={(e) => {
         e.preventDefault();
@@ -146,17 +152,19 @@ export default function UploadZone({
       }}
     >
       <FileUp
-        size={18}
-        strokeWidth={1.8}
-        className="import-row-icon"
+        size={36}
+        strokeWidth={1.5}
+        className="upload-zone-icon"
         aria-hidden="true"
       />
 
-      <div className="import-row-copy">
+      <div className="upload-zone-copy">
         <strong>
           {disabled
             ? "Uploading your dataset…"
-            : "Upload dataset (.csv, .xls, .xlsx)"}
+            : dragging
+              ? "Drop to upload"
+              : "Upload dataset (.csv, .xls, .xlsx)"}
         </strong>
 
         <span>
@@ -167,9 +175,13 @@ export default function UploadZone({
       </div>
 
       <button
-        className="btn btn-secondary"
+        className="btn btn-primary"
         type="button"
-        onClick={openFilePicker}
+        onClick={(e) => {
+          // The area's own click would open the picker a second time.
+          e.stopPropagation();
+          openFilePicker();
+        }}
         disabled={disabled}
       >
         {disabled ? "Uploading…" : "Choose file"}
@@ -182,6 +194,7 @@ export default function UploadZone({
         type="file"
         accept=".csv,.xls,.xlsx"
         disabled={disabled}
+        onClick={(e) => e.stopPropagation()}
         onChange={(e) => {
           handleFiles(e.target.files);
 

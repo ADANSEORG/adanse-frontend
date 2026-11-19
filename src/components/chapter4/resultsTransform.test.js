@@ -8,6 +8,7 @@ import {
   describeRemainingIssues,
   getTestName,
   getStatistic,
+  getResultSummary,
   collectQualitativeFindings,
   columnsTaggedToObjective,
   objectivesTaggedToColumn,
@@ -500,4 +501,36 @@ test("a frequency result is named, counts as quantitative, and reads as descript
   assert.match(sentence, /distributed/);
   assert.match(sentence, /n = 150/);
   assert.match(sentence, /not a test of a relationship/);
+});
+
+test("the engine's run-time method choice names the test and its statistic", () => {
+  const result = {
+    test: "t_test",
+    method: "mann_whitney_u",
+    test_name: "Mann-Whitney U test",
+    statistic_text: "U = 25.50",
+    t_statistic: null,
+    p_value: 0.0693,
+    p_value_formatted: "= 0.0693",
+  };
+  const item = { test_name: "Welch independent-samples t-test" };
+  assert.equal(getTestName(result, item), "Mann-Whitney U test");
+  assert.equal(getStatistic(result), "U = 25.50");
+  assert.equal(getResultSummary(result), "Mann-Whitney U test: U = 25.50, p = 0.0693.");
+});
+
+test("results saved before the engine named its method keep the old labels", () => {
+  const old = { test: "t_test", t_statistic: -1.8608, df: 17.776 };
+  assert.equal(getTestName(old, {}), "Welch independent-samples t-test");
+  assert.equal(getStatistic(old), "t(17.8) = -1.861");
+});
+
+test("new study designs are named from the result", () => {
+  const result = {
+    test: "mediation",
+    test_name: "Mediation analysis (bootstrapped indirect effect)",
+    statistic_text: "ab = 0.210, 95% CI [0.120, 0.310]",
+  };
+  assert.equal(getTestName(result, {}), "Mediation analysis (bootstrapped indirect effect)");
+  assert.equal(getStatistic(result), "ab = 0.210, 95% CI [0.120, 0.310]");
 });

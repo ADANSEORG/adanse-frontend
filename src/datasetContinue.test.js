@@ -43,9 +43,12 @@ test("uploading a dataset stays on the Dataset step (no automatic jump)", () => 
   assert.doesNotMatch(body, /projectPath\([^)]*"(review|analysis)"\)/);
 });
 
-test("the Chapter 1 panel is not hidden while a dataset uploads", () => {
+test("the Dataset page is just the upload: no Chapter 1 comparison panel", () => {
   const app = readFileSync(new URL("./App.jsx", import.meta.url), "utf8");
-  assert.doesNotMatch(app, /!loading && \(\s*<Chapter1Compare/);
+  assert.doesNotMatch(app, /<Chapter1Compare/);
+  const zone = readFileSync(new URL("./components/UploadZone.jsx", import.meta.url), "utf8");
+  assert.match(zone, /className=\{`upload-zone /);
+  assert.match(zone, /onClick=\{openFilePicker\}/);
 });
 
 test("Continue's server check never shows the dataset upload spinner", () => {

@@ -33,17 +33,6 @@ test("Chapter 1 panel: uploading shows 'Reading…' on the upload button only", 
   assert.equal(actionButton(pending, "wording:1").loading, false);
 });
 
-test("Chapter 1 panel: each button reads its own action's state", () => {
-  const panel = source("Chapter1Compare.jsx");
-  assert.match(panel, /\{uploadButton\.loading\s*\?\s*"Reading…"/);
-  assert.match(panel, /\{removeButton\.loading \? "Removing…" : "Remove"\}/);
-  assert.match(panel, /\{wordingButton\(row\.document\.number\)\.loading \? "Saving…" : "Use this wording →"\}/);
-  assert.match(panel, /run\("upload",/);
-  assert.match(panel, /run\("remove",/);
-  assert.match(panel, /run\(`wording:\$\{position\}`,/);
-  assert.doesNotMatch(panel, /\{busy\s*\?/);
-});
-
 test("Category order: 'Reset to automatic' no longer shows 'Saving…' on Save", () => {
   const pending = { reset: true };
   assert.equal(actionButton(pending, "save").loading, false);

@@ -250,7 +250,6 @@ export default function ConversationSidebar({
   activeId,
   loading,
   error,
-  creating,
   onNewChat,
   onSelect,
   onDelete,
@@ -419,13 +418,9 @@ export default function ConversationSidebar({
             className="btn btn-primary sidebar-new"
             type="button"
             onClick={handleNewChat}
-            disabled={
-              creating || loading
-            }
+            disabled={loading}
           >
-            {creating
-              ? "Creating…"
-              : "New analysis"}
+            New analysis
           </button>
         </div>
 

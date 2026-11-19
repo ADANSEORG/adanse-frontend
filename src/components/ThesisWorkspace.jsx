@@ -31,6 +31,11 @@ const TEST_NAMES = {
   cross_tab: "Chi-square test of association",
   t_test: "Welch independent-samples t-test",
   anova: "One-way ANOVA",
+  regression: "Multiple linear regression",
+  paired_comparison: "Paired comparison",
+  logistic_regression: "Binary logistic regression",
+  moderation: "Moderation analysis",
+  mediation: "Mediation analysis",
   thematic_analysis: "Thematic analysis",
 };
 
@@ -184,9 +189,11 @@ function QuantitativeResult({ result }) {
     );
   }
   return (
+    <>
     <div className="analysis-detail-grid">
       <div><span>Statistic</span><strong>
-        {test === "correlation" ? `r = ${number(result.r)}` :
+        {result.statistic_text ? result.statistic_text :
+         test === "correlation" ? `r = ${number(result.r)}` :
          test === "cross_tab" ? `χ² = ${number(result.chi2)}` :
          test === "t_test" ? `t(${number(result.df, 1)}) = ${number(result.t_statistic)}` :
          test === "anova" ? `F = ${number(result.f_statistic)}` :
@@ -213,6 +220,8 @@ function QuantitativeResult({ result }) {
         </div>
       )}
     </div>
+    {result.method_reason && <small className="analysis-method-reason">{result.method_reason}</small>}
+    </>
   );
 }
 
@@ -448,7 +457,9 @@ function HypothesisPlan({ plan, analysis }) {
 function AnalysisCard({ item, objectiveId, numericColumns, categoricalColumns, onOverride, overrideLocked = false, conversationId, onQualitativeFinalized, credits, onBuyCredits }) {
   const result = item?.result;
   const method = result?.test || item?.test;
-  const name = TEST_NAMES[method] || item?.method || item?.test_name || "Analysis";
+  // The engine's run-time choice (e.g. "Kruskal-Wallis H test") names a
+  // completed analysis; before it runs, the plan's own name applies.
+  const name = result?.test_name || item?.test_name || TEST_NAMES[method] || item?.method || "Analysis";
   const columns = result?.columns || item?.columns || (item?.column ? [item.column] : []);
   const complete = item?.status === "complete" && result;
   const needsQualitativeReview = item?.status === "needs_review" && !result && columns.length > 0;

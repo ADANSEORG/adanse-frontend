@@ -146,14 +146,14 @@ export function getTestName(result, item) {
     frequency: "Frequency table",
   };
 
-  // Test types with no entry above (distribution, thematic_analysis) have
-  // no result.test_name either -- the backend only ever sets test_name on
-  // the outer analysis item (see thesis.py's item.get("test_name")), so
-  // that must be checked before falling back to the raw "test" enum value.
+  // The engine names the exact method it chose at run time (e.g.
+  // "Mann-Whitney U test" for a t_test whose groups were skewed), so that
+  // wins. Results saved before that fall back to the plan-time names by
+  // test type, then the outer item's own test_name.
   return (
+    result?.test_name ||
     names[result?.test] ||
     item?.test_name ||
-    result?.test_name ||
     result?.test ||
     "Statistical test"
   );
@@ -181,6 +181,12 @@ export function getFrequencyRows(result) {
 
 export function getStatistic(result) {
   if (!result) return "—";
+
+  // APA-style statistic as the engine reported it: t(17.8) = -1.86,
+  // U = 25.50, H(2) = 7.99, rₛ = 0.412, ab = 0.210, 95% CI [...].
+  if (result.statistic_text) {
+    return result.statistic_text;
+  }
 
   if (result.test === "correlation") {
     return `r = ${formatNumber(result.r, 3)}`;
@@ -272,6 +278,10 @@ export function getResultSummary(result) {
 
   if (result.interpretation) {
     return result.interpretation;
+  }
+
+  if (result.test_name && result.statistic_text) {
+    return `${result.test_name}: ${result.statistic_text}, ${getPValue(result)}.`;
   }
 
   if (result.test === "correlation") {
