@@ -8,8 +8,6 @@ import PrivacyPolicy from "./components/PrivacyPolicy.jsx";
 import TermsOfService from "./components/TermsOfService.jsx";
 import ResetPassword from "./components/ResetPassword.jsx";
 import "./styles.css";
-import "./chapter4-preview.css";
-import "./theme.css";
 
 /*
  * /payment/callback, /privacy, /terms, and /reset-password are their own

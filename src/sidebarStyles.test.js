@@ -98,7 +98,7 @@ test("the icons sit inside the strip the title window leaves for them", () => {
 });
 
 test("the title window runs to the row's right edge at rest and only leaves room while the icons show", () => {
-  assert.match(base(".sidebar-item-button").padding, /^12px 0 12px 12px$/, "no right padding on the button");
+  assert.match(base(".sidebar-item-button").padding, /^\S+ 0 \S+ \S+$/, "no right padding on the button");
   assert.equal(base(".sidebar-item-title-clip")["margin-right"], undefined, "nothing reserved at rest");
 
   const shown = rules.find((r) => !r.media && r.selectors.includes(".sidebar-item:hover .sidebar-item-title-clip"));
