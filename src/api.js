@@ -344,12 +344,27 @@ export const uploadThesisDataset = (
  * student's own .docx. Needs no project and stores nothing. POST, so it is
  * never retried automatically (one AI call, daily cap per user).
  */
-export const extractChapterDocument = (file) => {
+/*
+ * "Tell me when transcript upload arrives" -- offered on the Data step only
+ * after a Word/text transcript was dropped. Sends the file type only.
+ */
+export const joinTranscriptWaitlist = (fileType) =>
+  request("/thesis/waitlist/transcripts", {
+    method: "POST",
+    body: { file_type: fileType },
+  });
+
+export const extractChapterDocument = (file, studyType = null) => {
   assertUploadSize(file);
 
   const form = new FormData();
 
   form.append("file", file);
+
+  // A qualitative study's participant count is not read as a sample size.
+  if (studyType) {
+    form.append("study_type", studyType);
+  }
 
   return request("/thesis/chapter-document/extract", {
     method: "POST",

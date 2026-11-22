@@ -525,6 +525,13 @@ export default function QualitativeReview({ conversationId, column, onFinalized,
         </div>
       )}
 
+      {session.coding_warning && (step === "familiarize" || step === "code") && (
+        <div className="analysis-warning coding-fallback-warning" role="alert">
+          <strong>AI coding didn't work for this column</strong>
+          <span>{session.coding_warning}</span>
+        </div>
+      )}
+
       {step === "familiarize" && (
         <div className="qualitative-familiarize">
           <p className="analysis-reasoning">{session.overview}</p>
@@ -539,7 +546,11 @@ export default function QualitativeReview({ conversationId, column, onFinalized,
           <div className="analysis-action-bar">
             <div>
               <strong>{(session.codes || []).length} suggested codes ready for review</strong>
-              <span>Adanse has read through every response and proposed an initial code for each.</span>
+              <span>
+                {session.coding_warning
+                  ? "Some codes below are placeholders, not AI coding. Check the warning above before you continue."
+                  : "Adanse has read through every response and proposed an initial code for each."}
+              </span>
             </div>
             <button className="btn btn-primary" type="button" onClick={handleContinueToCoding}>
               Continue to coding →
@@ -573,6 +584,14 @@ export default function QualitativeReview({ conversationId, column, onFinalized,
                 </label>
 
                 <div className="dataset-variable-main">
+                  {code.placeholder && (
+                    <span
+                      className="dataset-type-badge placeholder-code-badge"
+                      title="The AI couldn't code this response. This name is just its first words."
+                    >
+                      Placeholder
+                    </span>
+                  )}
                   {(code.extracts || []).map((extract, i) => (
                     <span className="dataset-grouping-variants" key={i}>
                       <strong>{extract.respondent_id}</strong>: “{extract.quote}”

@@ -1008,8 +1008,10 @@ export default function Chapter4({
               objectives and the{" "}
               {isQualitativeOnly
                 ? "thematic analysis"
+                : Object.keys(qualitativeFindings).length > 0
+                ? "statistical procedures and thematic analysis"
                 : "statistical procedures"}{" "}
-              applied to the dataset.
+              applied to the data.
             </p>
 
             {isQualitativeOnly ? (

@@ -117,3 +117,43 @@ export function hypothesisDecision(result, alpha = 0.05) {
   if (p === null || p === undefined || !Number.isFinite(Number(p))) return null;
   return Number(p) < alpha ? "Reject the null hypothesis" : "Fail to reject the null hypothesis";
 }
+
+function plannedCounts(objectives, selectedQualitativeColumns) {
+  const statistical = (objectives || []).reduce(
+    (n, objective) => n + (objective?.analyses?.length || 0),
+    0
+  );
+  const thematic = Array.isArray(selectedQualitativeColumns)
+    ? selectedQualitativeColumns.length
+    : 0;
+  return { statistical, thematic };
+}
+
+/*
+ * Headline for the Analysis action bar. Counts the thematic analyses the
+ * researcher confirmed (one per selected open-ended column) as well as the
+ * statistical ones, so a qualitative-only plan no longer reads
+ * "0 data-supported analyses planned".
+ */
+export function plannedAnalysesLabel(objectives, selectedQualitativeColumns) {
+  const { statistical, thematic } = plannedCounts(objectives, selectedQualitativeColumns);
+  const total = statistical + thematic;
+  return `${total} data-supported ${total === 1 ? "analysis" : "analyses"} planned`;
+}
+
+export function plannedAnalysesDetail(objectives, selectedQualitativeColumns) {
+  const { statistical, thematic } = plannedCounts(objectives, selectedQualitativeColumns);
+  const parts = [];
+  if (statistical) {
+    parts.push(`${statistical} statistical`);
+  }
+  if (thematic) {
+    parts.push(
+      `${thematic} thematic (${thematic === 1 ? "one open-ended column" : `${thematic} open-ended columns`})`
+    );
+  }
+  if (!parts.length) {
+    return "No analysis is supported by this data yet. Check your objectives and data.";
+  }
+  return `${parts.join(" and ")}.`;
+}

@@ -89,7 +89,7 @@ test("unticked items are not added, and typographic twins aren't duplicated", ()
 
 test("the Research Context form offers it above the fields and applies only what changes", () => {
   const form = readFileSync(new URL("./components/ThesisSetup.jsx", import.meta.url), "utf8");
-  assert.match(form, /<ChapterFill current=\{\{title,objectives,research_questions:questions,hypotheses\}\} onApply=\{applyChapterFill\}/);
+  assert.match(form, /<ChapterFill current=\{\{title,objectives,research_questions:questions,hypotheses\}\} studyType=\{studyType\} onApply=\{applyChapterFill\}/);
   assert.match(form, /if\(c\.plannedSample!==undefined\)setPlannedSample\(c\.plannedSample\)/);
   const panel = readFileSync(new URL("./components/ChapterFill.jsx", import.meta.url), "utf8");
   assert.match(panel, /FILL_CONSENT_NOTICE/);
