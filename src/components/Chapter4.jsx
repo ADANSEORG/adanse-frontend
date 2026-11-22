@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import CreditActionButton from "./CreditActionButton.jsx";
 import { hasStaleResults } from "../analysisOverride.js";
+import { cleanThemeNarrative } from "../themeNarrative.js";
 import {
   formatVariableName,
   formatNumber,
@@ -93,7 +94,10 @@ function QualitativeResult({ result, item }) {
         // described" or "the majority of respondents" here, mirroring
         // generate_chapter()'s docx rendering exactly.
         const narrative = guardPrevalenceLanguage(
-          String(theme?.narrative || "").trim(),
+          cleanThemeNarrative(
+            theme?.narrative,
+            theme?.central_organizing_concept || theme?.description
+          ),
           Number(theme?.response_count) || 0,
           Number(theme?.percentage) || 0
         );
