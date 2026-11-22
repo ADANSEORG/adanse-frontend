@@ -66,3 +66,10 @@ test("the sign-in load keeps projects and credits independent", () => {
   const workflow = readFileSync(new URL("./hooks/useThesisWorkflow.js", import.meta.url), "utf8");
   assert.match(workflow, /Promise\.allSettled\(\[\s*listConversations\(\),\s*getCredits\(\),\s*\]\)/);
 });
+
+test("an AI-busy 503 shows the backend's no-charge message as is", () => {
+  const message =
+    "Adanse's AI is busy right now, so this step was stopped before it finished. " +
+    "You have not been charged for it. Please try again in a few minutes.";
+  assert.equal(friendly({ status: 503, message }), message);
+});
