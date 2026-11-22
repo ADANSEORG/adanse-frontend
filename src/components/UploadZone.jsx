@@ -58,7 +58,7 @@ export default function UploadZone({
       <div className="current-dataset-card">
         <div className="current-dataset-copy">
           <div className="current-dataset-label">
-            Current dataset
+            Current data file
           </div>
 
           <div className="current-dataset-name">
@@ -86,7 +86,7 @@ export default function UploadZone({
           >
             {disabled
               ? "Uploading…"
-              : "Replace dataset"}
+              : "Replace file"}
           </button>
 
           <button
@@ -99,7 +99,7 @@ export default function UploadZone({
           </button>
         </div>
 
-        {/* Hidden file input used by Replace dataset */}
+        {/* Hidden file input used by Replace file */}
         <input
           ref={inputRef}
           className="current-dataset-file-input"
@@ -161,10 +161,10 @@ export default function UploadZone({
       <div className="upload-zone-copy">
         <strong>
           {disabled
-            ? "Uploading your dataset…"
+            ? "Uploading your data…"
             : dragging
               ? "Drop to upload"
-              : "Upload dataset (.csv, .xls, .xlsx)"}
+              : "Upload data (.csv, .xls, .xlsx)"}
         </strong>
 
         <span>

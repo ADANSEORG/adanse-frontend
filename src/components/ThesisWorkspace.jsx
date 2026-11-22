@@ -22,6 +22,8 @@ import {
   columnPairLabel,
   hypothesisDecision,
   hypothesisEntries,
+  plannedAnalysesDetail,
+  plannedAnalysesLabel,
 } from "../planPresentation.js";
 
 const TEST_NAMES = {
@@ -816,11 +818,11 @@ export default function ThesisWorkspace({ project, upload, plan, analysis, onBui
       {plan && !hasResults && (
         <div className="analysis-action-bar">
           <div>
-            <strong>{objectives.reduce((n, x) => n + (x.analyses?.length || 0), 0)} data-supported analyses planned</strong>
+            <strong>{plannedAnalysesLabel(objectives, selectedQualitativeColumns)}</strong>
             <span>
               {qualitativeSelectionPending
                 ? "Confirm your qualitative data sources above before running analysis."
-                : "Quantitative and qualitative methods can coexist when the CSV supports both."}
+                : plannedAnalysesDetail(objectives, selectedQualitativeColumns)}
             </span>
             {runButton.loading && (
               <span className="task-status" role="status">

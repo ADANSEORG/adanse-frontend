@@ -227,13 +227,13 @@ export default function App() {
     },
     {
       key: "dataset",
-      label: "Dataset",
+      label: "Data",
       available:
         Boolean(active) && isAnalysis,
       lockedReason:
         isChapter4
-          ? "Go back to Analysis to revisit the dataset."
-          : "Add a dataset to unlock this step.",
+          ? "Go back to Analysis to revisit your data."
+          : "Add your data to unlock this step.",
     },
     {
       key: "analysis",
@@ -267,12 +267,12 @@ export default function App() {
     : isAnalysis
     ? analysis
       ? "Analysed"
-      : "Dataset added"
+      : "Data added"
     : isReview
-    ? "Dataset added"
+    ? "Data added"
     : isDataset
     ? upload
-      ? "Dataset added"
+      ? "Data added"
       : "Draft"
     : "Draft";
 
@@ -506,13 +506,18 @@ export default function App() {
               <section>
                 <header className="page-head">
                   <h1 className="page-title">
-                    Dataset
+                    Data
                   </h1>
 
                   <p className="page-help">
-                    Upload the CSV or Excel file
-                    behind your thesis. Adanse profiles
-                    it before choosing any analysis.
+                    Upload your survey export, or a
+                    spreadsheet of interview or
+                    open-ended responses (one row per
+                    participant). Adanse can run
+                    statistical tests, thematic analysis
+                    of open-ended answers, or both from
+                    the same file. It profiles your data
+                    before choosing any analysis.
                   </p>
                 </header>
 
@@ -525,7 +530,7 @@ export default function App() {
                    */
                   <div className="upload-progress">
                     <div className="upload-progress-text">
-                      Uploading your dataset…
+                      Uploading your data…
                     </div>
 
                     <div className="upload-progress-sub">
@@ -568,7 +573,7 @@ export default function App() {
                   <div className="current-dataset-card">
                     <div className="current-dataset-copy">
                       <div className="current-dataset-label">
-                        Current dataset
+                        Current data file
                       </div>
 
                       <div className="current-dataset-name">
@@ -604,7 +609,7 @@ export default function App() {
                           loading
                         }
                       >
-                        Replace dataset
+                        Replace file
                       </button>
 
                       <button

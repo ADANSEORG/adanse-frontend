@@ -195,7 +195,8 @@ export default function ThesisSetup({
 
         <p className="page-help">
           Describe your study. Adanse uses this to
-          choose suitable statistical tests.
+          choose a suitable analysis: statistical
+          tests, thematic analysis, or both.
         </p>
       </header>
 
