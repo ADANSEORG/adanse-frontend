@@ -13,6 +13,7 @@ import {
   tickedCount,
   titleWouldReplace,
 } from "../chapterFill.js";
+import { reviewForStudyType } from "../studyType.js";
 
 /*
  * Optional, on Research Context: read objectives, research questions,
@@ -20,11 +21,15 @@ import {
  * .docx, and add only what they tick to the form. Nothing is saved until
  * they save the form. See chapterFill.js.
  */
-export default function ChapterFill({ current, onApply, disabled = false }) {
+export default function ChapterFill({ current, onApply, studyType = null, disabled = false }) {
   const inputRef = useRef(null);
   const [reading, setReading] = useState(false);
   const [error, setError] = useState("");
-  const [review, setReview] = useState(null);
+  const [fullReview, setReview] = useState(null);
+  // Filtered at render, not at read time, so changing the study type after
+  // reading the file updates the list (a qualitative study gets no
+  // hypotheses row; its sample size reads as participants).
+  const review = reviewForStudyType(fullReview, studyType);
   const [ticked, setTicked] = useState(() => new Set());
   const [addedNote, setAddedNote] = useState("");
   const [dragging, setDragging] = useState(false);

@@ -50,7 +50,13 @@ test("only a change is sent with the Research Context save", () => {
 
 test("the Research Context form has the field and blocks saving an invalid value", () => {
   const form = readFileSync(new URL("./components/ThesisSetup.jsx", import.meta.url), "utf8");
-  assert.match(form, /Planned sample size <span>optional<\/span>/);
+  // The label depends on the study type ("Number of participants" for a
+  // qualitative study); see studyType.test.js.
+  assert.match(form, /\{fields\.sampleLabel\} <span>optional<\/span>/);
+  assert.match(
+    readFileSync(new URL("./studyType.js", import.meta.url), "utf8"),
+    /sampleLabel: "Planned sample size"/
+  );
   assert.match(form, /\.\.\.plannedSamplePayload\(plannedSample,initial\)/);
   assert.match(form, /savedPlannedSample\(initial\)/);
   assert.match(form, /disabled=\{loading\|\|!title\.trim\(\)\|\|Boolean\(plannedSampleError\)\}/);
