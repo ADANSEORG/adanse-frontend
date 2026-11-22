@@ -344,12 +344,17 @@ export const uploadThesisDataset = (
  * student's own .docx. Needs no project and stores nothing. POST, so it is
  * never retried automatically (one AI call, daily cap per user).
  */
-export const extractChapterDocument = (file) => {
+export const extractChapterDocument = (file, studyType = null) => {
   assertUploadSize(file);
 
   const form = new FormData();
 
   form.append("file", file);
+
+  // A qualitative study's participant count is not read as a sample size.
+  if (studyType) {
+    form.append("study_type", studyType);
+  }
 
   return request("/thesis/chapter-document/extract", {
     method: "POST",

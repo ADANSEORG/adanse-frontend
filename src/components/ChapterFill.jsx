@@ -50,7 +50,7 @@ export default function ChapterFill({ current, onApply, studyType = null, disabl
     setAddedNote("");
 
     try {
-      const next = fillReview(await extractChapterDocument(file));
+      const next = fillReview(await extractChapterDocument(file, studyType));
       setReview(next);
       setTicked(defaultTicks(next));
     } catch (e) {

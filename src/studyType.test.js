@@ -71,8 +71,29 @@ test("Chapters 1-3 import drops hypotheses and relabels sample size for qualitat
   const qual = reviewForStudyType(review, "qualitative");
   assert.deepEqual(qual.map((e) => e.field), ["title", "planned_sample_size"]);
   assert.equal(qual[1].label, "Number of participants");
+  assert.equal(qual[1].found, false);
 
   assert.equal(reviewForStudyType(review, "mixed"), review);
   assert.equal(reviewForStudyType(review, null), review);
   assert.equal(reviewForStudyType(null, "qualitative"), null);
+});
+
+test("a sample size read before switching to qualitative is not offered as participants", () => {
+  const review = [
+    {
+      field: "planned_sample_size",
+      label: "Planned sample size",
+      found: true,
+      value: 12,
+      items: [{ key: "planned_sample_size", text: "12 participants were purposively selected." }],
+      message: "",
+    },
+  ];
+  const [entry] = reviewForStudyType(review, "qualitative");
+  assert.equal(entry.found, false);
+  assert.deepEqual(entry.items, []);
+  assert.equal(entry.value, null);
+  assert.match(entry.message, /number of participants yourself/);
+  // A ticked key left over from the earlier read can't be applied.
+  assert.equal(reviewForStudyType(review, "mixed")[0].found, true);
 });

@@ -106,9 +106,15 @@ export function filledSections({ studyType, title, objectives, questions, hypoth
   return { filled: sections.filter(Boolean).length, total: sections.length };
 }
 
+export const QUALITATIVE_PARTICIPANTS_MESSAGE =
+  "Adanse doesn't read participant numbers from a qualitative methodology. Type the number of participants yourself if you want it in Chapter 4.";
+
 /*
  * Chapters 1-3 import, filtered for the study type: a qualitative study
- * gets no hypotheses row, and its sample-size row reads as participants.
+ * gets no hypotheses row, and never a number read from its methodology
+ * (a purposive participant count is not a sample size). The backend
+ * already skips it when told the study is qualitative; this also covers a
+ * file read before the student switched the type to qualitative.
  */
 export function reviewForStudyType(review, studyType) {
   if (!Array.isArray(review)) return review;
@@ -117,7 +123,14 @@ export function reviewForStudyType(review, studyType) {
     .filter((entry) => entry.field !== "hypotheses")
     .map((entry) =>
       entry.field === "planned_sample_size"
-        ? { ...entry, label: "Number of participants" }
+        ? {
+            ...entry,
+            label: "Number of participants",
+            found: false,
+            items: [],
+            value: null,
+            message: QUALITATIVE_PARTICIPANTS_MESSAGE,
+          }
         : entry
     );
 }
