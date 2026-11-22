@@ -344,6 +344,16 @@ export const uploadThesisDataset = (
  * student's own .docx. Needs no project and stores nothing. POST, so it is
  * never retried automatically (one AI call, daily cap per user).
  */
+/*
+ * "Tell me when transcript upload arrives" -- offered on the Data step only
+ * after a Word/text transcript was dropped. Sends the file type only.
+ */
+export const joinTranscriptWaitlist = (fileType) =>
+  request("/thesis/waitlist/transcripts", {
+    method: "POST",
+    body: { file_type: fileType },
+  });
+
 export const extractChapterDocument = (file, studyType = null) => {
   assertUploadSize(file);
 

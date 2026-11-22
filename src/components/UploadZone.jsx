@@ -1,6 +1,13 @@
 import { useRef, useState } from "react";
 import { FileUp } from "lucide-react";
 
+import { joinTranscriptWaitlist } from "../api.js";
+import {
+  INTERVIEW_GUIDANCE_STEPS,
+  INTERVIEW_GUIDANCE_TITLE,
+  transcriptFileType,
+  transcriptNotice,
+} from "../transcriptUpload.js";
 import { MAX_UPLOAD_MB } from "../uploadLimits.js";
 
 export default function UploadZone({
@@ -11,10 +18,34 @@ export default function UploadZone({
 }) {
   const inputRef = useRef(null);
   const [dragging, setDragging] = useState(false);
+  // The kind of transcript the student just dropped ("docx" / "doc" /
+  // "txt"), or null. Only then is the waitlist offered.
+  const [transcript, setTranscript] = useState(null);
+  const [waitlist, setWaitlist] = useState("idle");
 
   function handleFiles(files) {
-    if (files && files[0] && !disabled) {
-      onFileSelected(files[0]);
+    if (!files || !files[0] || disabled) return;
+
+    const file = files[0];
+    const fileType = transcriptFileType(file);
+    if (fileType) {
+      // Never sent to the dataset upload, which would only refuse it.
+      setTranscript(fileType);
+      return;
+    }
+
+    setTranscript(null);
+    onFileSelected(file);
+  }
+
+  async function joinWaitlist() {
+    if (!transcript || waitlist === "joining") return;
+    setWaitlist("joining");
+    try {
+      await joinTranscriptWaitlist(transcript);
+      setWaitlist("joined");
+    } catch {
+      setWaitlist("error");
     }
   }
 
@@ -124,6 +155,7 @@ export default function UploadZone({
    */
 
   return (
+    <>
     <div
       className={`upload-zone ${
         dragging ? "dragging" : ""
@@ -203,5 +235,67 @@ export default function UploadZone({
         }}
       />
     </div>
+
+    {transcript && (
+      <div className="transcript-waitlist" role="status">
+        <strong>{transcriptNotice(transcript)}</strong>
+
+        {waitlist === "joined" ? (
+          <span>
+            You're on the list. We'll email the address on
+            your account when transcript upload is ready.
+          </span>
+        ) : (
+          <>
+            <span>
+              Want to know when you can upload transcripts
+              directly?
+            </span>
+
+            <div className="transcript-waitlist-actions">
+              <button
+                className="btn btn-secondary"
+                type="button"
+                onClick={joinWaitlist}
+                disabled={waitlist === "joining"}
+              >
+                {waitlist === "joining"
+                  ? "Adding you…"
+                  : "Notify me when it's ready"}
+              </button>
+
+              <button
+                className="btn btn-tertiary"
+                type="button"
+                onClick={() => setTranscript(null)}
+              >
+                Dismiss
+              </button>
+            </div>
+
+            {waitlist === "error" && (
+              <span className="field-error">
+                Couldn't add you just now. Please try again.
+              </span>
+            )}
+          </>
+        )}
+      </div>
+    )}
+
+    <aside className="interview-guidance">
+      <strong>{INTERVIEW_GUIDANCE_TITLE}</strong>
+      <ul>
+        {INTERVIEW_GUIDANCE_STEPS.map((step) => (
+          <li key={step}>{step}</li>
+        ))}
+      </ul>
+      <span>
+        Each open-ended column is then analysed
+        theme by theme, with quotes from your
+        participants.
+      </span>
+    </aside>
+    </>
   );
 }

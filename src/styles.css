@@ -6349,3 +6349,43 @@ select {
     gap: 4px;
   }
 }
+
+/* =========================================================
+   DATA STEP: interview guidance + transcript waitlist
+   ========================================================= */
+
+.interview-guidance,
+.transcript-waitlist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.interview-guidance ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.interview-guidance > span {
+  color: var(--text-muted);
+}
+
+.transcript-waitlist {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.transcript-waitlist-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
