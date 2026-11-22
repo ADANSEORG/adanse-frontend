@@ -7,6 +7,12 @@ import {
   savedPlannedSample,
 } from "../plannedSample.js";
 import ChapterFill from "./ChapterFill.jsx";
+import {
+  STUDY_TYPE_OPTIONS,
+  filledSections,
+  normalizeStudyType,
+  setupFieldsFor,
+} from "../studyType.js";
 
 function ListEditor({
   label,
@@ -159,6 +165,11 @@ export default function ThesisSetup({
     return size ? String(size) : "";
   });
 
+  const [studyType, setStudyType] = useState(
+    normalizeStudyType(initial?.study_type)
+  );
+  const fields = setupFieldsFor(studyType);
+
   const plannedSampleError =
     parsePlannedSample(plannedSample).error;
 
@@ -172,19 +183,25 @@ export default function ThesisSetup({
       title: title.trim(),
       objectives,
       research_questions: questions,
+      // Always sent as they are, even while hidden for a qualitative
+      // study: hiding the field must never clear saved hypotheses.
       hypotheses,
       methodology,
       ...plannedSamplePayload(plannedSample,initial),
+      // Only sent once chosen; leaving it out keeps whatever is saved.
+      ...(studyType ? { study_type: studyType } : {}),
     });
   };
 
-  const filledSections = [
-    title.trim(),
-    objectives.length,
-    questions.length,
-    hypotheses.length,
-    plannedSample.trim(),
-  ].filter(Boolean).length;
+  const { filled, total } = filledSections({
+    studyType,
+    title,
+    objectives,
+    questions,
+    hypotheses,
+    plannedSample,
+  });
+  const hiddenHypotheses = !fields.showHypotheses && hypotheses.length > 0;
 
   return (
     <section className="research-page">
@@ -195,13 +212,51 @@ export default function ThesisSetup({
 
         <p className="page-help">
           Describe your study. Adanse uses this to
-          choose suitable statistical tests.
+          choose a suitable analysis: statistical
+          tests, thematic analysis, or both.
         </p>
       </header>
 
       <div className="research-layout">
         <div className="research-form">
-          <ChapterFill current={{title,objectives,research_questions:questions,hypotheses}} onApply={applyChapterFill} disabled={loading} />
+          <fieldset className="field-block study-type-block">
+            <legend className="study-type-legend">
+              What kind of study is this?
+            </legend>
+
+            <p className="field-help">
+              Adanse shows the fields that fit your
+              design. You can change this later.
+            </p>
+
+            <div className="study-type-options" role="radiogroup">
+              {STUDY_TYPE_OPTIONS.map((option) => (
+                <label
+                  key={option.value}
+                  className={`study-type-option${
+                    studyType === option.value ? " selected" : ""
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="study-type"
+                    value={option.value}
+                    checked={studyType === option.value}
+                    onChange={() => setStudyType(option.value)}
+                    disabled={loading}
+                  />
+                  <span className="study-type-option-label">
+                    {option.label}
+                  </span>
+                  <span className="study-type-option-help">
+                    {option.description}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          <ChapterFill current={{title,objectives,research_questions:questions,hypotheses}} studyType={studyType} onApply={applyChapterFill} disabled={loading} />
 
           <form onSubmit={submit}>
             <div className="field-block">
@@ -233,7 +288,7 @@ export default function ThesisSetup({
               help="Add each objective exactly as it appears in your proposal."
               value={objectives}
               onChange={setObjectives}
-              placeholder="e.g. To examine the extent of AI tool usage…"
+              placeholder={fields.objectivePlaceholder}
             />
 
             <ListEditor
@@ -243,18 +298,31 @@ export default function ThesisSetup({
               help="Optional, but useful when your questions differ from your objectives."
               value={questions}
               onChange={setQuestions}
-              placeholder="e.g. What is the extent of AI tool usage?"
+              placeholder={fields.questionPlaceholder}
             />
 
-            <ListEditor
-              label="Hypotheses"
-              itemLabel="Hypothesis"
-              addLabel="Add hypothesis"
-              help="Optional. Adanse preserves your wording when testing them."
-              value={hypotheses}
-              onChange={setHypotheses}
-              placeholder="e.g. H1: AI usage is significantly associated with GPA."
-            />
+            {fields.showHypotheses ? (
+              <ListEditor
+                label={fields.hypothesesLabel}
+                itemLabel="Hypothesis"
+                addLabel="Add hypothesis"
+                help={fields.hypothesesHelp}
+                value={hypotheses}
+                onChange={setHypotheses}
+                placeholder="e.g. H1: AI usage is significantly associated with GPA."
+              />
+            ) : (
+              hiddenHypotheses && (
+                <p className="field-help hidden-hypotheses-note">
+                  Your {hypotheses.length} saved{" "}
+                  {hypotheses.length === 1 ? "hypothesis is" : "hypotheses are"}{" "}
+                  kept but hidden, because qualitative studies
+                  don't test hypotheses. Choose Quantitative or
+                  Mixed methods to see{" "}
+                  {hypotheses.length === 1 ? "it" : "them"} again.
+                </p>
+              )
+            )}
 
             <div className="field-block">
               <label htmlFor="methodology">
@@ -269,19 +337,16 @@ export default function ThesisSetup({
                 onChange={(event) =>
                   setMethodology(event.target.value)
                 }
-                placeholder="e.g. Cross-sectional survey of undergraduate students…"
+                placeholder={fields.methodPlaceholder}
                 rows={4}
               />
             </div>
 
             <div className="field-block sample-size-block">
-              <label htmlFor="planned-sample-size">Planned sample size <span>optional</span></label>
+              <label htmlFor="planned-sample-size">{fields.sampleLabel} <span>optional</span></label>
 
               <p className="field-help">
-                How many respondents your study
-                planned to reach, as stated in your
-                Chapter 3. Adanse uses it to report
-                your response rate in Chapter 4.
+                {fields.sampleHelp}
               </p>
 
               <input
@@ -294,7 +359,7 @@ export default function ThesisSetup({
                     event.target.value
                   )
                 }
-                placeholder="e.g. 200"
+                placeholder={fields.samplePlaceholder}
                 aria-invalid={Boolean(
                   plannedSampleError
                 )}
@@ -337,6 +402,17 @@ export default function ThesisSetup({
           <h2>Your study so far</h2>
 
           <SummarySection
+            title="Study type"
+            items={
+              studyType
+                ? [STUDY_TYPE_OPTIONS.find((o) => o.value === studyType).label]
+                : []
+            }
+            numbered={false}
+            emptyLabel="Not chosen yet"
+          />
+
+          <SummarySection
             title="Study title"
             items={title.trim() ? [title.trim()] : []}
           />
@@ -351,14 +427,16 @@ export default function ThesisSetup({
             items={questions.filter(Boolean)}
           />
 
-          <SummarySection
-            title="Hypotheses"
-            items={hypotheses.filter(Boolean)}
-            numbered={false}
-          />
+          {fields.showHypotheses && (
+            <SummarySection
+              title={fields.hypothesesLabel}
+              items={hypotheses.filter(Boolean)}
+              numbered={false}
+            />
+          )}
 
           <SummarySection
-            title="Planned sample size"
+            title={fields.sampleLabel}
             items={
               plannedSample.trim()
                 ? [plannedSample.trim()]
@@ -368,7 +446,7 @@ export default function ThesisSetup({
           />
 
           <p className="study-summary-count">
-            {filledSections} of 5 sections filled
+            {filled} of {total} sections filled
           </p>
         </aside>
       </div>

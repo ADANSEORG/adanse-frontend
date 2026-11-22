@@ -6241,3 +6241,151 @@ select {
     transition: none !important;
   }
 }
+
+/* =========================================================
+   STUDY TYPE (Research details)
+   ========================================================= */
+
+.study-type-block {
+  border: 0;
+  padding: 0;
+  margin: 0 0 20px;
+  min-width: 0;
+}
+
+.study-type-legend {
+  padding: 0;
+  margin-bottom: 4px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.study-type-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.study-type-option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+  cursor: pointer;
+  transition: border-color var(--ease), background var(--ease);
+}
+
+.study-type-option:hover {
+  border-color: var(--border-strong);
+}
+
+.study-type-option.selected {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.study-type-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.study-type-option:focus-within {
+  box-shadow: var(--ring);
+}
+
+.study-type-option-label {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.study-type-option-help {
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.hidden-hypotheses-note {
+  margin: 0 0 20px;
+}
+
+@media (max-width: 650px) {
+  .study-type-options {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* AI coding fell back to placeholder codes (qualitative review) */
+.coding-fallback-warning {
+  margin: 0 0 12px;
+  border: 1px solid var(--warning);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.coding-fallback-warning strong {
+  color: var(--warning);
+}
+
+.placeholder-code-badge {
+  align-self: flex-start;
+  margin-bottom: 4px;
+  padding: 1px 8px;
+  border-color: var(--warning);
+  border-radius: 999px;
+  color: var(--warning);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@media (max-width: 650px) {
+  .coding-fallback-warning {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+
+/* =========================================================
+   DATA STEP: interview guidance + transcript waitlist
+   ========================================================= */
+
+.interview-guidance,
+.transcript-waitlist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.interview-guidance ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.interview-guidance > span {
+  color: var(--text-muted);
+}
+
+.transcript-waitlist {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.transcript-waitlist-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}

@@ -441,13 +441,14 @@ export default function AuthScreen() {
             </p>
 
             <h1 className="landing-title">
-              From dataset to defence.
+              From data to defence.
             </h1>
 
             <p className="landing-lede">
-              Prepare your dataset, choose defensible tests,
-              and draft Chapter 4 with every analysis decision
-              accounted for.
+              Prepare your survey or interview data, choose a
+              defensible analysis (statistical tests, thematic
+              analysis, or both) and draft Chapter 4 with every
+              analysis decision accounted for.
             </p>
 
             <div className="auth-features">
@@ -463,7 +464,7 @@ export default function AuthScreen() {
 
                   <p>
                     Research context, objectives and
-                    hypotheses.
+                    research questions.
                   </p>
                 </div>
               </div>
@@ -475,12 +476,12 @@ export default function AuthScreen() {
 
                 <div>
                   <strong>
-                    Review the dataset
+                    Review the data
                   </strong>
 
                   <p>
                     Cleaning decisions, variables and
-                    assumptions.
+                    open-ended responses.
                   </p>
                 </div>
               </div>
@@ -496,8 +497,9 @@ export default function AuthScreen() {
                   </strong>
 
                   <p>
-                    Tests chosen for the questions you
-                    actually asked.
+                    Statistical tests or thematic analysis,
+                    chosen for the questions you actually
+                    asked.
                   </p>
                 </div>
               </div>
