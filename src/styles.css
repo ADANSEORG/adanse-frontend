@@ -6318,3 +6318,34 @@ select {
     grid-template-columns: 1fr;
   }
 }
+
+/* AI coding fell back to placeholder codes (qualitative review) */
+.coding-fallback-warning {
+  margin: 0 0 12px;
+  border: 1px solid var(--warning);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.coding-fallback-warning strong {
+  color: var(--warning);
+}
+
+.placeholder-code-badge {
+  align-self: flex-start;
+  margin-bottom: 4px;
+  padding: 1px 8px;
+  border-color: var(--warning);
+  border-radius: 999px;
+  color: var(--warning);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@media (max-width: 650px) {
+  .coding-fallback-warning {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
